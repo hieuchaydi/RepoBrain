@@ -120,6 +120,69 @@ type WorkspaceSummary = {
   updated_at: string;
 };
 
+type WorkspaceCitation = {
+  file_path: string;
+  language: string;
+  role: string;
+  score: number;
+  start_line: number;
+  end_line: number;
+  symbol_name?: string | null;
+  reasons: string[];
+  preview: string;
+};
+
+type WorkspaceQueryResult = {
+  name: string;
+  repo_root: string;
+  active: boolean;
+  confidence: number;
+  intent: string;
+  top_files: string[];
+  warnings: string[];
+  summary: string;
+  memory_summary: string;
+  next_questions: string[];
+  citations: WorkspaceCitation[];
+};
+
+type WorkspaceComparison = {
+  best_match?: {
+    name: string;
+    repo_root: string;
+    confidence: number;
+    intent: string;
+    summary: string;
+  } | null;
+  active_rank?: number | null;
+  shared_hotspots?: Array<{
+    label: string;
+    count: number;
+    repos: string[];
+  }>;
+  intent_groups?: Array<{
+    intent: string;
+    count: number;
+    repos: string[];
+  }>;
+  notes?: string[];
+};
+
+type WorkspaceQueryData = {
+  kind: "workspace_query";
+  query: string;
+  current_repo: string;
+  project_count: number;
+  results: WorkspaceQueryResult[];
+  errors: Array<{
+    name: string;
+    repo_root: string;
+    error: string;
+  }>;
+  context_applied: boolean;
+  comparison: WorkspaceComparison;
+};
+
 type BootstrapPayload = {
   ok: boolean;
   active_repo: string;
@@ -139,7 +202,7 @@ type ActionPayload = {
   title: string;
   result: string;
   report_url?: string;
-  data?: DoctorData | ProviderSmokeData | null;
+  data?: DoctorData | ProviderSmokeData | WorkspaceQueryData | null;
   workspace?: WorkspacePayload;
   summary?: WorkspaceSummary | null;
 };
@@ -185,6 +248,15 @@ const copy = {
     questionPlaceholder: "Where is payment retry logic implemented?",
     run: "Run",
     resultTitle: "Result",
+    crossRepoOverview: "Cross-repo overview",
+    bestMatch: "Best match",
+    activeRank: "Active rank",
+    sharedHotspots: "Shared hotspots",
+    comparisonNotes: "Comparison notes",
+    citations: "Citations",
+    repoMemory: "Repo memory",
+    rawTranscript: "Raw transcript",
+    workspaceErrors: "Workspace errors",
     emptyResult:
       "No result yet. Import a repo, then run review, doctor, provider smoke, or a grounded question.",
     loading: "Working...",
@@ -288,6 +360,15 @@ const copy = {
     questionPlaceholder: "Logic payment retry nam o dau?",
     run: "Chay",
     resultTitle: "Ket qua",
+    crossRepoOverview: "Tong quan da repo",
+    bestMatch: "Repo dan dau",
+    activeRank: "Hang repo active",
+    sharedHotspots: "Hotspot chung",
+    comparisonNotes: "Ghi chu so sanh",
+    citations: "Citation",
+    repoMemory: "Bo nho repo",
+    rawTranscript: "Ban raw",
+    workspaceErrors: "Loi workspace",
     emptyResult:
       "Chua co ket qua. Hay import repo, sau do chay review, doctor, provider smoke, hoac mot cau hoi grounded.",
     loading: "Dang xu ly...",
@@ -511,6 +592,10 @@ function hasSummaryField(payload: ActionPayload): payload is ActionPayload & { s
   return Object.prototype.hasOwnProperty.call(payload, "summary");
 }
 
+function isWorkspaceQueryData(data: ActionPayload["data"]): data is WorkspaceQueryData {
+  return Boolean(data && typeof data === "object" && "kind" in data && data.kind === "workspace_query");
+}
+
 export function App() {
   const [locale, setLocale] = useLocale();
   const [theme, setTheme] = useTheme();
@@ -525,6 +610,7 @@ export function App() {
   const [resultTitle, setResultTitle] = useState("");
   const [resultBody, setResultBody] = useState("");
   const [resultAction, setResultAction] = useState<ActionKind>("query");
+  const [resultData, setResultData] = useState<ActionPayload["data"] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [doctorData, setDoctorData] = useState<DoctorData | null>(null);
   const [smokeData, setSmokeData] = useState<ProviderSmokeData | null>(null);
@@ -623,6 +709,7 @@ export function App() {
     setResultTitle(payload.title);
     setResultBody(payload.result);
     setResultAction(action);
+    setResultData(payload.data ?? null);
     appendActivity(action, payload.message);
 
     if (action === "doctor" && payload.data) {
@@ -767,6 +854,12 @@ export function App() {
     { title: t.hotFiles, items: summary?.top_files || [] },
     { title: t.nextThread, items: summary?.next_questions || [] },
   ];
+  const workspaceQueryData = resultAction === "multi" && isWorkspaceQueryData(resultData) ? resultData : null;
+  const comparison = workspaceQueryData?.comparison;
+  const bestMatch = comparison?.best_match ?? null;
+  const sharedHotspots = comparison?.shared_hotspots || [];
+  const comparisonNotes = comparison?.notes || [];
+  const workspaceErrors = workspaceQueryData?.errors || [];
 
   return (
     <main className="app-shell">
@@ -1203,7 +1296,148 @@ export function App() {
           <h2>{resultTitle || t.resultTitle}</h2>
           <span className="result-chip">{resultBadge}</span>
         </div>
-        <pre>{resultBody || t.emptyResult}</pre>
+        {workspaceQueryData ? (
+          <div className="result-stack">
+            <div className="compact-grid result-summary-grid">
+              <article className="compact-card">
+                <span>{t.bestMatch}</span>
+                <strong>{bestMatch?.name || t.unavailable}</strong>
+                <p>
+                  {bestMatch
+                    ? `${bestMatch.intent} | ${bestMatch.confidence.toFixed(3)}`
+                    : t.noSummary}
+                </p>
+              </article>
+              <article className="compact-card">
+                <span>{t.activeRank}</span>
+                <strong>{comparison?.active_rank ?? t.unavailable}</strong>
+                <p>{workspaceQueryData.current_repo || t.none}</p>
+              </article>
+              <article className="compact-card">
+                <span>{t.sharedHotspots}</span>
+                <strong>{sharedHotspots.length}</strong>
+                <p>
+                  {sharedHotspots.length > 0
+                    ? sharedHotspots.map((item) => item.label).join(" | ")
+                    : t.noWarnings}
+                </p>
+              </article>
+            </div>
+
+            <div className="subpanel-grid result-summary-grid">
+              <article className="subpanel-card">
+                <div className="subpanel-head">
+                  <h3>{t.comparisonNotes}</h3>
+                  <span className="mini-pill">{comparisonNotes.length}</span>
+                </div>
+                {comparisonNotes.length > 0 ? (
+                  <ul className="summary-list">
+                    {comparisonNotes.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="empty-state compact-empty">{t.noSummary}</div>
+                )}
+              </article>
+
+              <article className="subpanel-card">
+                <div className="subpanel-head">
+                  <h3>{t.workspaceErrors}</h3>
+                  <span className="mini-pill">{workspaceErrors.length}</span>
+                </div>
+                {workspaceErrors.length > 0 ? (
+                  <div className="status-list">
+                    {workspaceErrors.map((item) => (
+                      <article key={`${item.repo_root}:${item.error}`} className="status-item bad">
+                        <div className="status-row">
+                          <strong>{item.name}</strong>
+                          <span>{item.repo_root}</span>
+                        </div>
+                        <p>{item.error}</p>
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="empty-state compact-empty">{t.noWarnings}</div>
+                )}
+              </article>
+            </div>
+
+            <div className="status-list result-workspace-list">
+              {workspaceQueryData.results.map((item) => (
+                <article key={item.repo_root} className={`status-item ${item.active ? "good" : "neutral"}`}>
+                  <div className="status-row">
+                    <strong>
+                      {item.name}
+                      {item.active ? ` · ${t.activeLabel}` : ""}
+                    </strong>
+                    <span>
+                      {item.intent} | {item.confidence.toFixed(3)}
+                    </span>
+                  </div>
+                  <p>{item.summary}</p>
+                  <small>{item.repo_root}</small>
+                  {item.memory_summary ? (
+                    <div className="inline-pills">
+                      <span className="inline-pill">{t.repoMemory}</span>
+                      <span className="inline-pill neutral">{item.memory_summary}</span>
+                    </div>
+                  ) : null}
+                  {item.citations.length > 0 ? (
+                    <div className="citation-list">
+                      {item.citations.map((citation) => (
+                        <article
+                          key={`${item.repo_root}:${citation.file_path}:${citation.start_line}:${citation.end_line}`}
+                          className="citation-item"
+                        >
+                          <div className="citation-meta">
+                            <strong className="citation-path">
+                              {citation.file_path}:{citation.start_line}-{citation.end_line}
+                              {citation.symbol_name ? `::${citation.symbol_name}` : ""}
+                            </strong>
+                            <span>{citation.score.toFixed(3)}</span>
+                          </div>
+                          <p className="citation-preview">{citation.preview || t.noSummary}</p>
+                        </article>
+                      ))}
+                    </div>
+                  ) : null}
+                  {item.top_files.length > 0 ? (
+                    <div className="result-meta-block">
+                      <span className="eyebrow">{t.hotFiles}</span>
+                      <ul className="summary-list">
+                        {item.top_files.map((path) => (
+                          <li key={path}>{path}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                  {item.next_questions.length > 0 ? (
+                    <div className="result-meta-block">
+                      <span className="eyebrow">{t.nextThread}</span>
+                      <ul className="summary-list">
+                        {item.next_questions.map((questionText) => (
+                          <li key={questionText}>{questionText}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                </article>
+              ))}
+            </div>
+
+            <article className="subpanel-card inset">
+              <div className="subpanel-head">
+                <h3>{t.rawTranscript}</h3>
+                <span className="mini-pill">{workspaceQueryData.results.length}</span>
+              </div>
+              <pre>{resultBody || t.emptyResult}</pre>
+            </article>
+          </div>
+        ) : (
+          <pre>{resultBody || t.emptyResult}</pre>
+        )}
       </section>
     </main>
   );

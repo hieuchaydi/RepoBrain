@@ -90,7 +90,7 @@ This unreleased track now maps most closely to the `0.5.x` integration line: it 
 - Live provider access checks through `repobrain provider-smoke`
 - Active repo memory: run `repobrain init --repo <path>` once, then omit `--repo`
 - Local browser UI through `repobrain serve-web --open`
-- React TSX local browser UI with English/Vietnamese interface toggle, light/dark theme, structured diagnostics cards, tracked workspace switching, repo memory notes, and cross-repo query mode
+- React TSX local browser UI with English/Vietnamese interface toggle, light/dark theme, structured diagnostics cards, tracked workspace switching, repo memory notes, and cross-repo query mode with leaders, shared hotspots, and citation previews
 - Persisted workspace memory shared across CLI chat, browser UI, and MCP tools
 - Concise repo scan through `repobrain review --format text`
 - Optional SDK-backed Gemini/OpenAI/Voyage/Cohere provider adapters

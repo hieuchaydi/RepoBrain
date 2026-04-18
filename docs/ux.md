@@ -63,7 +63,7 @@ Chat commands:
 - `/projects`: list tracked repos in the lightweight workspace registry
 - `/add <path>`: track a repo and make it active for the next commands
 - `/use <repo>`: switch the active tracked repo without leaving chat
-- `/multi <question>`: run the same grounded query across every tracked repo and compare evidence per project
+- `/multi <question>`: run the same grounded query across every tracked repo and compare leaders, shared hotspots, and per-repo citations
 - `/trace <question>`: trace route/service/job-like flows
 - `/impact <question>`: inspect likely affected surfaces
 - `/targets <question>`: rank files to inspect or edit

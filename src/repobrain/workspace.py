@@ -177,6 +177,13 @@ def _short_file_list(paths: list[str]) -> str:
     return ", ".join(labels[:4])
 
 
+def _compact_preview(text: str, *, limit: int = 160) -> str:
+    preview = " ".join(str(text).split())
+    if len(preview) <= limit:
+        return preview
+    return preview[: limit - 3].rstrip() + "..."
+
+
 def _compose_summary(memory: dict[str, Any]) -> str:
     parts: list[str] = []
     manual_notes = list(memory.get("manual_notes", []))
@@ -352,7 +359,7 @@ def clear_workspace_notes(project_ref: str | Path | None = None) -> dict[str, An
     return workspace_summary_payload(project.get("repo_root"), message="Cleared repo memory notes.")
 
 
-def remember_query_result(repo_root: str | Path, *, query: str, result: QueryResult) -> None:
+def remember_query_result(repo_root: str | Path, *, query: str, result: QueryResult) -> dict[str, Any]:
     resolved = _resolve_repo_root(repo_root)
     state = load_workspace_state()
     project = _ensure_project(state, resolved)
@@ -371,6 +378,7 @@ def remember_query_result(repo_root: str | Path, *, query: str, result: QueryRes
     project["last_used_at"] = _now_iso()
     state["current_repo"] = str(resolved)
     save_workspace_state(state)
+    return _project_payload(project, state["current_repo"])
 
 
 def project_context_hint(repo_root: str | Path, *, focus: str | None = None) -> str | None:
@@ -399,6 +407,139 @@ def _workspace_result_summary(result: QueryResult) -> str:
     return f"{result.intent.value} via {top_files}; {warning}"
 
 
+def _workspace_citations(result: QueryResult) -> list[dict[str, Any]]:
+    citations: list[dict[str, Any]] = []
+    for hit in result.snippets[:2]:
+        preview = _compact_preview(hit.content)
+        citations.append(
+            {
+                "file_path": hit.file_path,
+                "language": hit.language,
+                "role": hit.role,
+                "score": round(hit.score, 3),
+                "start_line": hit.start_line,
+                "end_line": hit.end_line,
+                "symbol_name": hit.symbol_name,
+                "reasons": list(hit.reasons[:4]),
+                "preview": preview,
+            }
+        )
+    return citations
+
+
+def _workspace_repo_result_payload(
+    *,
+    project: dict[str, Any],
+    repo_root: Path,
+    current_repo_path: Path,
+    result: QueryResult,
+    memory_summary: str,
+) -> dict[str, Any]:
+    return {
+        "name": project.get("name", repo_root.name),
+        "repo_root": str(repo_root),
+        "active": repo_root == current_repo_path,
+        "confidence": round(result.confidence, 3),
+        "intent": result.intent.value,
+        "top_files": [item.file_path for item in result.top_files[:3]],
+        "warnings": result.warnings[:2],
+        "summary": _workspace_result_summary(result),
+        "memory_summary": memory_summary,
+        "next_questions": result.next_questions[:2],
+        "citations": _workspace_citations(result),
+    }
+
+
+def _comparison_best_match(results: list[dict[str, Any]]) -> dict[str, Any] | None:
+    if not results:
+        return None
+    best = results[0]
+    return {
+        "name": best.get("name"),
+        "repo_root": best.get("repo_root"),
+        "confidence": best.get("confidence"),
+        "intent": best.get("intent"),
+        "summary": best.get("summary"),
+    }
+
+
+def _comparison_active_rank(results: list[dict[str, Any]]) -> int | None:
+    for index, item in enumerate(results, start=1):
+        if item.get("active"):
+            return index
+    return None
+
+
+def _comparison_shared_hotspots(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    hotspots: dict[str, set[str]] = {}
+    for item in results:
+        repo_name = str(item.get("name", "")).strip()
+        top_files = item.get("top_files", [])
+        if not repo_name or not isinstance(top_files, list):
+            continue
+        for path in top_files[:3]:
+            label = Path(str(path)).name or str(path)
+            hotspots.setdefault(label, set()).add(repo_name)
+
+    shared: list[dict[str, Any]] = []
+    for label, repos in hotspots.items():
+        if len(repos) < 2:
+            continue
+        shared.append({"label": label, "count": len(repos), "repos": sorted(repos)})
+    shared.sort(key=lambda item: (-int(item.get("count", 0)), str(item.get("label", ""))))
+    return shared[:3]
+
+
+def _comparison_intent_groups(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    groups: dict[str, list[str]] = {}
+    for item in results:
+        intent = str(item.get("intent", "")).strip()
+        repo_name = str(item.get("name", "")).strip()
+        if not intent or not repo_name:
+            continue
+        groups.setdefault(intent, []).append(repo_name)
+
+    ranked = [
+        {"intent": intent, "count": len(repos), "repos": repos}
+        for intent, repos in groups.items()
+    ]
+    ranked.sort(key=lambda item: (-int(item.get("count", 0)), str(item.get("intent", ""))))
+    return ranked
+
+
+def _workspace_comparison_payload(results: list[dict[str, Any]]) -> dict[str, Any]:
+    best_match = _comparison_best_match(results)
+    active_rank = _comparison_active_rank(results)
+    shared_hotspots = _comparison_shared_hotspots(results)
+    intent_groups = _comparison_intent_groups(results)
+
+    notes: list[str] = []
+    if best_match is not None:
+        notes.append(
+            f"Best evidence currently leans toward {best_match['name']} ({float(best_match['confidence'] or 0.0):.3f})."
+        )
+    if active_rank is not None:
+        notes.append(f"Active repo ranks #{active_rank} in the current cross-repo pass.")
+    if shared_hotspots:
+        hotspot = shared_hotspots[0]
+        notes.append(
+            f"Shared hotspot: {hotspot['label']} appears across {int(hotspot['count'])} tracked repos."
+        )
+    if intent_groups:
+        leading_intent = intent_groups[0]
+        notes.append(
+            f"Most repos interpret the ask as `{leading_intent['intent']}` ({int(leading_intent['count'])} repo matches)."
+        )
+
+    return {
+        "best_match": best_match,
+        "active_rank": active_rank,
+        "shared_hotspots": shared_hotspots,
+        "intent_groups": intent_groups,
+        "notes": notes,
+    }
+
+
 def workspace_query_payload(
     query: str,
     *,
@@ -415,25 +556,28 @@ def workspace_query_payload(
     current_repo_path = _resolve_repo_root(current_repo)
     results: list[dict[str, Any]] = []
     errors: list[dict[str, str]] = []
+    context_applied = False
 
     for project in projects:
         repo_root = Path(str(project.get("repo_root", ""))).expanduser().resolve()
         try:
             engine = engine_factory(repo_root)
+            if hasattr(engine, "store") and hasattr(engine.store, "indexed") and callable(engine.store.indexed):
+                if not engine.store.indexed():
+                    engine.index_repository()
             repo_context = project_context_hint(repo_root, focus=focus) or context
+            if repo_context:
+                context_applied = True
             result = engine.query(query, context=repo_context)
-            remember_query_result(repo_root, query=query, result=result)
+            memory_payload = remember_query_result(repo_root, query=query, result=result)
             results.append(
-                {
-                    "name": project.get("name", repo_root.name),
-                    "repo_root": str(repo_root),
-                    "active": repo_root == current_repo_path,
-                    "confidence": result.confidence,
-                    "intent": result.intent.value,
-                    "top_files": [item.file_path for item in result.top_files[:3]],
-                    "warnings": result.warnings[:2],
-                    "summary": _workspace_result_summary(result),
-                }
+                _workspace_repo_result_payload(
+                    project=project,
+                    repo_root=repo_root,
+                    current_repo_path=current_repo_path,
+                    result=result,
+                    memory_summary=str(memory_payload.get("summary", "")).strip(),
+                )
             )
         except Exception as exc:
             errors.append(
@@ -452,5 +596,6 @@ def workspace_query_payload(
         "project_count": len(projects),
         "results": results,
         "errors": errors,
-        "context_applied": bool(context),
+        "context_applied": context_applied,
+        "comparison": _workspace_comparison_payload(results),
     }

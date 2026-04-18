@@ -100,6 +100,13 @@ Input:
 
 Fans a grounded query out across every tracked repo and compares the strongest evidence per project.
 
+The result now includes:
+
+- `comparison.best_match`: the repo currently leading the cross-repo pass
+- `comparison.active_rank`: where the active repo landed in the ranking
+- `comparison.shared_hotspots`: repeated file hotspots across tracked repos
+- `results[].citations`: short per-repo citation blocks with file path, line span, and preview text
+
 ## Stdio Protocol
 
 Request examples:

@@ -516,6 +516,7 @@ def workspace_summary_to_text(payload: dict[str, Any]) -> str:
 def workspace_query_to_text(payload: dict[str, Any]) -> str:
     results = payload.get("results", []) if isinstance(payload.get("results"), list) else []
     errors = payload.get("errors", []) if isinstance(payload.get("errors"), list) else []
+    comparison = payload.get("comparison", {}) if isinstance(payload.get("comparison"), dict) else {}
     lines = [
         "RepoBrain Cross-Repo Query",
         f"Question: {payload.get('query')}",
@@ -523,6 +524,35 @@ def workspace_query_to_text(payload: dict[str, Any]) -> str:
         f"Compared repos: {payload.get('project_count', len(results))}",
         f"Context applied: {'yes' if payload.get('context_applied') else 'no'}",
     ]
+    best_match = comparison.get("best_match")
+    if isinstance(best_match, dict) and best_match:
+        lines.extend(
+            [
+                "",
+                "Leader:",
+                f"- {best_match.get('name')} confidence={float(best_match.get('confidence', 0.0)):.3f} intent={best_match.get('intent')}",
+            ]
+        )
+        if best_match.get("summary"):
+            lines.append(f"  {best_match.get('summary')}")
+
+    comparison_notes = comparison.get("notes", [])
+    if isinstance(comparison_notes, list) and comparison_notes:
+        lines.extend(["", "Comparison notes:"])
+        lines.extend(f"- {item}" for item in comparison_notes[:4])
+
+    shared_hotspots = comparison.get("shared_hotspots", [])
+    if isinstance(shared_hotspots, list) and shared_hotspots:
+        lines.extend(["", "Shared hotspots:"])
+        for item in shared_hotspots[:3]:
+            if not isinstance(item, dict):
+                continue
+            repo_names = item.get("repos", [])
+            repo_label = ", ".join(str(name) for name in repo_names[:4]) if isinstance(repo_names, list) else ""
+            lines.append(f"- {item.get('label')} across {int(item.get('count', 0))} repos")
+            if repo_label:
+                lines.append(f"  repos: {repo_label}")
+
     if results:
         lines.extend(["", "Best evidence by repo:"])
         for index, item in enumerate(results, start=1):
@@ -538,9 +568,27 @@ def workspace_query_to_text(payload: dict[str, Any]) -> str:
                 lines.append(f"   top files: {', '.join(str(path) for path in top_files[:3])}")
             if item.get("summary"):
                 lines.append(f"   summary: {item.get('summary')}")
+            if item.get("memory_summary"):
+                lines.append(f"   memory: {item.get('memory_summary')}")
+            citations = item.get("citations", [])
+            if isinstance(citations, list) and citations:
+                lines.append("   citations:")
+                for citation in citations[:2]:
+                    if not isinstance(citation, dict):
+                        continue
+                    symbol = f"::{citation.get('symbol_name')}" if citation.get("symbol_name") else ""
+                    lines.append(
+                        f"   - {citation.get('file_path')}:{citation.get('start_line')}-{citation.get('end_line')}{symbol}"
+                    )
+                    preview = str(citation.get("preview", "")).strip()
+                    if preview:
+                        lines.append(f"     {preview}")
             warnings = item.get("warnings", [])
             if isinstance(warnings, list) and warnings:
                 lines.append(f"   warnings: {'; '.join(str(warning) for warning in warnings[:2])}")
+            next_questions = item.get("next_questions", [])
+            if isinstance(next_questions, list) and next_questions:
+                lines.append(f"   next: {' | '.join(str(question) for question in next_questions[:2])}")
     else:
         lines.extend(["", "No successful repo results."])
 

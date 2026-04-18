@@ -16,11 +16,11 @@
 - richer interactive chat summaries instead of raw JSON only
 - deepen `/map`, `/evidence`, `/focus`, `/summary`, and `/multi` into first-class answer modes instead of mostly retrieval wrappers
 - add summary compaction and eviction rules so long-running repo memory stays useful instead of drifting into noisy notes
-- expose structured citations and per-repo evidence comparisons in browser and MCP workspace results, not just plain text summaries
 
 ## P2
 
 - true cross-repo retrieval/index federation instead of per-repo fan-out orchestration
+- add a shared multi-repo retrieval layer so `/multi` can rank evidence globally before grouping it back by repo
 - graph export for visualization
 - IDE-native formatting helpers for citations and evidence blocks
 - richer demo assets and benchmark reports

@@ -75,3 +75,21 @@ def test_mcp_server_can_track_switch_and_remember_workspace_repo(mixed_repo: Pat
     summary = server.tools["remember_repo_note"].handler({"note": "auth callback is the long-term thread"})
     assert summary["repo_root"] == str(second_repo.resolve())
     assert "auth callback is the long-term thread" in summary["manual_notes"]
+
+
+def test_mcp_workspace_search_returns_structured_comparison(mixed_repo: Path, tmp_path: Path) -> None:
+    second_repo = tmp_path / "sample_repo_two"
+    shutil.copytree(mixed_repo, second_repo)
+
+    engine = RepoBrainEngine(mixed_repo)
+    server = RepoBrainMCPServer(engine)
+
+    server.tools["track_workspace_project"].handler({"repo": str(mixed_repo), "activate": True})
+    server.tools["track_workspace_project"].handler({"repo": str(second_repo), "activate": False})
+
+    payload = server.tools["search_workspace"].handler({"query": "auth callback"})
+
+    assert payload["kind"] == "workspace_query"
+    assert payload["comparison"]["best_match"]["name"] in {"sample_repo", "sample_repo_two"}
+    assert "shared_hotspots" in payload["comparison"]
+    assert isinstance(payload["results"][0]["citations"], list)
