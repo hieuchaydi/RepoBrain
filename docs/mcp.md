@@ -98,14 +98,16 @@ Input:
 {"query": "Where is auth callback handled across my repos?"}
 ```
 
-Fans a grounded query out across every tracked repo and compares the strongest evidence per project.
+Fans a grounded query out across every tracked repo, ranks the strongest citations across the whole workspace, and then groups the best evidence back by project.
 
 The result now includes:
 
 - `comparison.best_match`: the repo currently leading the cross-repo pass
 - `comparison.active_rank`: where the active repo landed in the ranking
+- `comparison.global_evidence`: the top citation blocks across the full workspace, regardless of repo
 - `comparison.shared_hotspots`: repeated file hotspots across tracked repos
 - `results[].citations`: short per-repo citation blocks with file path, line span, and preview text
+- `results[].global_rank`: the repo's position after the workspace-wide citation ranking pass
 
 ## Stdio Protocol
 

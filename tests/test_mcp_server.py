@@ -91,5 +91,7 @@ def test_mcp_workspace_search_returns_structured_comparison(mixed_repo: Path, tm
 
     assert payload["kind"] == "workspace_query"
     assert payload["comparison"]["best_match"]["name"] in {"sample_repo", "sample_repo_two"}
+    assert isinstance(payload["comparison"]["global_evidence"], list)
     assert "shared_hotspots" in payload["comparison"]
+    assert "global_rank" in payload["results"][0]
     assert isinstance(payload["results"][0]["citations"], list)

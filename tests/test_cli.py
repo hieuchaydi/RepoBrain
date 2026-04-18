@@ -206,11 +206,30 @@ def test_workspace_query_text_includes_comparison_and_citations() -> None:
                 "name": "repo-a",
                 "repo_root": "c:/repo-a",
                 "confidence": 0.88,
+                "evidence_score": 0.77,
+                "global_rank": 1,
                 "intent": "locate",
                 "summary": "locate via auth_service.py; no major warnings",
             },
             "active_rank": 1,
             "shared_hotspots": [{"label": "auth_service.py", "count": 2, "repos": ["repo-a", "repo-b"]}],
+            "global_evidence": [
+                {
+                    "name": "repo-a",
+                    "repo_root": "c:/repo-a",
+                    "active": True,
+                    "rank": 1,
+                    "file_path": "backend/auth_service.py",
+                    "language": "python",
+                    "role": "service",
+                    "score": 0.77,
+                    "start_line": 12,
+                    "end_line": 24,
+                    "symbol_name": "handle_callback",
+                    "reasons": ["vector", "path_overlap"],
+                    "preview": "def handle_callback(...): return finalize_auth()",
+                }
+            ],
             "notes": ["Best evidence currently leans toward repo-a (0.880)."],
         },
         "results": [
@@ -219,6 +238,8 @@ def test_workspace_query_text_includes_comparison_and_citations() -> None:
                 "repo_root": "c:/repo-a",
                 "active": True,
                 "confidence": 0.88,
+                "evidence_score": 0.77,
+                "global_rank": 1,
                 "intent": "locate",
                 "top_files": ["backend/auth_service.py"],
                 "warnings": ["Cross-check route wiring."],
@@ -247,7 +268,9 @@ def test_workspace_query_text_includes_comparison_and_citations() -> None:
 
     assert "Comparison notes:" in output
     assert "Shared hotspots:" in output
+    assert "Global evidence leaders:" in output
     assert "citations:" in output
+    assert "rank=#1 citation=0.770 confidence=0.880" in output
     assert "backend/auth_service.py:12-24::handle_callback" in output
 
 

@@ -137,6 +137,8 @@ type WorkspaceQueryResult = {
   repo_root: string;
   active: boolean;
   confidence: number;
+  evidence_score: number;
+  global_rank?: number | null;
   intent: string;
   top_files: string[];
   warnings: string[];
@@ -146,11 +148,20 @@ type WorkspaceQueryResult = {
   citations: WorkspaceCitation[];
 };
 
+type WorkspaceGlobalEvidenceHit = WorkspaceCitation & {
+  name: string;
+  repo_root: string;
+  active: boolean;
+  rank?: number | null;
+};
+
 type WorkspaceComparison = {
   best_match?: {
     name: string;
     repo_root: string;
     confidence: number;
+    evidence_score: number;
+    global_rank?: number | null;
     intent: string;
     summary: string;
   } | null;
@@ -165,6 +176,7 @@ type WorkspaceComparison = {
     count: number;
     repos: string[];
   }>;
+  global_evidence?: WorkspaceGlobalEvidenceHit[];
   notes?: string[];
 };
 
@@ -253,6 +265,9 @@ const copy = {
     activeRank: "Active rank",
     sharedHotspots: "Shared hotspots",
     comparisonNotes: "Comparison notes",
+    evidenceLeaders: "Evidence leaders",
+    citationScore: "Citation score",
+    globalRank: "Global rank",
     citations: "Citations",
     repoMemory: "Repo memory",
     rawTranscript: "Raw transcript",
@@ -365,6 +380,9 @@ const copy = {
     activeRank: "Hang repo active",
     sharedHotspots: "Hotspot chung",
     comparisonNotes: "Ghi chu so sanh",
+    evidenceLeaders: "Evidence dan dau",
+    citationScore: "Diem citation",
+    globalRank: "Hang toan workspace",
     citations: "Citation",
     repoMemory: "Bo nho repo",
     rawTranscript: "Ban raw",
@@ -859,6 +877,7 @@ export function App() {
   const bestMatch = comparison?.best_match ?? null;
   const sharedHotspots = comparison?.shared_hotspots || [];
   const comparisonNotes = comparison?.notes || [];
+  const globalEvidence = comparison?.global_evidence || [];
   const workspaceErrors = workspaceQueryData?.errors || [];
 
   return (
@@ -1304,22 +1323,20 @@ export function App() {
                 <strong>{bestMatch?.name || t.unavailable}</strong>
                 <p>
                   {bestMatch
-                    ? `${bestMatch.intent} | ${bestMatch.confidence.toFixed(3)}`
+                    ? `#${bestMatch.global_rank ?? "?"} | ${bestMatch.intent} | ${bestMatch.evidence_score.toFixed(3)}`
                     : t.noSummary}
                 </p>
               </article>
               <article className="compact-card">
-                <span>{t.activeRank}</span>
-                <strong>{comparison?.active_rank ?? t.unavailable}</strong>
-                <p>{workspaceQueryData.current_repo || t.none}</p>
+                <span>{t.citationScore}</span>
+                <strong>{bestMatch?.evidence_score?.toFixed(3) || t.unavailable}</strong>
+                <p>{bestMatch?.summary || t.noSummary}</p>
               </article>
               <article className="compact-card">
-                <span>{t.sharedHotspots}</span>
-                <strong>{sharedHotspots.length}</strong>
+                <span>{t.activeRank}</span>
+                <strong>{comparison?.active_rank ?? t.unavailable}</strong>
                 <p>
-                  {sharedHotspots.length > 0
-                    ? sharedHotspots.map((item) => item.label).join(" | ")
-                    : t.noWarnings}
+                  {workspaceQueryData.current_repo || t.none}
                 </p>
               </article>
             </div>
@@ -1338,6 +1355,54 @@ export function App() {
                   </ul>
                 ) : (
                   <div className="empty-state compact-empty">{t.noSummary}</div>
+                )}
+              </article>
+
+              <article className="subpanel-card">
+                <div className="subpanel-head">
+                  <h3>{t.evidenceLeaders}</h3>
+                  <span className="mini-pill">{globalEvidence.length}</span>
+                </div>
+                {globalEvidence.length > 0 ? (
+                  <div className="citation-list">
+                    {globalEvidence.map((citation) => (
+                      <article
+                        key={`${citation.repo_root}:${citation.file_path}:${citation.start_line}:${citation.end_line}:${citation.rank}`}
+                        className="citation-item"
+                      >
+                        <div className="citation-meta">
+                          <strong className="citation-path">
+                            #{citation.rank ?? "?"} {citation.name}
+                            {citation.active ? ` · ${t.activeLabel}` : ""} · {citation.file_path}:{citation.start_line}-
+                            {citation.end_line}
+                            {citation.symbol_name ? `::${citation.symbol_name}` : ""}
+                          </strong>
+                          <span>{citation.score.toFixed(3)}</span>
+                        </div>
+                        <p className="citation-preview">{citation.preview || t.noSummary}</p>
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="empty-state compact-empty">{t.noWarnings}</div>
+                )}
+              </article>
+
+              <article className="subpanel-card">
+                <div className="subpanel-head">
+                  <h3>{t.sharedHotspots}</h3>
+                  <span className="mini-pill">{sharedHotspots.length}</span>
+                </div>
+                {sharedHotspots.length > 0 ? (
+                  <ul className="summary-list">
+                    {sharedHotspots.map((item) => (
+                      <li key={`${item.label}:${item.count}`}>
+                        {item.label} · {item.count} repo · {item.repos.join(" | ")}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="empty-state compact-empty">{t.noWarnings}</div>
                 )}
               </article>
 
@@ -1373,7 +1438,8 @@ export function App() {
                       {item.active ? ` · ${t.activeLabel}` : ""}
                     </strong>
                     <span>
-                      {item.intent} | {item.confidence.toFixed(3)}
+                      #{item.global_rank ?? "?"} | {item.intent} | {item.evidence_score.toFixed(3)} /{" "}
+                      {item.confidence.toFixed(3)}
                     </span>
                   </div>
                   <p>{item.summary}</p>

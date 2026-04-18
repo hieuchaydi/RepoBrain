@@ -297,6 +297,8 @@ def test_web_workspace_use_memory_and_multi_query_flow(mixed_repo: Path, tmp_pat
     assert "sample_repo_two" in multi_payload["result"]
     assert multi_payload["data"]["kind"] == "workspace_query"
     assert multi_payload["data"]["comparison"]["best_match"]["name"] in {"sample_repo", "sample_repo_two"}
+    assert isinstance(multi_payload["data"]["comparison"]["global_evidence"], list)
+    assert "global_rank" in multi_payload["data"]["results"][0]
     assert isinstance(multi_payload["data"]["results"][0]["citations"], list)
 
 
