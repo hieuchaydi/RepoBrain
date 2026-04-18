@@ -97,10 +97,9 @@ The workstream later expanded to cover the local browser UI as well: the web fro
 
 ## Known Blockers
 
-- Full `pytest` completion is currently blocked in this workspace by Windows permission errors on pytest temp directories:
-  - `WinError 5`
-  - affected paths included `pytest_tmp` and `pytest_tmp_rb`
-- This looks like an environment or workspace lock issue, not a failure in the fallback logic itself.
+- Full `pytest` was previously blocked in this workspace by Windows permission errors on generated pytest temp directories.
+- Follow-up on 2026-04-18 moved pytest to a fresh root-level `.pytest_tmp_run` basetemp, ignored locked generated temp folders, and skipped `tests/tmp_base` collection.
+- Current verification result: `python -m pytest -q` passes with `60 passed`.
 
 ## What Is Not Done Yet
 

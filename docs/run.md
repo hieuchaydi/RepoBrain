@@ -181,9 +181,10 @@ If you are working on RepoBrain itself:
 ```bash
 python -m pip install -e ".[dev,tree-sitter,mcp]"
 python -m compileall src
+python -m pytest -q
 ```
 
-Pytest is included in the repo, but in this workspace the sandbox has been restrictive around pytest temp directories. If that happens in your environment, use the manual smoke flow below.
+Pytest is configured to use `.pytest_tmp_run/` so old locked temp folders such as `pytest_tmp/` do not block normal local runs on Windows.
 
 ## Manual Smoke Flow
 

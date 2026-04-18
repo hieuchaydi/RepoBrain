@@ -152,11 +152,9 @@ class RepoBrainEngine:
         providers: dict[str, object] = {
             "embedding": self.providers.embedder.name,
             "reranker": self.providers.reranker.name,
+            "embedding_model": getattr(self.providers.embedder, "model", "n/a"),
+            "reranker_model": getattr(self.providers.reranker, "model", "n/a"),
         }
-        if hasattr(self.providers.embedder, "model"):
-            providers["embedding_model"] = getattr(self.providers.embedder, "model")
-        if hasattr(self.providers.reranker, "model"):
-            providers["reranker_model"] = getattr(self.providers.reranker, "model")
         if hasattr(self.providers.reranker, "models"):
             providers["reranker_models"] = list(getattr(self.providers.reranker, "models"))
         if hasattr(self.providers.reranker, "last_failover_error"):

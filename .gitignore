@@ -21,10 +21,15 @@ __pycache__/
 # Test, coverage, lint, and type-check caches
 .pytest_cache/
 .pytest_tmp/
+.pytest_tmp_run/
 .pytest_tmp_review/
 pytest_tmp/
+pytest_tmp*/
 pytest_tmp_run/
+pytest_work*/
 pytest-cache-files-*
+tests/tmp_base/
+tmp*/
 .coverage
 .coverage.*
 coverage.xml
@@ -39,6 +44,8 @@ build/
 dist/
 !webapp/dist/
 !webapp/dist/**
+.tmp-build/
+.tmp-test-runs/
 site/
 .eggs/
 *.egg-info/
@@ -50,6 +57,7 @@ webapp/.npm-cache/
 *.log
 *.tmp
 *.temp
+smoke_workspace/pytest_*/
 
 # Editor and OS noise
 .idea/

@@ -50,4 +50,5 @@ artifacts = ["webapp/dist/**"]
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
-addopts = "--basetemp=./pytest_tmp -p no:cacheprovider"
+addopts = "--basetemp=./.pytest_tmp_run -p no:cacheprovider"
+norecursedirs = ["tmp_base", "__pycache__"]
