@@ -1,6 +1,8 @@
 # RepoBrain
 
+![alt text](image.png)
 RepoBrain is a local-first codebase memory engine for AI coding assistants. It indexes a repository, extracts symbols and lightweight dependency edges, combines lexical and semantic retrieval, and returns grounded evidence about where logic lives, how flows connect, and which files are safest to inspect before code is changed.
+
 
 ## Overview
 
@@ -84,10 +86,13 @@ This makes RepoBrain useful both as:
 - Human-readable terminal output through `--format text`
 - Local HTML status dashboard through `repobrain report` or `repobrain report --open`
 - Production ship gate through `repobrain ship`
+- Live provider access checks through `repobrain provider-smoke`
 - Active repo memory: run `repobrain init --repo <path>` once, then omit `--repo`
 - Local browser UI through `repobrain serve-web --open`
+- React TSX local browser UI with English/Vietnamese interface toggle, light/dark theme, and structured diagnostics cards
 - Concise repo scan through `repobrain review --format text`
 - Optional SDK-backed Gemini/OpenAI/Voyage/Cohere provider adapters
+- Gemini rerank model pools through `GEMINI_MODELS` with automatic failover on quota/rate-limit exhaustion
 - Optional tree-sitter parser adapter layer with heuristic fallback
 - Parser usage stats in `repobrain index`
 - Richer parser capability reporting in `repobrain doctor`
@@ -135,6 +140,7 @@ repobrain serve-web --open
 
 Then paste the project path and click `Import + Index`.
 For the one-page audit flow, click `Scan Project Review`.
+The browser UI now ships as a React TSX frontend with English/Vietnamese interface labels, a light/dark theme toggle, and structured `doctor` / `provider-smoke` diagnostics cards.
 
 Windows PowerShell:
 
@@ -162,6 +168,8 @@ On Windows, double-click `chat.cmd` for local chat or `report.cmd` for the visua
 
 See the full run guide in [docs/run.md](docs/run.md).
 
+Frontend source for the browser UI lives in `webapp/`. The built local assets are checked in under `src/repobrain/web_frontend/` so `repobrain serve-web` can run without requiring Node at runtime.
+
 ## CLI Surface
 
 ```text
@@ -176,6 +184,7 @@ repobrain targets "<question>"
 repobrain benchmark
 repobrain ship
 repobrain doctor
+repobrain provider-smoke
 repobrain chat
 repobrain report
 repobrain report --open
@@ -184,7 +193,7 @@ repobrain quickstart
 repobrain serve-mcp
 ```
 
-For human-friendly terminal output, add `--format text` to `review`, `index`, `query`, `trace`, `impact`, `targets`, `benchmark`, `doctor`, or `report`. JSON remains the default for agents and automation.
+For human-friendly terminal output, add `--format text` to `review`, `index`, `query`, `trace`, `impact`, `targets`, `benchmark`, `doctor`, `provider-smoke`, or `report`. JSON remains the default for agents and automation.
 
 ## Example Query Output
 
@@ -262,8 +271,13 @@ reranker = "gemini"
 gemini_embedding_model = "gemini-embedding-001"
 gemini_output_dimensionality = 768
 gemini_task_type = "SEMANTIC_SIMILARITY"
-gemini_rerank_model = "gemini-3-flash-preview"
+gemini_rerank_model = "gemini-2.5-flash"
+gemini_models = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-3-flash-preview"]
 ```
+
+`gemini_rerank_model` is not locked to a single Gemini release. RepoBrain passes the configured string straight to the Gemini SDK, so you can switch between current supported models such as `gemini-2.5-flash`, `gemini-3-flash-preview`, or `gemini-2.5-flash-preview-09-2025`.
+
+If you want automatic fallback when one Gemini rerank model hits quota or rate limits, set `GEMINI_MODELS` in `.env` as a comma-separated ordered pool. RepoBrain will keep the first healthy model active and move to the next one only for quota/rate-limit exhaustion errors.
 
 Start from `.env.example` and fill `GEMINI_API_KEY`.
 

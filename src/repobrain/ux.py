@@ -26,6 +26,8 @@ def payload_to_text(payload: object) -> str:
     if hasattr(payload, "to_dict"):
         payload = payload.to_dict()
     if isinstance(payload, dict):
+        if "embedding_smoke" in payload and "reranker_smoke" in payload:
+            return provider_smoke_to_text(payload)
         if "baseline_path" in payload:
             return "\n".join(
                 [
@@ -252,10 +254,14 @@ def doctor_to_text(payload: dict[str, Any]) -> str:
         f"Indexed: {'yes' if payload.get('indexed') else 'no'}",
         f"Stats: files={stats.get('files', 0)} chunks={stats.get('chunks', 0)} symbols={stats.get('symbols', 0)} edges={stats.get('edges', 0)}",
         f"Providers: embedding={providers.get('embedding')} reranker={providers.get('reranker')}",
+        f"Provider models: embedding={providers.get('embedding_model', 'n/a')} reranker={providers.get('reranker_model', 'n/a')}",
         f"Security: local_storage_only={security.get('local_storage_only')} remote_providers={security.get('remote_providers_enabled')}",
         "",
         "Parsers:",
     ]
+    reranker_models = providers.get("reranker_models")
+    if isinstance(reranker_models, list) and reranker_models:
+        lines.insert(6, f"Gemini fallback pool: {', '.join(str(item) for item in reranker_models)}")
     if language_parsers:
         for language, detail in sorted(language_parsers.items()):
             selected = detail.get("selected", "unknown") if isinstance(detail, dict) else "unknown"
@@ -265,6 +271,48 @@ def doctor_to_text(payload: dict[str, Any]) -> str:
         lines.append("- No parser capability details available.")
 
     lines.extend(["", "Next:", "- repobrain index", "- repobrain query \"Where is the main flow implemented?\""])
+    return "\n".join(lines)
+
+
+def provider_smoke_to_text(payload: dict[str, Any]) -> str:
+    providers = payload.get("providers", {}) if isinstance(payload.get("providers"), dict) else {}
+    embedding_smoke = payload.get("embedding_smoke", {}) if isinstance(payload.get("embedding_smoke"), dict) else {}
+    reranker_smoke = payload.get("reranker_smoke", {}) if isinstance(payload.get("reranker_smoke"), dict) else {}
+    pool = reranker_smoke.get("pool", [])
+    pool_text = ", ".join(str(item) for item in pool) if isinstance(pool, list) and pool else "single-model mode"
+
+    lines = [
+        "RepoBrain Provider Smoke",
+        f"Repo: {payload.get('repo_root')}",
+        f"Embedding: {providers.get('embedding')} model={providers.get('embedding_model', 'n/a')}",
+        f"Reranker: {providers.get('reranker')} model={providers.get('reranker_model', 'n/a')}",
+        f"Gemini pool: {pool_text}",
+        "",
+        "Embedding smoke:",
+        f"- status={embedding_smoke.get('status')}",
+    ]
+    if embedding_smoke.get("status") == "pass":
+        lines.append(
+            f"- vectors={embedding_smoke.get('vector_count')} dimensions={embedding_smoke.get('dimensions')}"
+        )
+    else:
+        lines.append(f"- error={embedding_smoke.get('error')}")
+
+    lines.extend(
+        [
+            "",
+            "Reranker smoke:",
+            f"- status={reranker_smoke.get('status')}",
+            f"- active_model_before={reranker_smoke.get('active_model_before')}",
+            f"- active_model_after={reranker_smoke.get('active_model_after')}",
+        ]
+    )
+    if reranker_smoke.get("status") == "pass":
+        lines.append(f"- score={reranker_smoke.get('score')}")
+    else:
+        lines.append(f"- error={reranker_smoke.get('error')}")
+    if reranker_smoke.get("last_failover_error"):
+        lines.append(f"- last_failover_error={reranker_smoke.get('last_failover_error')}")
     return "\n".join(lines)
 
 
@@ -310,6 +358,7 @@ def quickstart_text() -> str:
             "",
             "2. Prepare local state:",
             "   repobrain init --repo /path/to/your-project",
+            "   repobrain provider-smoke --format text",
             "   repobrain review --format text",
             "   repobrain index --format text",
             "",
@@ -344,6 +393,7 @@ def build_report(engine: RepoBrainEngine, output: str | Path | None = None, base
 def _report_html(doctor: dict[str, Any], review: ReviewReport, ship: ShipReport) -> str:
     stats = doctor.get("stats", {})
     providers = doctor.get("providers", {})
+    provider_status = doctor.get("provider_status", {}) if isinstance(doctor.get("provider_status"), dict) else {}
     security = doctor.get("security", {})
     capabilities = doctor.get("capabilities", {})
     language_parsers = capabilities.get("language_parsers", {}) if isinstance(capabilities, dict) else {}
@@ -469,6 +519,31 @@ def _report_html(doctor: dict[str, Any], review: ReviewReport, ship: ShipReport)
         for item in recurring[:3]
         if isinstance(item, dict)
     ) or "<li>No recurring high-signal findings across the visible trend window.</li>"
+    reranker_models = providers.get("reranker_models", [])
+    reranker_models_text = (
+        ", ".join(str(item) for item in reranker_models)
+        if isinstance(reranker_models, list) and reranker_models
+        else "Single-model mode"
+    )
+    last_failover_error = providers.get("reranker_last_failover_error")
+    last_failover_text = str(last_failover_error) if last_failover_error else "No failover recorded in this process."
+    provider_cards = "\n".join(
+        f"""
+        <article class="mini-card">
+          <span>{html.escape(str(kind))}</span>
+          <strong>{html.escape(str(detail.get('active', 'unknown')))}</strong>
+          <small>ready={html.escape(str(detail.get('ready', False)))} | network={html.escape(str(detail.get('requires_network', False)))}</small>
+          <p>{html.escape('; '.join(str(item) for item in detail.get('warnings', [])) or 'No provider warnings.')}</p>
+        </article>
+        """
+        for kind, detail in sorted(provider_status.items())
+        if isinstance(detail, dict)
+    )
+    if not provider_cards:
+        provider_cards = (
+            '<article class="mini-card"><span>providers</span><strong>unknown</strong>'
+            '<small>Run repobrain doctor</small><p>No provider posture details available.</p></article>'
+        )
 
     return f"""<!doctype html>
 <html lang="en">
@@ -646,7 +721,11 @@ def _report_html(doctor: dict[str, Any], review: ReviewReport, ship: ShipReport)
         <p><strong>Ship gate:</strong> <span class="badge {ship_badge_class}">{html.escape(ship_status_map.get(ship.status, ship.status))}</span></p>
         <p><strong>Ship score:</strong> {ship.score:.1f}/10</p>
         <p><strong>Embedding:</strong> {html.escape(str(providers.get('embedding', 'unknown')))}</p>
+        <p><strong>Embedding model:</strong> {html.escape(str(providers.get('embedding_model', 'n/a')))}</p>
         <p><strong>Reranker:</strong> {html.escape(str(providers.get('reranker', 'unknown')))}</p>
+        <p><strong>Reranker model:</strong> {html.escape(str(providers.get('reranker_model', 'n/a')))}</p>
+        <p><strong>Gemini fallback pool:</strong> {html.escape(reranker_models_text)}</p>
+        <p><strong>Last failover event:</strong> {html.escape(last_failover_text)}</p>
         <p><strong>Local storage only:</strong> {html.escape(str(security.get('local_storage_only', True)))}</p>
         <p><strong>Review score:</strong> {review.score:.1f}/10</p>
         <p><strong>Readiness:</strong> {html.escape(readiness_map.get(review.readiness, review.readiness))}</p>
@@ -676,6 +755,26 @@ def _report_html(doctor: dict[str, Any], review: ReviewReport, ship: ShipReport)
       <div class="mini-card">
         <span>ship next steps</span>
         <ul>{ship_next_steps_html}</ul>
+      </div>
+    </section>
+
+    <section class="panel stack">
+      <h2>Provider Posture</h2>
+      <p>See which provider path is active, whether network-backed paths are ready, and which Gemini rerank models are available for failover.</p>
+      <div class="grid">{provider_cards}</div>
+      <div class="grid">
+        <article class="mini-card">
+          <span>gemini pool</span>
+          <strong>{html.escape(str(providers.get('reranker_model', 'n/a')))}</strong>
+          <small>active reranker model</small>
+          <p>{html.escape(reranker_models_text)}</p>
+        </article>
+        <article class="mini-card">
+          <span>last failover</span>
+          <strong>{html.escape('recorded' if last_failover_error else 'none')}</strong>
+          <small>process-local failover memory</small>
+          <p>{html.escape(last_failover_text)}</p>
+        </article>
       </div>
     </section>
 

@@ -107,6 +107,37 @@ def _env_or_option(options: dict[str, object], key: str, env_name: str, default:
     return str(value)
 
 
+def _split_csv(value: str) -> list[str]:
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
+def _env_or_option_list(options: dict[str, object], key: str, env_name: str) -> list[str]:
+    raw = options.get(key)
+    if raw is None:
+        raw = os.getenv(env_name)
+    if raw is None:
+        return []
+    if isinstance(raw, list):
+        return [str(item).strip() for item in raw if str(item).strip()]
+    return _split_csv(str(raw))
+
+
+def _ordered_unique(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for value in values:
+        normalized = value.strip()
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        ordered.append(normalized)
+    return ordered
+
+
+def _merge_primary_model(primary_model: str, models: list[str]) -> list[str]:
+    return _ordered_unique([primary_model, *models])
+
+
 def _env_or_option_int(options: dict[str, object], key: str, env_name: str, default: int) -> int:
     value = options.get(key) or os.getenv(env_name) or default
     return int(value)
@@ -121,6 +152,26 @@ def _parse_score(text: str) -> float:
     if not match:
         return 0.0
     return round(_clamp_score(float(match.group(0))), 6)
+
+
+def _exc_text(exc: Exception) -> str:
+    return " ".join(str(exc).split()).strip()
+
+
+def _is_gemini_quota_or_rate_limit_error(exc: Exception) -> bool:
+    text = _exc_text(exc).lower()
+    patterns = (
+        "429",
+        "resource_exhausted",
+        "resource exhausted",
+        "quota",
+        "rate limit",
+        "rate_limit",
+        "too many requests",
+        "exceeded your current quota",
+        "quota exceeded",
+    )
+    return any(pattern in text for pattern in patterns)
 
 
 def _gemini_client() -> object:
@@ -184,8 +235,19 @@ class GeminiEmbeddingProvider:
 class GeminiReranker:
     name = "gemini"
 
-    def __init__(self, model: str = "gemini-3-flash-preview", client: object | None = None) -> None:
-        self.model = model
+    def __init__(
+        self,
+        model: str = "gemini-2.5-flash",
+        models: list[str] | None = None,
+        client: object | None = None,
+    ) -> None:
+        configured_models = [item for item in (models or [model]) if item]
+        if not configured_models:
+            configured_models = [model]
+        self.models = configured_models
+        self.model = configured_models[0]
+        self._active_model_index = 0
+        self.last_failover_error: str | None = None
         self._client = client
 
     def score(self, query: str, candidate_text: str) -> float:
@@ -197,12 +259,34 @@ class GeminiReranker:
             "Return only one decimal number between 0 and 1.\n\n"
             f"Query:\n{query}\n\nEvidence:\n{candidate_text[:4000]}"
         )
-        try:
-            response = client.models.generate_content(model=self.model, contents=prompt)  # type: ignore[attr-defined]
-        except Exception as exc:  # pragma: no cover - depends on remote SDK/runtime behavior
-            raise RemoteProviderError(f"Gemini rerank request failed: {exc}") from exc
+        failures: list[str] = []
+        models_to_try = self.models[self._active_model_index :] + self.models[: self._active_model_index]
 
-        return _parse_score(str(_read_value(response, "text", "")))
+        for index, model_name in enumerate(models_to_try):
+            try:
+                response = client.models.generate_content(model=model_name, contents=prompt)  # type: ignore[attr-defined]
+            except Exception as exc:  # pragma: no cover - depends on remote SDK/runtime behavior
+                if _is_gemini_quota_or_rate_limit_error(exc):
+                    failures.append(f"{model_name}: {_exc_text(exc)}")
+                    if index < len(models_to_try) - 1:
+                        next_model = models_to_try[index + 1]
+                        self._active_model_index = self.models.index(next_model)
+                        self.model = next_model
+                        self.last_failover_error = _exc_text(exc)
+                        continue
+                    tried = ", ".join(self.models)
+                    details = " | ".join(failures)
+                    raise RemoteProviderError(
+                        "Gemini rerank request hit quota/rate-limit exhaustion across the configured model pool. "
+                        f"Tried: {tried}. Details: {details}"
+                    ) from exc
+                raise RemoteProviderError(f"Gemini rerank request failed with model `{model_name}`: {exc}") from exc
+
+            self._active_model_index = self.models.index(model_name)
+            self.model = model_name
+            return _parse_score(str(_read_value(response, "text", "")))
+
+        raise RemoteProviderError("Gemini rerank request failed before any configured model could return a score.")
 
     def _get_client(self) -> object:
         if self._client is not None:
@@ -380,8 +464,11 @@ def build_provider_bundle(config: RepoBrainConfig) -> ProviderBundle:
     if reranker_name == "local":
         reranker: RerankerProvider = LocalLexicalReranker()
     elif reranker_name == "gemini":
+        gemini_models = _env_or_option_list(options, "gemini_models", "GEMINI_MODELS")
+        primary_model = _env_or_option(options, "gemini_rerank_model", "REPOBRAIN_GEMINI_RERANK_MODEL", "gemini-2.5-flash")
         reranker = GeminiReranker(
-            model=_env_or_option(options, "gemini_rerank_model", "REPOBRAIN_GEMINI_RERANK_MODEL", "gemini-3-flash-preview")
+            model=primary_model,
+            models=_merge_primary_model(primary_model, gemini_models),
         )
     elif reranker_name == "cohere":
         reranker = CohereReranker(

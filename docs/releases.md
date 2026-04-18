@@ -64,6 +64,11 @@ Theme:
 Must-have:
 
 - clearer provider integration with SDK-backed optional adapters, including Gemini cheap mode
+- Gemini rerank model pools with quota-exhaustion failover for higher uptime under shared API limits
+- local report/dashboard visibility for provider posture and Gemini fallback state
+- a direct provider smoke command for live-key validation before release
+- a React TSX browser frontend with bilingual English/Vietnamese UI
+- a light/dark web theme and structured diagnostics cards for doctor/provider smoke posture
 - live-key smoke guidance for remote providers
 - richer MCP examples
 - smoother CLI ergonomics, including local interactive chat

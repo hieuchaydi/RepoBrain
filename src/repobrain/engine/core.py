@@ -149,16 +149,25 @@ class RepoBrainEngine:
     def doctor(self) -> dict[str, object]:
         provider_status = inspect_provider_status(self.config)
         remote_enabled = any(not status["local_only"] for status in provider_status.values())
+        providers: dict[str, object] = {
+            "embedding": self.providers.embedder.name,
+            "reranker": self.providers.reranker.name,
+        }
+        if hasattr(self.providers.embedder, "model"):
+            providers["embedding_model"] = getattr(self.providers.embedder, "model")
+        if hasattr(self.providers.reranker, "model"):
+            providers["reranker_model"] = getattr(self.providers.reranker, "model")
+        if hasattr(self.providers.reranker, "models"):
+            providers["reranker_models"] = list(getattr(self.providers.reranker, "models"))
+        if hasattr(self.providers.reranker, "last_failover_error"):
+            providers["reranker_last_failover_error"] = getattr(self.providers.reranker, "last_failover_error")
         return {
             "repo_root": str(self.config.resolved_repo_root),
             "config_path": str(self.config.config_path),
             "state_dir": str(self.config.state_path),
             "indexed": self.store.indexed(),
             "stats": self.store.stats() if self.store.indexed() else {"files": 0, "chunks": 0, "symbols": 0, "edges": 0},
-            "providers": {
-                "embedding": self.providers.embedder.name,
-                "reranker": self.providers.reranker.name,
-            },
+            "providers": providers,
             "provider_status": provider_status,
             "security": {
                 "local_storage_only": True,
@@ -167,6 +176,59 @@ class RepoBrainEngine:
                 "mcp_transport": "stdio-json",
             },
             "capabilities": self.scanner.capabilities(),
+        }
+
+    def provider_smoke(self) -> dict[str, object]:
+        doctor = self.doctor()
+        providers = doctor.get("providers", {}) if isinstance(doctor.get("providers"), dict) else {}
+        embedding_result: dict[str, object]
+        reranker_result: dict[str, object]
+
+        try:
+            vectors = self.providers.embedder.embed(["RepoBrain provider smoke embedding sample"])
+            first_vector = vectors[0] if vectors else []
+            embedding_result = {
+                "status": "pass",
+                "vector_count": len(vectors),
+                "dimensions": len(first_vector),
+            }
+        except Exception as exc:
+            embedding_result = {
+                "status": "error",
+                "error": str(exc),
+            }
+
+        reranker_before = getattr(self.providers.reranker, "model", None)
+        reranker_pool = list(getattr(self.providers.reranker, "models", [])) if hasattr(self.providers.reranker, "models") else []
+        try:
+            score = self.providers.reranker.score(
+                "Where is the auth callback handled?",
+                "The auth callback route calls the auth service to exchange the provider code.",
+            )
+            reranker_result = {
+                "status": "pass",
+                "score": round(float(score), 6),
+                "active_model_before": reranker_before,
+                "active_model_after": getattr(self.providers.reranker, "model", None),
+                "pool": reranker_pool,
+                "last_failover_error": getattr(self.providers.reranker, "last_failover_error", None),
+            }
+        except Exception as exc:
+            reranker_result = {
+                "status": "error",
+                "error": str(exc),
+                "active_model_before": reranker_before,
+                "active_model_after": getattr(self.providers.reranker, "model", None),
+                "pool": reranker_pool,
+                "last_failover_error": getattr(self.providers.reranker, "last_failover_error", None),
+            }
+
+        return {
+            "repo_root": str(self.config.resolved_repo_root),
+            "providers": providers,
+            "provider_status": doctor.get("provider_status", {}),
+            "embedding_smoke": embedding_result,
+            "reranker_smoke": reranker_result,
         }
 
     def review(

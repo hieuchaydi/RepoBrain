@@ -28,6 +28,7 @@
 - Added SDK-backed optional OpenAI and Voyage embedding providers
 - Added SDK-backed optional Cohere reranker provider
 - Added SDK-backed optional Gemini embedding and Gemini Flash reranker providers
+- Added ordered Gemini rerank model pools via `GEMINI_MODELS` / `gemini_models` with automatic failover on quota and rate-limit exhaustion
 - Added repo-root `.env` loading without overriding existing shell environment variables
 - Added `.env.example` with cheap Gemini setup using `gemini-embedding-001` and `gemini-3-flash-preview`
 - Added provider model option wiring for `repobrain.toml` and environment overrides
@@ -51,7 +52,10 @@
 
 - Added active repo memory so `repobrain init --repo <path>` lets later commands omit `--repo`
 - Added `repobrain serve-web` for a local browser import and query flow
+- Reworked the local browser UI into a React TSX frontend with English/Vietnamese interface labels
+- Added a light/dark theme toggle and structured diagnostics cards for `doctor` and `provider-smoke` in the React web UI
 - Added `--format text` for human-readable terminal output while keeping JSON as default
+- Added `repobrain provider-smoke` to validate configured embedding and reranker providers directly
 - Added `repobrain report` to generate a local static HTML dashboard
 - Added `repobrain report --open` for opening the generated dashboard in the default browser
 - Added `repobrain quickstart` for new-user onboarding
@@ -61,6 +65,9 @@
 - Updated `chat.cmd` to prefer `venv\Scripts\python.exe` or `.venv\Scripts\python.exe` before falling back to global Python
 - Added `repobrain chat` for a local interactive question loop
 - Added `chat.cmd` as a Windows-friendly one-click local chat launcher
+- Expanded `repobrain doctor` output with provider model details and Gemini fallback pool visibility
+- Updated the local HTML report to surface provider posture, active reranker model, Gemini fallback pool, and last failover event
+- Added a web action for provider smoke checks from the local browser UI
 
 ### Security
 

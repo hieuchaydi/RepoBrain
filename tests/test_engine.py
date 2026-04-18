@@ -5,6 +5,7 @@ from pathlib import Path
 
 from repobrain.config import RepoBrainConfig
 from repobrain.engine.core import RepoBrainEngine
+from repobrain.engine.providers import ProviderBundle
 from repobrain.models import ReviewFocus
 
 
@@ -155,6 +156,39 @@ def test_doctor_includes_provider_status_and_security(mixed_repo: Path) -> None:
     assert doctor["security"]["local_storage_only"] is True
     assert doctor["security"]["mcp_transport"] == "stdio-json"
     assert doctor["capabilities"]["language_parsers"]["python"]["heuristic_fallback"] is True
+    assert "reranker_model" in doctor["providers"]
+
+
+def test_provider_smoke_reports_embedding_and_reranker_health(tmp_path: Path) -> None:
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    engine = RepoBrainEngine(repo_root)
+    engine.init_workspace(force=True)
+
+    class FakeEmbedder:
+        name = "fake-embedder"
+        model = "fake-embedding-model"
+
+        def embed(self, texts: list[str]) -> list[list[float]]:
+            return [[0.1, 0.2, 0.3] for _ in texts]
+
+    class FakeReranker:
+        name = "fake-reranker"
+        model = "fake-rerank-model"
+        models = ["fake-rerank-model", "backup-rerank-model"]
+        last_failover_error = None
+
+        def score(self, query: str, candidate_text: str) -> float:
+            return 0.77
+
+    engine.providers = ProviderBundle(embedder=FakeEmbedder(), reranker=FakeReranker())
+    smoke = engine.provider_smoke()
+
+    assert smoke["embedding_smoke"]["status"] == "pass"
+    assert smoke["embedding_smoke"]["dimensions"] == 3
+    assert smoke["reranker_smoke"]["status"] == "pass"
+    assert smoke["reranker_smoke"]["score"] == 0.77
+    assert smoke["reranker_smoke"]["pool"] == ["fake-rerank-model", "backup-rerank-model"]
 
 
 def test_ignore_files_from_repobrainignore(tmp_path: Path) -> None:

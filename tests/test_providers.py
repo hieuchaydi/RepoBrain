@@ -110,7 +110,15 @@ def test_gemini_embedding_provider_uses_sdk_client() -> None:
     assert captured["contents"] == ["auth", "payment"]
 
 
-def test_gemini_reranker_uses_flash_model_and_parses_score() -> None:
+@pytest.mark.parametrize(
+    "model_name",
+    [
+        "gemini-3-flash-preview",
+        "gemini-2.5-flash",
+        "gemini-2.5-flash-preview-09-2025",
+    ],
+)
+def test_gemini_reranker_passes_through_configured_model_name(model_name: str) -> None:
     captured: dict[str, object] = {}
 
     class FakeGeminiModels:
@@ -119,11 +127,46 @@ def test_gemini_reranker_uses_flash_model_and_parses_score() -> None:
             captured["contents"] = contents
             return SimpleNamespace(text="0.82")
 
-    provider = GeminiReranker(model="gemini-3-flash-preview", client=SimpleNamespace(models=FakeGeminiModels()))
+    provider = GeminiReranker(model=model_name, client=SimpleNamespace(models=FakeGeminiModels()))
 
     assert provider.score("payment retry", "retry handler") == 0.82
-    assert captured["model"] == "gemini-3-flash-preview"
+    assert captured["model"] == model_name
     assert "payment retry" in str(captured["contents"])
+
+
+def test_gemini_reranker_fails_over_to_next_model_on_quota_error() -> None:
+    captured: list[str] = []
+
+    class FakeGeminiModels:
+        def generate_content(self, model: str, contents: str) -> SimpleNamespace:
+            captured.append(model)
+            if model == "gemini-2.5-flash":
+                raise RuntimeError("429 Resource exhausted: quota exceeded for this model")
+            return SimpleNamespace(text="0.82")
+
+    provider = GeminiReranker(
+        models=["gemini-2.5-flash", "gemini-3-flash-preview"],
+        client=SimpleNamespace(models=FakeGeminiModels()),
+    )
+
+    assert provider.score("payment retry", "retry handler") == 0.82
+    assert captured == ["gemini-2.5-flash", "gemini-3-flash-preview"]
+    assert provider.model == "gemini-3-flash-preview"
+    assert provider.last_failover_error is not None
+
+
+def test_gemini_reranker_raises_after_all_models_hit_quota_limit() -> None:
+    class FakeGeminiModels:
+        def generate_content(self, model: str, contents: str) -> SimpleNamespace:
+            raise RuntimeError(f"429 quota exceeded for {model}")
+
+    provider = GeminiReranker(
+        models=["gemini-2.5-flash", "gemini-3-flash-preview"],
+        client=SimpleNamespace(models=FakeGeminiModels()),
+    )
+
+    with pytest.raises(RemoteProviderError, match="configured model pool"):
+        provider.score("payment retry", "retry handler")
 
 
 def test_remote_provider_reports_missing_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -165,7 +208,7 @@ def test_provider_bundle_uses_configured_gemini_models(tmp_path) -> None:
             "gemini_embedding_model": "gemini-embedding-test",
             "gemini_output_dimensionality": 1536,
             "gemini_task_type": "RETRIEVAL_DOCUMENT",
-            "gemini_rerank_model": "gemini-3-flash-preview",
+            "gemini_rerank_model": "gemini-2.5-flash-preview-09-2025",
         },
     )
 
@@ -176,7 +219,47 @@ def test_provider_bundle_uses_configured_gemini_models(tmp_path) -> None:
     assert bundle.embedder.output_dimensionality == 1536
     assert bundle.embedder.task_type == "RETRIEVAL_DOCUMENT"
     assert isinstance(bundle.reranker, GeminiReranker)
-    assert bundle.reranker.model == "gemini-3-flash-preview"
+    assert bundle.reranker.model == "gemini-2.5-flash-preview-09-2025"
+    assert bundle.reranker.models == ["gemini-2.5-flash-preview-09-2025"]
+
+
+def test_provider_bundle_uses_gemini_model_pool_from_env(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
+    monkeypatch.setenv(
+        "GEMINI_MODELS",
+        "gemini-2.5-flash, gemini-2.5-flash-lite, gemini-3-flash-preview",
+    )
+    config = RepoBrainConfig.default(tmp_path)
+    config.providers = ProviderConfig(embedding="local", reranker="gemini")
+
+    bundle = build_provider_bundle(config)
+
+    assert isinstance(bundle.reranker, GeminiReranker)
+    assert bundle.reranker.models == [
+        "gemini-2.5-flash",
+        "gemini-2.5-flash-lite",
+        "gemini-3-flash-preview",
+    ]
+    assert bundle.reranker.model == "gemini-2.5-flash"
+
+
+def test_provider_bundle_keeps_primary_gemini_model_first_when_pool_differs(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
+    monkeypatch.setenv(
+        "GEMINI_MODELS",
+        "gemini-2.5-flash-lite, gemini-3-flash-preview, gemini-2.5-flash-lite",
+    )
+    monkeypatch.setenv("REPOBRAIN_GEMINI_RERANK_MODEL", "gemini-2.5-flash")
+    config = RepoBrainConfig.default(tmp_path)
+    config.providers = ProviderConfig(embedding="local", reranker="gemini")
+
+    bundle = build_provider_bundle(config)
+
+    assert isinstance(bundle.reranker, GeminiReranker)
+    assert bundle.reranker.models == [
+        "gemini-2.5-flash",
+        "gemini-2.5-flash-lite",
+        "gemini-3-flash-preview",
+    ]
+    assert bundle.reranker.model == "gemini-2.5-flash"
 
 
 def test_remote_provider_status_explains_missing_requirements(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:

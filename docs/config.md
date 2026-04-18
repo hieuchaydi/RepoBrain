@@ -91,7 +91,7 @@ reranker = "local"
 openai_embedding_model = "text-embedding-3-small"
 ```
 
-Cheap Gemini setup:
+Gemini setup:
 
 ```toml
 [providers]
@@ -100,8 +100,13 @@ reranker = "gemini"
 gemini_embedding_model = "gemini-embedding-001"
 gemini_output_dimensionality = 768
 gemini_task_type = "SEMANTIC_SIMILARITY"
-gemini_rerank_model = "gemini-3-flash-preview"
+gemini_rerank_model = "gemini-2.5-flash"
+gemini_models = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-3-flash-preview"]
 ```
+
+`gemini_rerank_model` is a pass-through string. RepoBrain does not restrict you to one Gemini text model, so you can point it at any currently supported Gemini rerank-capable text model your account can access, for example `gemini-3-flash-preview` or `gemini-2.5-flash-preview-09-2025`.
+
+If `gemini_models` or `GEMINI_MODELS` is configured, RepoBrain treats it as an ordered fallback pool for Gemini reranking. When the active Gemini model returns a quota or rate-limit exhaustion error, RepoBrain automatically retries with the next model in the pool. Non-quota failures still surface immediately so bad model names or auth/config issues do not get hidden.
 
 Voyage embedding plus Cohere reranking example:
 
@@ -121,6 +126,7 @@ Environment variables:
 - `REPOBRAIN_GEMINI_OUTPUT_DIMENSIONALITY`: optional override for Gemini embedding dimensions
 - `REPOBRAIN_GEMINI_TASK_TYPE`: optional override for Gemini embedding task type
 - `REPOBRAIN_GEMINI_RERANK_MODEL`: optional override for Gemini rerank model
+- `GEMINI_MODELS`: optional comma-separated fallback pool for Gemini rerank model failover
 - `OPENAI_API_KEY`: required when `embedding = "openai"`
 - `VOYAGE_API_KEY`: required when `embedding = "voyage"`
 - `COHERE_API_KEY`: required when `reranker = "cohere"`

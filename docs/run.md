@@ -33,6 +33,7 @@ From the root of the repo you want to analyze:
 repobrain init
 repobrain index
 repobrain doctor
+repobrain provider-smoke
 ```
 
 From anywhere else, point RepoBrain at the project once:
@@ -67,6 +68,7 @@ For a friendlier terminal view:
 ```bash
 repobrain query "Where is payment retry logic implemented?" --format text
 repobrain doctor --format text
+repobrain provider-smoke --format text
 ```
 
 ## One-Click Local Chat
@@ -142,6 +144,8 @@ Web import flow:
 
 This UI is local-only. It does not upload source code or require a hosted backend.
 
+The current browser UI is a React TSX frontend with English/Vietnamese interface switching, a light/dark theme toggle, and structured diagnostics cards for `doctor` and `provider-smoke`. Frontend source lives in `webapp/`, while built assets are shipped in `src/repobrain/web_frontend/` so the Python server can serve them directly.
+
 ## Run The MCP-Style Transport
 
 ```bash
@@ -214,9 +218,11 @@ Required keys by provider:
 
 Use `repobrain doctor` to inspect provider readiness and security posture before indexing or querying with remote providers.
 
+Use `repobrain provider-smoke` when you want one direct request through the configured embedding and reranker providers before trusting them in normal workflows.
+
 The current default path remains local-first. RepoBrain only sends code to a remote provider after you explicitly select that provider in `repobrain.toml`.
 
-### Gemini cheap setup
+### Gemini setup
 
 Create `.env` from the template:
 
@@ -239,7 +245,8 @@ reranker = "gemini"
 gemini_embedding_model = "gemini-embedding-001"
 gemini_output_dimensionality = 768
 gemini_task_type = "SEMANTIC_SIMILARITY"
-gemini_rerank_model = "gemini-3-flash-preview"
+gemini_rerank_model = "gemini-2.5-flash"
+gemini_models = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-3-flash-preview"]
 ```
 
 Run:
@@ -250,7 +257,19 @@ repobrain doctor --format text
 repobrain index --format text
 ```
 
-If preview availability changes, use `REPOBRAIN_GEMINI_RERANK_MODEL=gemini-2.5-flash-lite` as a lower-cost stable fallback.
+You can also swap the rerank model string directly, for example:
+
+- `REPOBRAIN_GEMINI_RERANK_MODEL=gemini-2.5-flash`
+- `REPOBRAIN_GEMINI_RERANK_MODEL=gemini-3-flash-preview`
+- `REPOBRAIN_GEMINI_RERANK_MODEL=gemini-2.5-flash-preview-09-2025`
+
+For automatic failover when one Gemini model runs out of quota, set an ordered pool in `.env`:
+
+```env
+GEMINI_MODELS=gemini-2.5-flash,gemini-2.5-flash-lite,gemini-3.1-flash-lite-preview,gemini-3-flash-preview
+```
+
+RepoBrain will retry with the next model only for Gemini quota or rate-limit exhaustion errors. Invalid model names, auth failures, or other request errors still fail fast so you can see the real problem.
 
 ### Parser depth looks shallow
 

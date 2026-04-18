@@ -93,10 +93,25 @@ Shows:
 - repo root
 - config path
 - provider selection
+- active provider models
+- Gemini fallback pool when configured
 - parser capability flags
 - current index stats
 
 Supports `--format text` for a compact health check.
+
+### `repobrain provider-smoke`
+
+Runs a direct smoke request through the currently configured embedding and reranker providers.
+
+It is useful for:
+
+- validating remote API keys and SDK wiring
+- checking which Gemini reranker model is currently active
+- seeing the ordered Gemini fallback pool in one place
+- confirming a real provider request works before using it in `index`, `query`, or `ship`
+
+Supports `--format text` and `--format json`.
 
 ### `repobrain chat`
 
@@ -106,6 +121,7 @@ Starts a local interactive loop. Chat uses text summaries by default. Plain ques
 - `/impact <question>`
 - `/targets <question>`
 - `/doctor`
+- `/provider-smoke`
 - `/index`
 - `/review`
 - `/report`
@@ -124,6 +140,8 @@ repobrain report --open
 ```
 
 The report is local-only and summarizes index status, parser selection, provider mode, and suggested next commands.
+
+It also shows active provider models, Gemini fallback pool state, and provider readiness posture from `repobrain doctor`.
 
 Use `--open` when you want RepoBrain to generate the report and ask the operating system to open it in the default browser.
 
@@ -157,6 +175,9 @@ The page lets you:
 - click `Import + Index`
 - click `Scan Project Review` for the one-page audit view
 - run `query`, `trace`, `impact`, or `targets`
+- switch the interface between English and Vietnamese
+- switch the interface between light and dark themes
+- inspect structured `doctor` and `provider-smoke` posture cards without leaving the page
 - open the local report
 - reuse the active repo without repeating the path
 

@@ -64,8 +64,11 @@ Input:
 Behavior:
 
 - starts a local-only browser UI
-- import form runs init + index in one step
-- query form dispatches to `query`, `trace`, `impact`, or `targets`
+- serves a static React frontend shell at `/`
+- serves JSON API routes under `/api/*`
+- import action runs init + index in one step
+- query action dispatches to `query`, `trace`, `impact`, or `targets`
+- `GET /api/doctor` and `POST /api/provider-smoke` return both the text `result` and a structured `data` payload for the React diagnostics panels
 - report route serves the generated local report HTML
 
 ### `repobrain query|trace|impact|targets`
@@ -83,7 +86,15 @@ Example shape:
   "indexed": true,
   "providers": {
     "embedding": "local-hash",
-    "reranker": "local-lexical"
+    "reranker": "gemini",
+    "embedding_model": "n/a",
+    "reranker_model": "gemini-2.5-flash",
+    "reranker_models": [
+      "gemini-2.5-flash",
+      "gemini-2.5-flash-lite",
+      "gemini-3-flash-preview"
+    ],
+    "reranker_last_failover_error": null
   },
   "provider_status": {
     "embedding": {
@@ -93,6 +104,16 @@ Example shape:
       "local_only": true,
       "ready": true,
       "requires_network": false,
+      "missing": [],
+      "warnings": []
+    },
+    "reranker": {
+      "kind": "reranker",
+      "configured": "gemini",
+      "active": "gemini",
+      "local_only": false,
+      "ready": true,
+      "requires_network": true,
       "missing": [],
       "warnings": []
     }
@@ -126,6 +147,60 @@ Example shape:
   }
 }
 ```
+
+Notes:
+
+- `providers.reranker_model` is the currently active reranker model inside the current process.
+- `providers.reranker_models` is the ordered fallback pool when Gemini model failover is configured.
+- `providers.reranker_last_failover_error` is process-local diagnostic state and may be `null` when no failover has happened yet.
+
+### `repobrain provider-smoke`
+
+Returns a smoke result for the currently configured embedding and reranker providers.
+
+Example shape:
+
+```json
+{
+  "repo_root": "/abs/path/to/repo",
+  "providers": {
+    "embedding": "local-hash",
+    "reranker": "gemini",
+    "embedding_model": "n/a",
+    "reranker_model": "gemini-2.5-flash",
+    "reranker_models": [
+      "gemini-2.5-flash",
+      "gemini-2.5-flash-lite",
+      "gemini-3-flash-preview"
+    ],
+    "reranker_last_failover_error": null
+  },
+  "provider_status": {},
+  "embedding_smoke": {
+    "status": "pass",
+    "vector_count": 1,
+    "dimensions": 256
+  },
+  "reranker_smoke": {
+    "status": "pass",
+    "score": 0.73,
+    "active_model_before": "gemini-2.5-flash",
+    "active_model_after": "gemini-2.5-flash",
+    "pool": [
+      "gemini-2.5-flash",
+      "gemini-2.5-flash-lite",
+      "gemini-3-flash-preview"
+    ],
+    "last_failover_error": null
+  }
+}
+```
+
+Notes:
+
+- `embedding_smoke.status` and `reranker_smoke.status` are independent.
+- A provider-smoke call may pass for one provider and fail for the other.
+- For Gemini pools, `active_model_after` shows where the process ended after any failover attempt.
 
 ## Query Result Schema
 

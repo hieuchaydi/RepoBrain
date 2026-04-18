@@ -60,6 +60,10 @@ def _parser() -> argparse.ArgumentParser:
     doctor_parser.add_argument("--repo", default=None)
     _add_format_argument(doctor_parser)
 
+    smoke_parser = subparsers.add_parser("provider-smoke", help="Run a live smoke check through the configured embedding and reranker providers.")
+    smoke_parser.add_argument("--repo", default=None)
+    _add_format_argument(smoke_parser)
+
     chat_parser = subparsers.add_parser("chat", help="Start an interactive local RepoBrain question loop.")
     chat_parser.add_argument("--repo", default=None)
 
@@ -110,7 +114,7 @@ def _chat(engine: RepoBrainEngine) -> int:
         if lowered in {"/exit", "exit", "quit", ":q"}:
             return 0
         if lowered == "/help":
-            print("Commands: /trace <q>, /impact <q>, /targets <q>, /doctor, /index, /review, /baseline, /ship, /report, /json, /text, /exit")
+            print("Commands: /trace <q>, /impact <q>, /targets <q>, /doctor, /provider-smoke, /index, /review, /baseline, /ship, /report, /json, /text, /exit")
             continue
         if lowered == "/json":
             output_format = "json"
@@ -124,6 +128,8 @@ def _chat(engine: RepoBrainEngine) -> int:
         try:
             if lowered == "/doctor":
                 _dump(engine.doctor(), output_format)
+            elif lowered == "/provider-smoke":
+                _dump(engine.provider_smoke(), output_format)
             elif lowered == "/index":
                 _dump(engine.index_repository(), output_format)
             elif lowered == "/review":
@@ -203,6 +209,9 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "doctor":
         _dump(engine.doctor(), output_format)
+        return 0
+    if args.command == "provider-smoke":
+        _dump(engine.provider_smoke(), output_format)
         return 0
     if args.command == "review":
         _dump(engine.review(focus=ReviewFocus(args.focus)), output_format)

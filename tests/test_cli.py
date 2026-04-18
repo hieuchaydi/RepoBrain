@@ -27,7 +27,13 @@ def test_cli_init_index_query_and_doctor(mixed_repo: Path, capsys) -> None:
     doctor_payload = json.loads(capsys.readouterr().out)
     assert doctor_payload["indexed"] is True
     assert doctor_payload["provider_status"]["embedding"]["ready"] is True
+    assert "reranker_model" in doctor_payload["providers"]
     assert "language_parsers" in doctor_payload["capabilities"]
+
+    assert main(["provider-smoke", "--repo", str(mixed_repo)]) == 0
+    smoke_payload = json.loads(capsys.readouterr().out)
+    assert smoke_payload["embedding_smoke"]["status"] == "pass"
+    assert smoke_payload["reranker_smoke"]["status"] == "pass"
 
 
 def test_cli_remembers_active_repo_after_init(mixed_repo: Path, capsys) -> None:
@@ -64,6 +70,12 @@ def test_cli_text_output_and_quickstart(mixed_repo: Path, capsys) -> None:
     assert main(["doctor", "--repo", str(mixed_repo), "--format", "text"]) == 0
     doctor_output = capsys.readouterr().out
     assert "RepoBrain Doctor" in doctor_output
+    assert "Provider models:" in doctor_output
+
+    assert main(["provider-smoke", "--repo", str(mixed_repo), "--format", "text"]) == 0
+    smoke_output = capsys.readouterr().out
+    assert "RepoBrain Provider Smoke" in smoke_output
+    assert "Embedding smoke:" in smoke_output
 
     assert main(["index", "--repo", str(mixed_repo), "--format", "text"]) == 0
     index_output = capsys.readouterr().out
@@ -112,6 +124,8 @@ def test_cli_report_generates_local_html(mixed_repo: Path, tmp_path: Path, capsy
     assert "RepoBrain" in output.read_text(encoding="utf-8")
     assert "Ship Gate" in output.read_text(encoding="utf-8")
     assert "Baseline Trend" in output.read_text(encoding="utf-8")
+    assert "Provider Posture" in output.read_text(encoding="utf-8")
+    assert "Embedding model:" in output.read_text(encoding="utf-8")
 
 
 def test_python_module_entrypoint_runs_quickstart() -> None:
