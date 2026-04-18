@@ -1,6 +1,4 @@
 # RepoBrain
-<img width="516" height="185" alt="image" src="https://github.com/user-attachments/assets/409c675f-2354-4d3d-a83b-a331f26ee6c0" />
-
 ![alt text](image.png)
 RepoBrain is a local-first codebase memory engine for AI coding assistants. It indexes a repository, extracts symbols and lightweight dependency edges, combines lexical and semantic retrieval, and returns grounded evidence about where logic lives, how flows connect, and which files are safest to inspect before code is changed.
 
