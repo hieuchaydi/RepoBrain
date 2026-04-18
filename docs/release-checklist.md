@@ -14,6 +14,7 @@ RepoBrain releases should be boring, reproducible, and explicit. Do not publish 
 - Run `repobrain index --format text` on a clean sample repo.
 - Run one `query`, one `trace`, one `impact`, and one `targets` command with `--format text`.
 - Run `repobrain report --format text` and confirm `.repobrain/report.html` is generated.
+- Run `repobrain release-check --format text` before building artifacts to confirm version alignment and frontend assets.
 - If remote providers are part of the release notes, run a live-key smoke test for each configured provider outside CI.
 
 ## Manual GitHub Release Workflow
@@ -25,6 +26,7 @@ Default mode:
 - `publish = false`
 - builds wheel and sdist
 - runs compile and tests
+- runs `repobrain release-check --require-dist --format text` to inspect built wheel/sdist contents
 - uploads `dist/*` as a GitHub Actions artifact
 
 Publish mode:

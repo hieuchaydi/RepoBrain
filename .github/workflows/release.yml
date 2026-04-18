@@ -60,6 +60,9 @@ jobs:
       - name: Build wheel and sdist
         run: python -m build
 
+      - name: Inspect release artifacts
+        run: python -m repobrain.cli release-check --repo . --require-dist --format text
+
       - name: Upload distribution artifacts
         uses: actions/upload-artifact@v4
         with:

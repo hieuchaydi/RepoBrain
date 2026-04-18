@@ -98,7 +98,7 @@ The workstream later expanded to cover the local browser UI as well: the web fro
 ## Known Blockers
 
 - Full `pytest` was previously blocked in this workspace by Windows permission errors on generated pytest temp directories.
-- Follow-up on 2026-04-18 moved pytest to a fresh root-level `.pytest_tmp_run` basetemp, ignored locked generated temp folders, and skipped `tests/tmp_base` collection.
+- Follow-up on 2026-04-18 moved pytest to fresh root-level `.pytest_tmp_run_*` basetemp directories, ignored locked generated temp folders, and skipped `tests/tmp_base` collection.
 - Current verification result: `python -m pytest -q` passes with `60 passed`.
 
 ## What Is Not Done Yet
@@ -108,8 +108,9 @@ The workstream later expanded to cover the local browser UI as well: the web fro
 - Version bump is now prepared locally on `master` for the `0.5.x` integration line.
 - No release tag was created.
 - No GitHub release workflow was run.
-- No release artifact validation was performed.
-- Frontend packaging is now wired into CI/release automation, but the built wheel/sdist still needs a real artifact inspection run with `publish = false`.
+- Local release artifact validation is now wired through `repobrain release-check`.
+- Frontend packaging is now wired into CI/release automation, and the release workflow now runs `repobrain release-check --require-dist --format text` after `python -m build`.
+- A real GitHub Actions artifact inspection run with `publish = false` still needs to be performed before tagging.
 
 ### Live-provider validation
 

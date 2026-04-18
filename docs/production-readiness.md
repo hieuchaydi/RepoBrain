@@ -26,6 +26,7 @@ What is ready:
 - MIT license and package metadata
 - CI workflow for Python `3.12` and `3.13`
 - Manual release workflow that builds wheel/sdist artifacts and can publish with explicit approval
+- Release artifact inspection through `repobrain release-check`
 
 What is not production-grade yet:
 
@@ -52,6 +53,7 @@ Before the first public GitHub release:
 - If enabling remote providers, copy `.env.example` to `.env`, run `repobrain doctor --format text`, and run one live-key smoke query for the selected provider.
 - Replace placeholder GitHub URLs in `pyproject.toml` if the final repository URL is different.
 - Run the manual release workflow once with `publish = false` and inspect the built wheel/sdist artifact.
+- Run `repobrain release-check --require-dist --format text` against the built artifact directory before tagging.
 - Add a short demo GIF or terminal recording to the README.
 - Tag the first release as `v0.1.0`, `v0.2.0`, or `v0.5.0` depending on the release line. The current provider-plus-browser integration track now maps most closely to `v0.5.0`.
 

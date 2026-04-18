@@ -192,10 +192,13 @@ repobrain report
 repobrain report --open
 repobrain serve-web
 repobrain quickstart
+repobrain release-check --format text
 repobrain serve-mcp
 ```
 
 For human-friendly terminal output, add `--format text` to `review`, `index`, `query`, `trace`, `impact`, `targets`, `benchmark`, `doctor`, `provider-smoke`, or `report`. JSON remains the default for agents and automation.
+
+For release validation, run `repobrain release-check --format text` before packaging, then `repobrain release-check --require-dist --format text` after `python -m build` to confirm wheel/sdist artifacts include the React frontend assets.
 
 ## Example Query Output
 

@@ -22,10 +22,12 @@ __pycache__/
 .pytest_cache/
 .pytest_tmp/
 .pytest_tmp_run/
+.pytest_tmp_run*/
 .pytest_tmp_review/
 pytest_tmp/
 pytest_tmp*/
 pytest_tmp_run/
+pytest_work_run_*/
 pytest_work*/
 pytest-cache-files-*
 tests/tmp_base/

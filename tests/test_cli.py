@@ -146,6 +146,17 @@ def test_python_module_entrypoint_runs_quickstart() -> None:
     assert "RepoBrain Quickstart" in completed.stdout
 
 
+def test_cli_release_check_outputs_text(capsys) -> None:
+    repo_root = Path(__file__).parents[1]
+
+    assert main(["release-check", "--repo", str(repo_root), "--format", "text"]) == 0
+    output = capsys.readouterr().out
+
+    assert "RepoBrain Release Check" in output
+    assert "version alignment" in output
+    assert "frontend build assets" in output
+
+
 def test_chat_launcher_prefers_project_virtualenv() -> None:
     launcher = Path(__file__).parents[1] / "chat.cmd"
     content = launcher.read_text(encoding="utf-8")

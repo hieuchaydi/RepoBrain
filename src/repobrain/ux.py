@@ -28,6 +28,8 @@ def payload_to_text(payload: object) -> str:
     if isinstance(payload, dict):
         if "embedding_smoke" in payload and "reranker_smoke" in payload:
             return provider_smoke_to_text(payload)
+        if payload.get("kind") == "release_check":
+            return release_check_to_text(payload)
         if "baseline_path" in payload:
             return "\n".join(
                 [
@@ -313,6 +315,42 @@ def provider_smoke_to_text(payload: dict[str, Any]) -> str:
         lines.append(f"- error={reranker_smoke.get('error')}")
     if reranker_smoke.get("last_failover_error"):
         lines.append(f"- last_failover_error={reranker_smoke.get('last_failover_error')}")
+    return "\n".join(lines)
+
+
+def release_check_to_text(payload: dict[str, Any]) -> str:
+    versions = payload.get("versions", {}) if isinstance(payload.get("versions"), dict) else {}
+    dist = payload.get("dist", {}) if isinstance(payload.get("dist"), dict) else {}
+    checks = payload.get("checks", []) if isinstance(payload.get("checks"), list) else []
+    lines = [
+        "RepoBrain Release Check",
+        f"Project: {payload.get('project_root')}",
+        f"Status: {str(payload.get('status', 'unknown')).upper()}",
+        (
+            "Versions: "
+            f"pyproject={versions.get('pyproject') or 'missing'} "
+            f"package={versions.get('package') or 'missing'} "
+            f"webapp={versions.get('webapp') or 'missing'}"
+        ),
+        f"Dist: wheels={dist.get('wheel_count', 0)} sdists={dist.get('sdist_count', 0)}",
+        "",
+        "Checks:",
+    ]
+    if checks:
+        for check in checks:
+            if not isinstance(check, dict):
+                continue
+            lines.append(f"- [{check.get('status')}] {check.get('name')}: {check.get('summary')}")
+            if check.get("detail"):
+                lines.append(f"  {check.get('detail')}")
+    else:
+        lines.append("- No release checks were returned.")
+    lines.extend(
+        [
+            "",
+            "Tip: run `npm run build` in webapp, then `python -m build`, then rerun `repobrain release-check --require-dist --format text`.",
+        ]
+    )
     return "\n".join(lines)
 
 

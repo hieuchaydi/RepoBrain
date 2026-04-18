@@ -1,12 +1,43 @@
 from __future__ import annotations
 
+import os
 import shutil
+import uuid
 from pathlib import Path
 
 import pytest
 
 
 FIXTURES = Path(__file__).parent / "fixtures"
+_TMPDIR_CLEANUP_PATCHED = False
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    _patch_pytest_tmpdir_cleanup()
+    if getattr(config.option, "basetemp", None) is not None:
+        return
+    config.option.basetemp = str(Path.cwd() / f"pytest_work_run_{os.getpid()}_{uuid.uuid4().hex[:8]}")
+
+
+def _patch_pytest_tmpdir_cleanup() -> None:
+    global _TMPDIR_CLEANUP_PATCHED
+    if _TMPDIR_CLEANUP_PATCHED:
+        return
+    try:
+        import _pytest.tmpdir as pytest_tmpdir
+    except ImportError:
+        return
+
+    original_cleanup = pytest_tmpdir.cleanup_dead_symlinks
+
+    def safe_cleanup_dead_symlinks(root: Path) -> None:
+        try:
+            original_cleanup(root)
+        except PermissionError:
+            return
+
+    pytest_tmpdir.cleanup_dead_symlinks = safe_cleanup_dead_symlinks
+    _TMPDIR_CLEANUP_PATCHED = True
 
 
 def _copy_fixture(source: Path, destination: Path) -> None:

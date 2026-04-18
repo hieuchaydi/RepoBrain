@@ -8,6 +8,7 @@ from repobrain.active_repo import read_active_repo, resolve_repo_root, write_act
 from repobrain.engine.core import RepoBrainEngine
 from repobrain.mcp_server import serve_mcp
 from repobrain.models import ReviewFocus
+from repobrain.release import inspect_release_artifacts
 from repobrain.web import serve_web
 from repobrain.ux import build_report, payload_to_json, payload_to_text, quickstart_text
 
@@ -73,6 +74,11 @@ def _parser() -> argparse.ArgumentParser:
     report_parser.add_argument("--baseline-label", default="baseline")
     report_parser.add_argument("--open", action="store_true", dest="open_report", help="Open the generated report in the default browser.")
     _add_format_argument(report_parser)
+
+    release_parser = subparsers.add_parser("release-check", help="Inspect release versions, frontend assets, and built wheel/sdist contents.")
+    release_parser.add_argument("--repo", default=None)
+    release_parser.add_argument("--require-dist", action="store_true", help="Fail if wheel and sdist artifacts are missing.")
+    _add_format_argument(release_parser)
 
     subparsers.add_parser("quickstart", help="Print the shortest path from install to first query.")
 
@@ -161,6 +167,12 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "quickstart":
         print(quickstart_text())
         return 0
+
+    if args.command == "release-check":
+        project_root = Path(args.repo).expanduser().resolve() if args.repo else Path.cwd()
+        payload = inspect_release_artifacts(project_root, require_dist=args.require_dist)
+        _dump(payload, getattr(args, "format", "json"))
+        return 1 if payload.get("status") == "fail" else 0
 
     repo_root = resolve_repo_root(getattr(args, "repo", None), prefer_active=args.command != "init")
 

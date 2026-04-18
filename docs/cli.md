@@ -149,6 +149,21 @@ Use `--open` when you want RepoBrain to generate the report and ask the operatin
 
 Prints the shortest install -> index -> query path for new users.
 
+### `repobrain release-check`
+
+Inspects release-readiness details for the RepoBrain source tree:
+
+- version alignment across `pyproject.toml`, `src/repobrain/__init__.py`, and `webapp/package.json`
+- built React assets under `webapp/dist`
+- wheel/sdist contents after `python -m build`
+
+```bash
+repobrain release-check --format text
+repobrain release-check --require-dist --format text
+```
+
+Use `--require-dist` in release automation so missing wheel/sdist artifacts fail the gate instead of showing as a local warning.
+
 ### `repobrain serve-mcp`
 
 Runs a stdio JSON transport with six tools:
@@ -191,6 +206,7 @@ repobrain query "Where is auth callback handled?" --format text
 repobrain targets "Which files should I edit to add GitHub login?"
 repobrain report --format text
 repobrain report --open
+repobrain release-check --format text
 repobrain serve-web --open
 repobrain chat
 ```

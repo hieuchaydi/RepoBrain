@@ -23,6 +23,7 @@
 - Added a manual GitHub Actions release workflow for wheel/sdist builds
 - Kept PyPI publishing behind an explicit `publish = true` workflow input
 - Updated CI and release automation to build the React web frontend and package `webapp/dist` with Python artifacts
+- Added `repobrain release-check` to validate version alignment, frontend build assets, and built wheel/sdist contents before publishing
 
 ### Engine
 

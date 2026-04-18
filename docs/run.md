@@ -182,9 +182,18 @@ If you are working on RepoBrain itself:
 python -m pip install -e ".[dev,tree-sitter,mcp]"
 python -m compileall src
 python -m pytest -q
+repobrain release-check --format text
 ```
 
-Pytest is configured to use `.pytest_tmp_run/` so old locked temp folders such as `pytest_tmp/` do not block normal local runs on Windows.
+Pytest is configured to use a fresh `.pytest_tmp_run_*` folder for each run so old locked temp folders such as `pytest_tmp/` do not block normal local runs on Windows.
+
+After building release artifacts with `python -m build`, run:
+
+```bash
+repobrain release-check --require-dist --format text
+```
+
+This checks version alignment, `webapp/dist` presence, and whether the wheel/sdist include the React frontend assets.
 
 ## Manual Smoke Flow
 
