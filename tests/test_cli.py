@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from repobrain.cli import main
+from repobrain.ux import cli_wordmark
 
 
 def test_cli_init_index_query_and_doctor(mixed_repo: Path, capsys) -> None:
@@ -61,6 +62,7 @@ def test_cli_chat_can_exit(mixed_repo: Path, capsys, monkeypatch) -> None:
     monkeypatch.setattr("builtins.input", lambda _: "/exit")
     assert main(["chat", "--repo", str(mixed_repo)]) == 0
     chat_output = capsys.readouterr().out
+    assert cli_wordmark() in chat_output
     assert "RepoBrain chat is local-only" in chat_output
 
 
@@ -104,6 +106,7 @@ def test_cli_text_output_and_quickstart(mixed_repo: Path, capsys) -> None:
 
     assert main(["quickstart"]) == 0
     quickstart_output = capsys.readouterr().out
+    assert quickstart_output.startswith(cli_wordmark())
     assert "RepoBrain Quickstart" in quickstart_output
     assert "repobrain review --format text" in quickstart_output
     assert "repobrain ship --format text" in quickstart_output
@@ -143,6 +146,7 @@ def test_python_module_entrypoint_runs_quickstart() -> None:
     )
 
     assert completed.returncode == 0
+    assert completed.stdout.startswith(cli_wordmark())
     assert "RepoBrain Quickstart" in completed.stdout
 
 

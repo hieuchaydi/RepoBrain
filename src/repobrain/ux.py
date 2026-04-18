@@ -429,9 +429,23 @@ def benchmark_to_text(payload: dict[str, Any]) -> str:
     )
 
 
+def cli_wordmark() -> str:
+    return "\n".join(
+        [
+            "||\\\\  ||||| ||\\\\   /\\\\   ||\\\\  ||\\\\   /\\\\   || ||  ||",
+            "|| || ||    || || /    \\\\ || || || || /    \\\\ || ||| ||",
+            "||//  ||||  ||//  |||||| ||\\\\  ||//  |||||| || || |||",
+            "||\\\\  ||    ||\\\\  ||  || || || ||\\\\  ||  || || ||  ||",
+            "|| \\\\ ||||| || \\\\ ||  || ||//  || \\\\ ||  || || ||  ||",
+        ]
+    )
+
+
 def quickstart_text() -> str:
     return "\n".join(
         [
+            cli_wordmark(),
+            "",
             "RepoBrain Quickstart",
             "",
             "1. Install:",

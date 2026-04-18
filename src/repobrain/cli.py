@@ -11,7 +11,7 @@ from repobrain.mcp_server import serve_mcp
 from repobrain.models import ReviewFocus
 from repobrain.release import inspect_release_artifacts
 from repobrain.web import serve_web
-from repobrain.ux import build_report, payload_to_json, payload_to_text, quickstart_text
+from repobrain.ux import build_report, cli_wordmark, payload_to_json, payload_to_text, quickstart_text
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -114,6 +114,8 @@ def _dump(payload: object, output_format: str = "json") -> None:
 
 def _chat(engine: RepoBrainEngine) -> int:
     output_format = "text"
+    print(cli_wordmark())
+    print()
     print("RepoBrain chat is local-only. Type /help for commands, /json for raw payloads, or /exit to quit.")
     while True:
         try:
