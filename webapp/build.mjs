@@ -4,7 +4,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const outdir = resolve(here, "../src/repobrain/web_frontend");
+const outdir = resolve(here, "dist");
 
 mkdirSync(outdir, { recursive: true });
 

@@ -12,11 +12,41 @@ from repobrain.active_repo import read_active_repo, write_active_repo
 from repobrain.engine.core import RepoBrainEngine
 from repobrain.ux import build_report, payload_to_text
 
-WEB_FRONTEND_DIR = Path(__file__).with_name("web_frontend")
+
+def _frontend_dir_candidates() -> tuple[Path, ...]:
+    module_path = Path(__file__).resolve()
+    return (
+        module_path.parents[2] / "webapp" / "dist",
+        module_path.parents[1] / "webapp" / "dist",
+        module_path.with_name("web_frontend"),
+    )
+
+
+def _default_frontend_dir() -> Path:
+    for candidate in _frontend_dir_candidates():
+        if candidate.exists():
+            return candidate
+    return _frontend_dir_candidates()[0]
+
+
+WEB_FRONTEND_DIR = _default_frontend_dir()
 
 
 def _engine_from_repo(repo_root: Path) -> RepoBrainEngine:
     return RepoBrainEngine(repo_root)
+
+
+def _frontend_asset_path(asset_name: str) -> Path:
+    searched_paths: list[str] = []
+    for frontend_dir in dict.fromkeys((WEB_FRONTEND_DIR, *_frontend_dir_candidates())):
+        asset_path = frontend_dir / asset_name
+        searched_paths.append(str(asset_path))
+        if asset_path.exists() and asset_path.is_file():
+            return asset_path
+    raise FileNotFoundError(
+        "React frontend build is missing. Run `npm run build` inside `webapp/` to generate `webapp/dist`."
+        f" Looked in: {', '.join(searched_paths)}"
+    )
 
 
 def _import_and_index(repo_path: str) -> tuple[str, str, str]:
@@ -167,9 +197,10 @@ def _bootstrap_payload(default_repo: str = "") -> dict[str, object]:
 
 
 def _serve_frontend_asset(asset_name: str, start_response) -> list[bytes]:
-    asset_path = WEB_FRONTEND_DIR / asset_name
-    if not asset_path.exists() or not asset_path.is_file():
-        return _text_response(start_response, "404 Not Found", "Not Found")
+    try:
+        asset_path = _frontend_asset_path(asset_name)
+    except FileNotFoundError as exc:
+        return _text_response(start_response, "500 Internal Server Error", str(exc))
     content_type, _ = mimetypes.guess_type(str(asset_path))
     return _text_response(
         start_response,
@@ -279,6 +310,10 @@ def serve_web(repo_root: str = "", host: str = "127.0.0.1", port: int = 8765, op
     default_repo = repo_root.strip()
     if default_repo:
         write_active_repo(default_repo)
+
+    _frontend_asset_path("index.html")
+    _frontend_asset_path("app.js")
+    _frontend_asset_path("app.css")
 
     url = f"http://{host}:{port}/"
     if open_browser:

@@ -6,6 +6,7 @@ RepoBrain releases should be boring, reproducible, and explicit. Do not publish 
 
 - Confirm `CHANGELOG.md` describes the release in user-facing language.
 - Confirm `pyproject.toml` has the intended version and final repository URLs.
+- If the browser UI is part of the release, run `npm ci` and `npm run build` in `webapp/`.
 - Run `python -m compileall src tests`.
 - Run `python -m pytest -q`.
 - Run `repobrain quickstart`.

@@ -144,7 +144,14 @@ Web import flow:
 
 This UI is local-only. It does not upload source code or require a hosted backend.
 
-The current browser UI is a React TSX frontend with English/Vietnamese interface switching, a light/dark theme toggle, and structured diagnostics cards for `doctor` and `provider-smoke`. Frontend source lives in `webapp/`, while built assets are shipped in `src/repobrain/web_frontend/` so the Python server can serve them directly.
+The current browser UI is a React TSX frontend with English/Vietnamese interface switching, a light/dark theme toggle, and structured diagnostics cards for `doctor` and `provider-smoke`. Frontend source lives in `webapp/`, and the Python server now serves the React build directly from `webapp/dist/`.
+
+If `webapp/dist/` is missing, run:
+
+```bash
+cd webapp
+npm run build
+```
 
 ## Run The MCP-Style Transport
 

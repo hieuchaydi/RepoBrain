@@ -168,7 +168,7 @@ On Windows, double-click `chat.cmd` for local chat or `report.cmd` for the visua
 
 See the full run guide in [docs/run.md](docs/run.md).
 
-Frontend source for the browser UI lives in `webapp/`. The built local assets are checked in under `src/repobrain/web_frontend/` so `repobrain serve-web` can run without requiring Node at runtime.
+Frontend source for the browser UI lives in `webapp/`. The built local assets are generated into `webapp/dist/`, and `repobrain serve-web` serves that React build directly. If `webapp/dist/` is missing, run `npm run build` inside `webapp/` once before starting the Python web server.
 
 ## CLI Surface
 

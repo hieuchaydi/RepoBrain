@@ -66,6 +66,7 @@ Behavior:
 - starts a local-only browser UI
 - serves a static React frontend shell at `/`
 - serves JSON API routes under `/api/*`
+- serves React build assets from `webapp/dist/`
 - import action runs init + index in one step
 - query action dispatches to `query`, `trace`, `impact`, or `targets`
 - `GET /api/doctor` and `POST /api/provider-smoke` return both the text `result` and a structured `data` payload for the React diagnostics panels

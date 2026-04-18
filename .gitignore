@@ -37,13 +37,14 @@ htmlcov/
 # Build and packaging outputs
 build/
 dist/
+!webapp/dist/
+!webapp/dist/**
 site/
 .eggs/
 *.egg-info/
 pip-wheel-metadata/
 webapp/node_modules/
 webapp/.npm-cache/
-webapp/dist/
 
 # Logs and temporary local artifacts
 *.log

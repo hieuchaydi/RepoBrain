@@ -4,9 +4,18 @@ import io
 import json
 from pathlib import Path
 
+import repobrain.web as web_module
 from repobrain.models import ReadinessCheck, ReviewFocus, ReviewReport, ShipReport
 from repobrain.ux import _report_html
-from repobrain.web import _action_result, _application, _doctor_result, _import_and_index, _review_result
+from repobrain.web import (
+    WEB_FRONTEND_DIR,
+    _action_result,
+    _application,
+    _doctor_result,
+    _frontend_asset_path,
+    _import_and_index,
+    _review_result,
+)
 
 
 def test_web_import_and_query_flow(mixed_repo: Path) -> None:
@@ -32,6 +41,10 @@ def test_web_import_and_query_flow(mixed_repo: Path) -> None:
 
 
 def test_web_home_page_serves_react_shell(mixed_repo: Path) -> None:
+    assert (WEB_FRONTEND_DIR / "index.html").exists()
+    assert (WEB_FRONTEND_DIR / "app.js").exists()
+    assert (WEB_FRONTEND_DIR / "app.css").exists()
+
     app = _application(default_repo=str(mixed_repo))
     status_headers: dict[str, object] = {}
 
@@ -56,6 +69,19 @@ def test_web_home_page_serves_react_shell(mixed_repo: Path) -> None:
     assert "Loading local interface" in body
     assert "/static/app.js" in body
     assert "/static/app.css" in body
+
+
+def test_frontend_asset_path_supports_installed_wheel_layout(tmp_path: Path, monkeypatch) -> None:
+    source_dir = tmp_path / "repo" / "webapp" / "dist"
+    installed_dir = tmp_path / "site-packages" / "webapp" / "dist"
+    installed_dir.mkdir(parents=True)
+    expected = installed_dir / "index.html"
+    expected.write_text("<div id='root'></div>", encoding="utf-8")
+
+    monkeypatch.setattr(web_module, "WEB_FRONTEND_DIR", source_dir)
+    monkeypatch.setattr(web_module, "_frontend_dir_candidates", lambda: (source_dir, installed_dir))
+
+    assert _frontend_asset_path("index.html") == expected
 
 
 def test_web_bootstrap_api_returns_active_repo(mixed_repo: Path) -> None:

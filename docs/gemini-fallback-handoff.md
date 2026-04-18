@@ -45,7 +45,7 @@ The workstream later expanded to cover the local browser UI as well: the web fro
 - Updated `docs/contracts.md` and `docs/cli.md` so the public output shape and CLI/report narrative match the new provider fields.
 - Added a reusable `repobrain provider-smoke` command and browser action for direct provider validation.
 - Updated `CHANGELOG.md` and `docs/releases.md` so the unreleased line reflects the new provider behavior.
-- Added a React TSX browser frontend under `webapp/` and built assets under `src/repobrain/web_frontend/`.
+- Added a React TSX browser frontend under `webapp/`, removed the old `src/repobrain/web_frontend` asset mirror, and the Python server now serves the built frontend from `webapp/dist/`.
 - Added a light/dark theme toggle and structured diagnostics/activity panels to the React browser UI.
 - Added structured `data` payloads to the web `doctor` and `provider-smoke` API responses so the frontend can render release diagnostics without parsing text output.
 
@@ -56,7 +56,6 @@ The workstream later expanded to cover the local browser UI as well: the web fro
 - `src/repobrain/ux.py`
 - `src/repobrain/cli.py`
 - `src/repobrain/web.py`
-- `src/repobrain/web_frontend/*`
 - `tests/test_providers.py`
 - `tests/test_config.py`
 - `tests/test_engine.py`
@@ -138,7 +137,7 @@ The workstream later expanded to cover the local browser UI as well: the web fro
 
 - Frontend source now lives in `webapp/`.
 - Build command: `npm run build` from `webapp/`.
-- Built files are served from `src/repobrain/web_frontend/`.
+- Built files are served from `webapp/dist/`.
 - Runtime `repobrain serve-web` does not require Node if the built assets are already present.
 - `GET /api/doctor` and `POST /api/provider-smoke` now include structured `data` payloads for the React diagnostics panels.
 
