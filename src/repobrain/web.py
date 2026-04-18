@@ -98,7 +98,7 @@ def _workspace_snapshot() -> tuple[dict[str, object], dict[str, object] | None]:
         return workspace, None
 
 
-def _action_result(mode: str, query_text: str) -> tuple[str, str, str]:
+def _action_payload_result(mode: str, query_text: str) -> tuple[str, str, object]:
     repo_root, engine = _active_engine()
     context = project_context_hint(repo_root)
     if mode == "trace":
@@ -121,7 +121,12 @@ def _action_result(mode: str, query_text: str) -> tuple[str, str, str]:
     else:
         payload = engine.query(query_text, context=context)
         title = "Query"
-    return str(repo_root), title, payload_to_text(payload)
+    return str(repo_root), title, payload
+
+
+def _action_result(mode: str, query_text: str) -> tuple[str, str, str]:
+    repo_text, title, payload = _action_payload_result(mode, query_text)
+    return repo_text, title, payload_to_text(payload)
 
 
 def _doctor_result() -> tuple[str, str]:
@@ -387,8 +392,14 @@ def _application(default_repo: str = ""):
                     mode = fields.get("mode", "query").strip() or "query"
                     if not query_text:
                         raise ValueError("Query text is required.")
-                    repo_text, title, result = _action_result(mode, query_text)
-                    payload = _web_action_payload(repo_text=repo_text, title=title, result=result, message=f"{title} completed.")
+                    repo_text, title, action_data = _action_payload_result(mode, query_text)
+                    payload = _web_action_payload(
+                        repo_text=repo_text,
+                        title=title,
+                        result=payload_to_text(action_data),
+                        message=f"{title} completed.",
+                        data=action_data if isinstance(action_data, dict) and action_data.get("kind") == "workspace_query" else None,
+                    )
                 else:
                     return _text_response(start_response, "404 Not Found", "Not Found")
                 return _json_response(start_response, "200 OK", payload)

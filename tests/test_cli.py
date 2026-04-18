@@ -194,6 +194,63 @@ def test_terminal_styling_is_opt_in(monkeypatch) -> None:
     assert "\x1b[" in quickstart_styled
 
 
+def test_workspace_query_text_includes_comparison_and_citations() -> None:
+    payload = {
+        "kind": "workspace_query",
+        "query": "auth callback",
+        "current_repo": "c:/repo-a",
+        "project_count": 2,
+        "context_applied": True,
+        "comparison": {
+            "best_match": {
+                "name": "repo-a",
+                "repo_root": "c:/repo-a",
+                "confidence": 0.88,
+                "intent": "locate",
+                "summary": "locate via auth_service.py; no major warnings",
+            },
+            "active_rank": 1,
+            "shared_hotspots": [{"label": "auth_service.py", "count": 2, "repos": ["repo-a", "repo-b"]}],
+            "notes": ["Best evidence currently leans toward repo-a (0.880)."],
+        },
+        "results": [
+            {
+                "name": "repo-a",
+                "repo_root": "c:/repo-a",
+                "active": True,
+                "confidence": 0.88,
+                "intent": "locate",
+                "top_files": ["backend/auth_service.py"],
+                "warnings": ["Cross-check route wiring."],
+                "summary": "locate via auth_service.py; Cross-check route wiring.",
+                "memory_summary": "Notes: auth callback is the main thread.",
+                "next_questions": ["Trace callback route to service next?"],
+                "citations": [
+                    {
+                        "file_path": "backend/auth_service.py",
+                        "language": "python",
+                        "role": "service",
+                        "score": 0.77,
+                        "start_line": 12,
+                        "end_line": 24,
+                        "symbol_name": "handle_callback",
+                        "reasons": ["vector", "path_overlap"],
+                        "preview": "def handle_callback(...): return finalize_auth()",
+                    }
+                ],
+            }
+        ],
+        "errors": [],
+    }
+
+    output = payload_to_text(payload)
+
+    assert "Comparison notes:" in output
+    assert "Shared hotspots:" in output
+    assert "citations:" in output
+    assert "backend/auth_service.py:12-24::handle_callback" in output
+
+
 def test_chat_native_commands_apply_focus_context_and_memory(
     mixed_repo: Path,
     tmp_path: Path,

@@ -295,6 +295,9 @@ def test_web_workspace_use_memory_and_multi_query_flow(mixed_repo: Path, tmp_pat
     assert multi_payload["title"] == "Cross-Repo Query"
     assert "RepoBrain Cross-Repo Query" in multi_payload["result"]
     assert "sample_repo_two" in multi_payload["result"]
+    assert multi_payload["data"]["kind"] == "workspace_query"
+    assert multi_payload["data"]["comparison"]["best_match"]["name"] in {"sample_repo", "sample_repo_two"}
+    assert isinstance(multi_payload["data"]["results"][0]["citations"], list)
 
 
 def test_report_html_renders_provider_pool_details() -> None:
