@@ -15,6 +15,7 @@ _MAX_RECENT_QUERIES = 6
 _MAX_TOP_FILES = 6
 _MAX_WARNINGS = 4
 _MAX_NEXT_QUESTIONS = 4
+_MAX_GLOBAL_EVIDENCE = 5
 
 
 def workspace_state_file() -> Path:
@@ -409,7 +410,7 @@ def _workspace_result_summary(result: QueryResult) -> str:
 
 def _workspace_citations(result: QueryResult) -> list[dict[str, Any]]:
     citations: list[dict[str, Any]] = []
-    for hit in result.snippets[:2]:
+    for hit in sorted(result.snippets, key=lambda item: item.score, reverse=True)[:2]:
         preview = _compact_preview(hit.content)
         citations.append(
             {
@@ -435,18 +436,21 @@ def _workspace_repo_result_payload(
     result: QueryResult,
     memory_summary: str,
 ) -> dict[str, Any]:
+    citations = _workspace_citations(result)
     return {
         "name": project.get("name", repo_root.name),
         "repo_root": str(repo_root),
         "active": repo_root == current_repo_path,
         "confidence": round(result.confidence, 3),
+        "evidence_score": 0.0,
+        "global_rank": None,
         "intent": result.intent.value,
         "top_files": [item.file_path for item in result.top_files[:3]],
         "warnings": result.warnings[:2],
         "summary": _workspace_result_summary(result),
         "memory_summary": memory_summary,
         "next_questions": result.next_questions[:2],
-        "citations": _workspace_citations(result),
+        "citations": citations,
     }
 
 
@@ -458,6 +462,8 @@ def _comparison_best_match(results: list[dict[str, Any]]) -> dict[str, Any] | No
         "name": best.get("name"),
         "repo_root": best.get("repo_root"),
         "confidence": best.get("confidence"),
+        "evidence_score": best.get("evidence_score"),
+        "global_rank": best.get("global_rank"),
         "intent": best.get("intent"),
         "summary": best.get("summary"),
     }
@@ -490,6 +496,75 @@ def _comparison_shared_hotspots(results: list[dict[str, Any]]) -> list[dict[str,
     return shared[:3]
 
 
+def _citation_scores(citations: Any) -> list[float]:
+    if not isinstance(citations, list):
+        return []
+    scores: list[float] = []
+    for citation in citations:
+        if not isinstance(citation, dict):
+            continue
+        try:
+            scores.append(float(citation.get("score", 0.0) or 0.0))
+        except (TypeError, ValueError):
+            continue
+    scores.sort(reverse=True)
+    return scores
+
+
+def _workspace_result_sort_key(item: dict[str, Any]) -> tuple[float, float, float, bool]:
+    scores = _citation_scores(item.get("citations"))
+    first = scores[0] if scores else 0.0
+    second = scores[1] if len(scores) > 1 else 0.0
+    try:
+        confidence = float(item.get("confidence", 0.0) or 0.0)
+    except (TypeError, ValueError):
+        confidence = 0.0
+    return (first, second, confidence, bool(item.get("active")))
+
+
+def _apply_workspace_global_ranking(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    ranked = sorted(results, key=_workspace_result_sort_key, reverse=True)
+    for index, item in enumerate(ranked, start=1):
+        scores = _citation_scores(item.get("citations"))
+        fallback_confidence = float(item.get("confidence", 0.0) or 0.0)
+        item["evidence_score"] = round(scores[0] if scores else fallback_confidence, 3)
+        item["global_rank"] = index
+    return ranked
+
+
+def _comparison_global_evidence(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    global_evidence: list[dict[str, Any]] = []
+    for item in results:
+        for citation in item.get("citations", []):
+            if not isinstance(citation, dict):
+                continue
+            global_evidence.append(
+                {
+                    "name": item.get("name"),
+                    "repo_root": item.get("repo_root"),
+                    "active": item.get("active"),
+                    "rank": None,
+                    "score": round(float(citation.get("score", 0.0) or 0.0), 3),
+                    "file_path": citation.get("file_path"),
+                    "language": citation.get("language"),
+                    "role": citation.get("role"),
+                    "start_line": citation.get("start_line"),
+                    "end_line": citation.get("end_line"),
+                    "symbol_name": citation.get("symbol_name"),
+                    "reasons": list(citation.get("reasons", []))[:4],
+                    "preview": citation.get("preview", ""),
+                }
+            )
+
+    global_evidence.sort(
+        key=lambda item: (float(item.get("score", 0.0) or 0.0), bool(item.get("active"))),
+        reverse=True,
+    )
+    for index, item in enumerate(global_evidence, start=1):
+        item["rank"] = index
+    return global_evidence[:_MAX_GLOBAL_EVIDENCE]
+
+
 def _comparison_intent_groups(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
     groups: dict[str, list[str]] = {}
     for item in results:
@@ -512,14 +587,25 @@ def _workspace_comparison_payload(results: list[dict[str, Any]]) -> dict[str, An
     active_rank = _comparison_active_rank(results)
     shared_hotspots = _comparison_shared_hotspots(results)
     intent_groups = _comparison_intent_groups(results)
+    global_evidence = _comparison_global_evidence(results)
 
     notes: list[str] = []
     if best_match is not None:
         notes.append(
-            f"Best evidence currently leans toward {best_match['name']} ({float(best_match['confidence'] or 0.0):.3f})."
+            "Best evidence currently leans toward "
+            f"{best_match['name']} (citation={float(best_match['evidence_score'] or 0.0):.3f}, "
+            f"confidence={float(best_match['confidence'] or 0.0):.3f})."
         )
     if active_rank is not None:
         notes.append(f"Active repo ranks #{active_rank} in the current cross-repo pass.")
+    if global_evidence:
+        leader = global_evidence[0]
+        notes.append(
+            "Top workspace citation is "
+            f"{leader['name']}::{Path(str(leader.get('file_path', ''))).name}"
+            f":{leader.get('start_line')}-{leader.get('end_line')} "
+            f"({float(leader.get('score', 0.0) or 0.0):.3f})."
+        )
     if shared_hotspots:
         hotspot = shared_hotspots[0]
         notes.append(
@@ -536,6 +622,7 @@ def _workspace_comparison_payload(results: list[dict[str, Any]]) -> dict[str, An
         "active_rank": active_rank,
         "shared_hotspots": shared_hotspots,
         "intent_groups": intent_groups,
+        "global_evidence": global_evidence,
         "notes": notes,
     }
 
@@ -588,7 +675,7 @@ def workspace_query_payload(
                 }
             )
 
-    results.sort(key=lambda item: (float(item.get("confidence", 0.0)), bool(item.get("active"))), reverse=True)
+    results = _apply_workspace_global_ranking(results)
     return {
         "kind": "workspace_query",
         "query": query,

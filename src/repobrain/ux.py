@@ -530,7 +530,12 @@ def workspace_query_to_text(payload: dict[str, Any]) -> str:
             [
                 "",
                 "Leader:",
-                f"- {best_match.get('name')} confidence={float(best_match.get('confidence', 0.0)):.3f} intent={best_match.get('intent')}",
+                (
+                    f"- {best_match.get('name')} rank=#{best_match.get('global_rank')} "
+                    f"citation={float(best_match.get('evidence_score', 0.0)):.3f} "
+                    f"confidence={float(best_match.get('confidence', 0.0)):.3f} "
+                    f"intent={best_match.get('intent')}"
+                ),
             ]
         )
         if best_match.get("summary"):
@@ -553,6 +558,21 @@ def workspace_query_to_text(payload: dict[str, Any]) -> str:
             if repo_label:
                 lines.append(f"  repos: {repo_label}")
 
+    global_evidence = comparison.get("global_evidence", [])
+    if isinstance(global_evidence, list) and global_evidence:
+        lines.extend(["", "Global evidence leaders:"])
+        for item in global_evidence[:5]:
+            if not isinstance(item, dict):
+                continue
+            symbol = f"::{item.get('symbol_name')}" if item.get("symbol_name") else ""
+            lines.append(
+                f"- #{item.get('rank')} {item.get('name')} score={float(item.get('score', 0.0)):.3f} "
+                f"{item.get('file_path')}:{item.get('start_line')}-{item.get('end_line')}{symbol}"
+            )
+            preview = str(item.get("preview", "")).strip()
+            if preview:
+                lines.append(f"  {preview}")
+
     if results:
         lines.extend(["", "Best evidence by repo:"])
         for index, item in enumerate(results, start=1):
@@ -560,7 +580,12 @@ def workspace_query_to_text(payload: dict[str, Any]) -> str:
                 continue
             active_suffix = " [active]" if item.get("active") else ""
             lines.append(
-                f"{index}. {item.get('name')}{active_suffix} confidence={float(item.get('confidence', 0.0)):.3f}"
+                (
+                    f"{index}. {item.get('name')}{active_suffix} "
+                    f"rank=#{item.get('global_rank')} "
+                    f"citation={float(item.get('evidence_score', 0.0)):.3f} "
+                    f"confidence={float(item.get('confidence', 0.0)):.3f}"
+                )
             )
             lines.append(f"   {item.get('repo_root')}")
             top_files = item.get("top_files", [])
