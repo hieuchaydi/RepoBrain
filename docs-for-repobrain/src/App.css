@@ -229,6 +229,52 @@
   color: var(--muted-soft);
 }
 
+.search-shortcut {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface-elevated) 82%, transparent);
+  color: var(--muted-soft);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+
+.utility-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface-soft) 84%, transparent);
+  color: var(--heading);
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.utility-button.copied {
+  border-color: var(--border-strong);
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface-elevated));
+  color: var(--heading);
+}
+
+.copy-button,
+.share-button {
+  width: fit-content;
+  max-width: 100%;
+}
+
 .theme-toggle-button,
 .icon-toggle,
 .locale-chip,
@@ -236,6 +282,7 @@
 .locale-button,
 .drawer-theme-button,
 .drawer-locale-button,
+.utility-button,
 .doc-list-item,
 .starter-doc-card,
 .journey-card,
@@ -772,6 +819,20 @@ section[id],
   gap: 12px;
 }
 
+.install-card-actions,
+.card-action-row,
+.reader-intro-tools,
+.command-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.card-action-row {
+  justify-content: flex-start;
+}
+
 .install-step-tag,
 .step-index,
 .journey-index {
@@ -841,6 +902,7 @@ section[id],
 .quickstart-panel-copy,
 .reading-order,
 .quickstart-copy,
+.reader-intro-head,
 .reader-intro-copy,
 .reader-intro-meta,
 .reader-stat,
@@ -1145,6 +1207,31 @@ section[id],
   gap: 20px;
 }
 
+.reader-intro-head {
+  gap: 16px;
+}
+
+.reader-intro-tools {
+  justify-content: flex-end;
+}
+
+.shortcut-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface-soft) 82%, transparent);
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.shortcut-hint span {
+  max-width: 42ch;
+}
+
 .reader-intro-meta {
   align-content: start;
 }
@@ -1278,6 +1365,10 @@ section[id],
   color: var(--muted);
 }
 
+.command-card-actions {
+  justify-content: flex-end;
+}
+
 .command-card-body {
   display: grid;
   grid-template-columns: minmax(340px, 0.72fr) minmax(0, 1fr);
@@ -1390,6 +1481,31 @@ section[id],
   padding: 24px;
 }
 
+.floating-toast {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  max-width: min(420px, calc(100% - 36px));
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--border-strong);
+  background: color-mix(in srgb, var(--surface-elevated) 92%, transparent);
+  color: var(--heading);
+  box-shadow: var(--shadow);
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+  z-index: 70;
+}
+
+.floating-toast.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .footer {
   display: flex;
   align-items: flex-start;
@@ -1415,6 +1531,7 @@ section[id],
 .icon-toggle:hover,
 .locale-chip:hover,
 .menu-toggle:hover,
+.utility-button:hover,
 .mobile-nav a:hover,
 .drawer-theme-button:hover,
 .drawer-locale-button:hover,
@@ -1440,6 +1557,7 @@ section[id],
 .icon-toggle:hover,
 .locale-chip:hover,
 .menu-toggle:hover,
+.utility-button:hover,
 .mobile-nav a:hover,
 .drawer-theme-button:hover,
 .drawer-locale-button:hover,
@@ -1629,6 +1747,15 @@ section[id],
     gap: 14px;
   }
 
+  .reader-intro-tools,
+  .command-card-actions {
+    justify-content: flex-start;
+  }
+
+  .shortcut-hint {
+    width: 100%;
+  }
+
   .step-index,
   .install-step-tag {
     width: 40px;
@@ -1701,6 +1828,12 @@ section[id],
   .topbar-search,
   .search-field {
     padding: 0 14px;
+  }
+
+  .floating-toast {
+    right: 18px;
+    bottom: 18px;
+    max-width: calc(100% - 36px);
   }
 
   .markdown-shell table {

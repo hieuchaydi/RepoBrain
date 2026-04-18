@@ -180,7 +180,7 @@ npm install
 npm run dev
 ```
 
-That app renders a curated command guide, release-state summary, and selected repo markdown files inside a modern light/dark docs UI.
+That app renders a curated command guide, release-state summary, selected repo markdown files, shareable reader URLs, and one-click command copy actions inside a modern light/dark docs UI.
 
 ## CLI Surface
 

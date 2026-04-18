@@ -3,6 +3,8 @@ import {
   startTransition,
   useDeferredValue,
   useEffect,
+  useEffectEvent,
+  useRef,
   useState,
 } from 'react'
 import ReactMarkdown from 'react-markdown'
@@ -12,9 +14,13 @@ import {
   Binary,
   BookOpenText,
   Bot,
+  Check,
   Command,
+  Copy,
   GitBranch,
+  Keyboard,
   LayoutDashboard,
+  Link2,
   Menu,
   MoonStar,
   Search,
@@ -48,6 +54,7 @@ type StatusState = (typeof releaseStatus)[number]['state']
 
 const sectionIcons = [Sparkles, TerminalSquare, Workflow, LayoutDashboard]
 const defaultLocale: Locale = 'en'
+const defaultTheme: Theme = 'light'
 const primaryNavOrder = ['overview', 'quickstart', 'docs-library', 'reader', 'commands']
 const primaryNavIds = new Set(primaryNavOrder)
 const defaultDocId = docsLibrary.find((entry) => entry.id === 'install')?.id ?? docsLibrary[0]?.id ?? ''
@@ -183,6 +190,41 @@ const appUi = {
     vi: 'Tài liệu này chưa có bản đọc đã biên tập cho ngôn ngữ hiện tại.',
     zh: '该文档暂时还没有当前语言的整理版阅读内容。',
   },
+  shareView: {
+    en: 'Share view',
+    vi: 'Chia se giao dien',
+    zh: 'Share view',
+  },
+  copyCommand: {
+    en: 'Copy command',
+    vi: 'Sao chep lenh',
+    zh: 'Copy command',
+  },
+  copied: {
+    en: 'Copied',
+    vi: 'Da sao chep',
+    zh: 'Copied',
+  },
+  commandCopied: {
+    en: 'Command copied to clipboard.',
+    vi: 'Da sao chep lenh vao clipboard.',
+    zh: 'Command copied to clipboard.',
+  },
+  shareCopied: {
+    en: 'Shareable reader URL copied to clipboard.',
+    vi: 'Da sao chep lien ket trinh doc co the chia se.',
+    zh: 'Shareable reader URL copied to clipboard.',
+  },
+  copyFailed: {
+    en: 'Clipboard copy is not available in this browser.',
+    vi: 'Trinh duyet hien tai khong ho tro sao chep clipboard.',
+    zh: 'Clipboard copy is not available in this browser.',
+  },
+  keyboardHint: {
+    en: 'Shortcuts: / focuses search, Esc closes the menu or clears the filter.',
+    vi: 'Phim tat: / dua con tro vao o tim kiem, Esc dong menu hoac xoa bo loc.',
+    zh: 'Shortcuts: / focuses search, Esc closes the menu or clears the filter.',
+  },
 } satisfies Record<string, LocalizedText>
 
 const localizedTagCopy: Record<string, LocalizedText> = {
@@ -224,7 +266,14 @@ const localizedTagCopy: Record<string, LocalizedText> = {
 
 function getInitialTheme(): Theme {
   if (typeof window === 'undefined') {
-    return 'light'
+    return defaultTheme
+  }
+
+  const urlTheme = normalizeTheme(
+    window.location.search ? new URLSearchParams(window.location.search).get('theme') : null,
+  )
+  if (urlTheme) {
+    return urlTheme
   }
 
   const savedTheme = window.localStorage.getItem('repobrain-docs-theme')
@@ -232,12 +281,19 @@ function getInitialTheme(): Theme {
     return savedTheme
   }
 
-  return 'light'
+  return defaultTheme
 }
 
 function getInitialLocale(): Locale {
   if (typeof window === 'undefined') {
     return defaultLocale
+  }
+
+  const urlLocale = normalizeLocale(
+    window.location.search ? new URLSearchParams(window.location.search).get('lang') : null,
+  )
+  if (urlLocale) {
+    return urlLocale
   }
 
   const savedLocale = window.localStorage.getItem('repobrain-docs-locale')
@@ -267,8 +323,37 @@ function getInitialLocale(): Locale {
   return defaultLocale
 }
 
+function getInitialQuery() {
+  if (typeof window === 'undefined') {
+    return ''
+  }
+
+  return new URLSearchParams(window.location.search).get('q') ?? ''
+}
+
+function getInitialSelectedDocId() {
+  if (typeof window === 'undefined') {
+    return defaultDocId
+  }
+
+  const docId = new URLSearchParams(window.location.search).get('doc')
+  if (docId && docsLibrary.some((entry) => entry.id === docId)) {
+    return docId
+  }
+
+  return defaultDocId
+}
+
 function normalizeSearchText(value: string) {
   return value.toLowerCase().replaceAll('`', '').trim()
+}
+
+function normalizeTheme(value: string | null): Theme | null {
+  return value === 'light' || value === 'dark' ? value : null
+}
+
+function normalizeLocale(value: string | null): Locale | null {
+  return value === 'en' || value === 'vi' || value === 'zh' ? value : null
 }
 
 function localizeText(value: LocalizedText, locale: Locale) {
@@ -296,12 +381,104 @@ function localizeTag(tag: string, locale: Locale) {
   return localizeText(value, locale)
 }
 
+function buildViewUrl({
+  docId,
+  locale,
+  query,
+  theme,
+  hash,
+}: {
+  docId: string
+  locale: Locale
+  query: string
+  theme: Theme
+  hash?: string
+}) {
+  if (typeof window === 'undefined') {
+    return ''
+  }
+
+  const url = new URL(window.location.href)
+  const normalizedQuery = query.trim()
+  const normalizedHash = hash ? (hash.startsWith('#') ? hash : `#${hash}`) : url.hash
+
+  if (docId && docId !== defaultDocId) {
+    url.searchParams.set('doc', docId)
+  } else {
+    url.searchParams.delete('doc')
+  }
+
+  if (locale !== defaultLocale) {
+    url.searchParams.set('lang', locale)
+  } else {
+    url.searchParams.delete('lang')
+  }
+
+  if (theme !== defaultTheme) {
+    url.searchParams.set('theme', theme)
+  } else {
+    url.searchParams.delete('theme')
+  }
+
+  if (normalizedQuery) {
+    url.searchParams.set('q', normalizedQuery)
+  } else {
+    url.searchParams.delete('q')
+  }
+
+  url.hash = normalizedHash
+  return url.toString()
+}
+
+async function copyTextToClipboard(value: string) {
+  if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(value)
+    return true
+  }
+
+  if (typeof document === 'undefined') {
+    return false
+  }
+
+  const textarea = document.createElement('textarea')
+  textarea.value = value
+  textarea.setAttribute('readonly', 'true')
+  textarea.style.position = 'fixed'
+  textarea.style.opacity = '0'
+  textarea.style.pointerEvents = 'none'
+  document.body.appendChild(textarea)
+  textarea.select()
+
+  const copied = document.execCommand('copy')
+  document.body.removeChild(textarea)
+  return copied
+}
+
+function isTypingTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) {
+    return false
+  }
+
+  return (
+    target.isContentEditable ||
+    target.tagName === 'INPUT' ||
+    target.tagName === 'TEXTAREA' ||
+    target.tagName === 'SELECT'
+  )
+}
+
 function App() {
   const [theme, setTheme] = useState<Theme>(getInitialTheme)
   const [locale, setLocale] = useState<Locale>(getInitialLocale)
-  const [query, setQuery] = useState('')
-  const [selectedDocId, setSelectedDocId] = useState(defaultDocId)
+  const [query, setQuery] = useState(getInitialQuery)
+  const [selectedDocId, setSelectedDocId] = useState(getInitialSelectedDocId)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [shouldFocusMobileSearch, setShouldFocusMobileSearch] = useState(false)
+  const [copiedActionId, setCopiedActionId] = useState('')
+  const [toastMessage, setToastMessage] = useState('')
+  const desktopSearchRef = useRef<HTMLInputElement>(null)
+  const mobileSearchRef = useRef<HTMLInputElement>(null)
+  const copyResetTimeoutRef = useRef<number | null>(null)
   const deferredQuery = useDeferredValue(normalizeSearchText(query))
   const text = (value: LocalizedText) => localizeText(value, locale)
   const spotlightItems = uiCopy.spotlightItems[locale]
@@ -327,45 +504,6 @@ function App() {
 
     return [doc.content, localizedEntry?.vi, localizedEntry?.zh].filter(Boolean).join(' ')
   }
-
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme
-    document.documentElement.style.colorScheme = theme
-    window.localStorage.setItem('repobrain-docs-theme', theme)
-  }, [theme])
-
-  useEffect(() => {
-    document.documentElement.lang = locale
-    document.documentElement.dataset.locale = locale
-    window.localStorage.setItem('repobrain-docs-locale', locale)
-  }, [locale])
-
-  useEffect(() => {
-    document.body.style.overflow = isMobileMenuOpen ? 'hidden' : ''
-
-    return () => {
-      document.body.style.overflow = ''
-    }
-  }, [isMobileMenuOpen])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return undefined
-    }
-
-    const mediaQuery = window.matchMedia('(min-width: 1025px)')
-    const handleChange = (event: MediaQueryListEvent) => {
-      if (event.matches) {
-        setIsMobileMenuOpen(false)
-      }
-    }
-
-    mediaQuery.addEventListener('change', handleChange)
-
-    return () => {
-      mediaQuery.removeEventListener('change', handleChange)
-    }
-  }, [])
 
   const visibleDocs = docsLibrary.filter((doc) => {
     if (!deferredQuery) {
@@ -460,6 +598,79 @@ function App() {
       description: text(uiCopy.commandsBody),
     },
   ]
+  const announceFeedback = useEffectEvent((actionId: string, message: string) => {
+    if (copyResetTimeoutRef.current !== null) {
+      window.clearTimeout(copyResetTimeoutRef.current)
+    }
+
+    setCopiedActionId(actionId)
+    setToastMessage(message)
+    copyResetTimeoutRef.current = window.setTimeout(() => {
+      setCopiedActionId('')
+      setToastMessage('')
+      copyResetTimeoutRef.current = null
+    }, 2200)
+  })
+  const focusSearchInput = useEffectEvent(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    if (window.matchMedia('(min-width: 1025px)').matches) {
+      desktopSearchRef.current?.focus()
+      desktopSearchRef.current?.select()
+      return
+    }
+
+    if (!isMobileMenuOpen) {
+      setShouldFocusMobileSearch(true)
+      setIsMobileMenuOpen(true)
+      return
+    }
+
+    mobileSearchRef.current?.focus()
+    mobileSearchRef.current?.select()
+  })
+  const handleCopyAction = useEffectEvent(
+    async (actionId: string, value: string, successMessage: string) => {
+      try {
+        const copied = await copyTextToClipboard(value)
+        if (copied) {
+          announceFeedback(actionId, successMessage)
+          return
+        }
+      } catch {
+        // Fall through to the generic failure message below.
+      }
+
+      setCopiedActionId('')
+      setToastMessage(text(appUi.copyFailed))
+    },
+  )
+  const handleGlobalKeyDown = useEffectEvent((event: KeyboardEvent) => {
+    if (event.defaultPrevented) {
+      return
+    }
+
+    if (event.key === '/' && !isTypingTarget(event.target)) {
+      event.preventDefault()
+      focusSearchInput()
+      return
+    }
+
+    if (event.key === 'Escape') {
+      if (isMobileMenuOpen) {
+        event.preventDefault()
+        closeMobileMenu()
+        return
+      }
+
+      if (query) {
+        event.preventDefault()
+        setQuery('')
+      }
+    }
+  })
 
   function handleSearchChange(event: ChangeEvent<HTMLInputElement>) {
     const nextValue = event.target.value
@@ -518,6 +729,93 @@ function App() {
     return null
   }
 
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+    document.documentElement.style.colorScheme = theme
+    window.localStorage.setItem('repobrain-docs-theme', theme)
+  }, [theme])
+
+  useEffect(() => {
+    document.documentElement.lang = locale
+    document.documentElement.dataset.locale = locale
+    window.localStorage.setItem('repobrain-docs-locale', locale)
+  }, [locale])
+
+  useEffect(() => {
+    document.body.style.overflow = isMobileMenuOpen ? 'hidden' : ''
+
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [isMobileMenuOpen])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined
+    }
+
+    const mediaQuery = window.matchMedia('(min-width: 1025px)')
+    const handleChange = (event: MediaQueryListEvent) => {
+      if (event.matches) {
+        setIsMobileMenuOpen(false)
+        setShouldFocusMobileSearch(false)
+      }
+    }
+
+    mediaQuery.addEventListener('change', handleChange)
+
+    return () => {
+      mediaQuery.removeEventListener('change', handleChange)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isMobileMenuOpen || !shouldFocusMobileSearch) {
+      return
+    }
+
+    mobileSearchRef.current?.focus()
+    mobileSearchRef.current?.select()
+    setShouldFocusMobileSearch(false)
+  }, [isMobileMenuOpen, shouldFocusMobileSearch])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    const nextUrl = buildViewUrl({
+      docId: effectiveSelectedDocId || selectedDocId || defaultDocId,
+      locale,
+      query,
+      theme,
+    })
+
+    if (nextUrl && nextUrl !== window.location.href) {
+      window.history.replaceState(null, '', nextUrl)
+    }
+  }, [effectiveSelectedDocId, locale, query, selectedDocId, theme])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined
+    }
+
+    window.addEventListener('keydown', handleGlobalKeyDown)
+
+    return () => {
+      window.removeEventListener('keydown', handleGlobalKeyDown)
+    }
+  }, [handleGlobalKeyDown])
+
+  useEffect(() => {
+    return () => {
+      if (copyResetTimeoutRef.current !== null) {
+        window.clearTimeout(copyResetTimeoutRef.current)
+      }
+    }
+  }, [])
+
   return (
     <div className="app-shell">
       <header className="app-header">
@@ -541,12 +839,16 @@ function App() {
                 <Search size={16} />
                 <input
                   id="repo-search"
+                  ref={desktopSearchRef}
                   type="search"
                   value={query}
                   onChange={handleSearchChange}
                   placeholder={text(uiCopy.searchPlaceholder)}
                   aria-label={text(uiCopy.searchPlaceholder)}
                 />
+                <span className="search-shortcut" aria-hidden="true">
+                  /
+                </span>
               </label>
 
               <button
@@ -613,12 +915,16 @@ function App() {
                 <Search size={18} />
                 <input
                   id="repo-search-mobile"
+                  ref={mobileSearchRef}
                   type="search"
                   value={query}
                   onChange={handleSearchChange}
                   placeholder={text(uiCopy.searchPlaceholder)}
                   aria-label={text(uiCopy.searchPlaceholder)}
                 />
+                <span className="search-shortcut" aria-hidden="true">
+                  /
+                </span>
               </label>
 
               <div className="mobile-drawer-grid">
@@ -753,7 +1059,31 @@ function App() {
                 <div className="install-card">
                   <div className="install-card-top">
                     <span className="control-label">{text(appUi.installCommandLabel)}</span>
-                    {installStep ? <span className="install-step-tag">01</span> : null}
+                    <div className="install-card-actions">
+                      {installStep ? (
+                        <button
+                          className={`utility-button copy-button${
+                            copiedActionId === 'install-command' ? ' copied' : ''
+                          }`}
+                          type="button"
+                          onClick={() =>
+                            void handleCopyAction(
+                              'install-command',
+                              installStep.command,
+                              text(appUi.commandCopied),
+                            )
+                          }
+                        >
+                          {copiedActionId === 'install-command' ? <Check size={16} /> : <Copy size={16} />}
+                          <span>
+                            {copiedActionId === 'install-command'
+                              ? text(appUi.copied)
+                              : text(appUi.copyCommand)}
+                          </span>
+                        </button>
+                      ) : null}
+                      {installStep ? <span className="install-step-tag">01</span> : null}
+                    </div>
                   </div>
                   {installStep ? (
                     <>
@@ -872,6 +1202,28 @@ function App() {
                     <pre>
                       <code>{step.command}</code>
                     </pre>
+                    <div className="card-action-row">
+                      <button
+                        className={`utility-button copy-button${
+                          copiedActionId === `quickstart-${index}` ? ' copied' : ''
+                        }`}
+                        type="button"
+                        onClick={() =>
+                          void handleCopyAction(
+                            `quickstart-${index}`,
+                            step.command,
+                            text(appUi.commandCopied),
+                          )
+                        }
+                      >
+                        {copiedActionId === `quickstart-${index}` ? <Check size={16} /> : <Copy size={16} />}
+                        <span>
+                          {copiedActionId === `quickstart-${index}`
+                            ? text(appUi.copied)
+                            : text(appUi.copyCommand)}
+                        </span>
+                      </button>
+                    </div>
                   </div>
                 </article>
               ))}
@@ -942,12 +1294,48 @@ function App() {
               {selectedDoc ? (
                 <>
                   <div className="card reader-intro">
-                    <div className="reader-intro-copy">
-                      <span className="eyebrow">
-                        {readerNavigation ? text(readerNavigation.label) : text(uiCopy.readerEyebrow)}
-                      </span>
-                      <h3>{text(selectedDoc.title)}</h3>
-                      <p>{text(selectedDoc.summary)}</p>
+                    <div className="reader-intro-head">
+                      <div className="reader-intro-copy">
+                        <span className="eyebrow">
+                          {readerNavigation ? text(readerNavigation.label) : text(uiCopy.readerEyebrow)}
+                        </span>
+                        <h3>{text(selectedDoc.title)}</h3>
+                        <p>{text(selectedDoc.summary)}</p>
+                      </div>
+
+                      <div className="reader-intro-tools">
+                        <button
+                          className={`utility-button share-button${
+                            copiedActionId === 'share-view' ? ' copied' : ''
+                          }`}
+                          type="button"
+                          onClick={() =>
+                            void handleCopyAction(
+                              'share-view',
+                              buildViewUrl({
+                                docId: selectedDoc.id,
+                                locale,
+                                query,
+                                theme,
+                                hash: 'reader',
+                              }),
+                              text(appUi.shareCopied),
+                            )
+                          }
+                        >
+                          {copiedActionId === 'share-view' ? <Check size={16} /> : <Link2 size={16} />}
+                          <span>
+                            {copiedActionId === 'share-view'
+                              ? text(appUi.copied)
+                              : text(appUi.shareView)}
+                          </span>
+                        </button>
+
+                        <div className="shortcut-hint">
+                          <Keyboard size={16} />
+                          <span>{text(appUi.keyboardHint)}</span>
+                        </div>
+                      </div>
                     </div>
 
                     <div className="reader-intro-meta">
@@ -1026,7 +1414,29 @@ function App() {
               <article className="card command-card" key={entry.command}>
                 <div className="command-card-top">
                   <span className="command-category">{text(entry.category)}</span>
-                  <Command size={16} />
+                  <div className="command-card-actions">
+                    <Command size={16} />
+                    <button
+                      className={`utility-button copy-button${
+                        copiedActionId === `command-${entry.command}` ? ' copied' : ''
+                      }`}
+                      type="button"
+                      onClick={() =>
+                        void handleCopyAction(
+                          `command-${entry.command}`,
+                          entry.command,
+                          text(appUi.commandCopied),
+                        )
+                      }
+                    >
+                      {copiedActionId === `command-${entry.command}` ? <Check size={16} /> : <Copy size={16} />}
+                      <span>
+                        {copiedActionId === `command-${entry.command}`
+                          ? text(appUi.copied)
+                          : text(appUi.copyCommand)}
+                      </span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="command-card-body">
@@ -1150,6 +1560,10 @@ function App() {
           </div>
         </footer>
       </main>
+
+      <div className={`floating-toast${toastMessage ? ' visible' : ''}`} aria-live="polite" role="status">
+        {toastMessage}
+      </div>
     </div>
   )
 }
