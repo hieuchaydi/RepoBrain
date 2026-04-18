@@ -208,6 +208,16 @@ This checks version alignment, `webapp/dist` presence, and whether the wheel/sdi
    - `confidence`
    - `warnings`
 
+## Demo Prep
+
+Before a live demo on the RepoBrain repo itself, run:
+
+```bash
+repobrain demo-clean --format text
+```
+
+This removes local test/build clutter such as root `dist/`, `pytest_work_*`, `pytest_tmp*`, and cache folders while preserving `webapp/dist/` so `repobrain serve-web --open` still works.
+
 ## Troubleshooting
 
 ### `Repository has not been indexed yet`

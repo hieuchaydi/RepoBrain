@@ -164,6 +164,21 @@ repobrain release-check --require-dist --format text
 
 Use `--require-dist` in release automation so missing wheel/sdist artifacts fail the gate instead of showing as a local warning.
 
+### `repobrain demo-clean`
+
+Removes local test/build clutter so the repo is easier to present in a live demo without breaking the browser UI.
+
+- removes root temp directories such as `pytest_work_*`, `pytest_tmp*`, `.tmp-build`, and `dist/`
+- removes nested caches such as `__pycache__/` and generated `.repobrain/` state inside sample workspaces
+- preserves `webapp/dist/` so `repobrain serve-web` still works after cleanup
+- preserves the root `.repobrain/` state unless `--include-state` is passed
+
+```bash
+repobrain demo-clean --format text
+repobrain demo-clean --dry-run --format text
+repobrain demo-clean --keep-dist --include-state --format text
+```
+
 ### `repobrain serve-mcp`
 
 Runs a stdio JSON transport with six tools:
@@ -207,6 +222,7 @@ repobrain targets "Which files should I edit to add GitHub login?"
 repobrain report --format text
 repobrain report --open
 repobrain release-check --format text
+repobrain demo-clean --format text
 repobrain serve-web --open
 repobrain chat
 ```

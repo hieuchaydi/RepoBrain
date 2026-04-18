@@ -5,6 +5,7 @@ import webbrowser
 from pathlib import Path
 
 from repobrain.active_repo import read_active_repo, resolve_repo_root, write_active_repo
+from repobrain.cleanup import cleanup_demo_artifacts
 from repobrain.engine.core import RepoBrainEngine
 from repobrain.mcp_server import serve_mcp
 from repobrain.models import ReviewFocus
@@ -79,6 +80,13 @@ def _parser() -> argparse.ArgumentParser:
     release_parser.add_argument("--repo", default=None)
     release_parser.add_argument("--require-dist", action="store_true", help="Fail if wheel and sdist artifacts are missing.")
     _add_format_argument(release_parser)
+
+    clean_parser = subparsers.add_parser("demo-clean", help="Remove local test/build clutter while keeping the built browser UI ready for demos.")
+    clean_parser.add_argument("--repo", default=None)
+    clean_parser.add_argument("--dry-run", action="store_true", help="Show what would be removed without deleting anything.")
+    clean_parser.add_argument("--keep-dist", action="store_true", help="Preserve root dist/ artifacts.")
+    clean_parser.add_argument("--include-state", action="store_true", help="Also remove the root .repobrain workspace state.")
+    _add_format_argument(clean_parser)
 
     subparsers.add_parser("quickstart", help="Print the shortest path from install to first query.")
 
@@ -173,6 +181,16 @@ def main(argv: list[str] | None = None) -> int:
         payload = inspect_release_artifacts(project_root, require_dist=args.require_dist)
         _dump(payload, getattr(args, "format", "json"))
         return 1 if payload.get("status") == "fail" else 0
+    if args.command == "demo-clean":
+        project_root = Path(args.repo).expanduser().resolve() if args.repo else Path.cwd()
+        payload = cleanup_demo_artifacts(
+            project_root,
+            dry_run=args.dry_run,
+            include_dist=not args.keep_dist,
+            include_state=args.include_state,
+        )
+        _dump(payload, getattr(args, "format", "json"))
+        return 0
 
     repo_root = resolve_repo_root(getattr(args, "repo", None), prefer_active=args.command != "init")
 

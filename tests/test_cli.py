@@ -157,6 +157,22 @@ def test_cli_release_check_outputs_text(capsys) -> None:
     assert "frontend build assets" in output
 
 
+def test_cli_demo_clean_outputs_text(tmp_path: Path, capsys) -> None:
+    repo_root = tmp_path / "demo_repo"
+    (repo_root / "dist").mkdir(parents=True, exist_ok=True)
+    (repo_root / "dist" / "artifact.whl").write_text("wheel", encoding="utf-8")
+    (repo_root / "webapp" / "dist").mkdir(parents=True, exist_ok=True)
+    (repo_root / "webapp" / "dist" / "index.html").write_text("<html></html>", encoding="utf-8")
+
+    assert main(["demo-clean", "--repo", str(repo_root), "--format", "text", "--dry-run"]) == 0
+    output = capsys.readouterr().out
+
+    assert "RepoBrain Demo Clean" in output
+    assert "Mode: dry-run" in output
+    assert "Preserved:" in output
+    assert str((repo_root / "webapp" / "dist").resolve()) in output
+
+
 def test_chat_launcher_prefers_project_virtualenv() -> None:
     launcher = Path(__file__).parents[1] / "chat.cmd"
     content = launcher.read_text(encoding="utf-8")

@@ -28,6 +28,8 @@ def payload_to_text(payload: object) -> str:
     if isinstance(payload, dict):
         if "embedding_smoke" in payload and "reranker_smoke" in payload:
             return provider_smoke_to_text(payload)
+        if payload.get("kind") == "demo_clean":
+            return demo_clean_to_text(payload)
         if payload.get("kind") == "release_check":
             return release_check_to_text(payload)
         if "baseline_path" in payload:
@@ -349,6 +351,47 @@ def release_check_to_text(payload: dict[str, Any]) -> str:
         [
             "",
             "Tip: run `npm run build` in webapp, then `python -m build`, then rerun `repobrain release-check --require-dist --format text`.",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def demo_clean_to_text(payload: dict[str, Any]) -> str:
+    removed = payload.get("removed", []) if isinstance(payload.get("removed"), list) else []
+    preserved = payload.get("preserved", []) if isinstance(payload.get("preserved"), list) else []
+    errors = payload.get("errors", []) if isinstance(payload.get("errors"), list) else []
+    action_label = "Would remove" if payload.get("dry_run") else "Removed"
+    lines = [
+        "RepoBrain Demo Clean",
+        f"Project: {payload.get('project_root')}",
+        f"Status: {str(payload.get('status', 'unknown')).upper()}",
+        f"Mode: {'dry-run' if payload.get('dry_run') else 'apply'}",
+        f"Removed: {payload.get('removed_count', 0)}",
+        f"Preserved: {payload.get('preserved_count', 0)}",
+        f"Errors: {payload.get('error_count', 0)}",
+    ]
+    if removed:
+        lines.extend(["", f"{action_label}:"])
+        lines.extend(f"- {item}" for item in removed[:12])
+        remaining = len(removed) - 12
+        if remaining > 0:
+            lines.append(f"- ... and {remaining} more")
+    if preserved:
+        lines.extend(["", "Preserved:"])
+        for item in preserved[:6]:
+            if not isinstance(item, dict):
+                continue
+            lines.append(f"- {item.get('path')}: {item.get('reason')}")
+    if errors:
+        lines.extend(["", "Errors:"])
+        for item in errors[:6]:
+            if not isinstance(item, dict):
+                continue
+            lines.append(f"- {item.get('path')}: {item.get('error')}")
+    lines.extend(
+        [
+            "",
+            "Tip: run `repobrain demo-clean --format text` before a live demo to remove local test/build clutter while keeping `webapp/dist` ready for `serve-web`.",
         ]
     )
     return "\n".join(lines)
