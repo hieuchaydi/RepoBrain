@@ -53,7 +53,7 @@ Before the first public GitHub release:
 - Replace placeholder GitHub URLs in `pyproject.toml` if the final repository URL is different.
 - Run the manual release workflow once with `publish = false` and inspect the built wheel/sdist artifact.
 - Add a short demo GIF or terminal recording to the README.
-- Tag the first release as `v0.1.0` or `v0.2.0` depending on whether parser/ranking hardening is included.
+- Tag the first release as `v0.1.0`, `v0.2.0`, or `v0.5.0` depending on the release line. The current provider-plus-browser integration track now maps most closely to `v0.5.0`.
 
 ## Runtime Safety Gates
 
@@ -95,7 +95,7 @@ Minimum quality bar for a public release:
 
 - Add live-key smoke tests and examples for Gemini, OpenAI, Voyage, and Cohere provider adapters.
 - Add richer MCP examples for Cursor, Codex, and Claude Code.
-- Add packaging/release automation.
+- Validate the wheel/sdist contents after the frontend-aware release workflow build.
 
 ## Release Decision
 

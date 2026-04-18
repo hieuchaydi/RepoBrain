@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "repobrain"
-version = "0.1.0"
+version = "0.5.0"
 description = "Local-first codebase memory and grounding harness for AI coding assistants."
 readme = "README.md"
 requires-python = ">=3.12"

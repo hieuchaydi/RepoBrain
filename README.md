@@ -79,6 +79,8 @@ This makes RepoBrain useful both as:
 
 ## Current Unreleased Track
 
+This unreleased track now maps most closely to the `0.5.x` integration line: it bundles provider adapters, provider smoke checks, a React browser UI, and release-facing diagnostics into one local workflow.
+
 - Interactive local chat loop through `repobrain chat`
 - Saved review baselines through `repobrain baseline`
 - Windows one-click launcher through `chat.cmd`

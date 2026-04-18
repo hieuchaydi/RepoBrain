@@ -9,10 +9,10 @@ The workstream later expanded to cover the local browser UI as well: the web fro
 ## Status
 
 - Date: 2026-04-18
-- Status: implementation complete for the current feature cycle, branch pushed, release/tag still not cut
-- Owner context: local workspace update on branch `feat-web-theme-release-diagnostics`
-- Latest commit at handoff time: `d678dfb` (`feat: add Gemini failover and themed React diagnostics`)
-- Remote branch: `origin/feat-web-theme-release-diagnostics`
+- Status: implementation complete for the current feature cycle, feature branch merged into local `master`, release/tag still not cut
+- Owner context: continue release work from `master`
+- Source branch for the merged feature work: `feat-web-theme-release-diagnostics`
+- Remote feature branch retained at `origin/feat-web-theme-release-diagnostics`
 
 ## What Was Completed
 
@@ -106,10 +106,11 @@ The workstream later expanded to cover the local browser UI as well: the web fro
 
 ### Release execution
 
-- No version bump was made.
+- Version bump is now prepared locally on `master` for the `0.5.x` integration line.
 - No release tag was created.
 - No GitHub release workflow was run.
 - No release artifact validation was performed.
+- Frontend packaging is now wired into CI/release automation, but the built wheel/sdist still needs a real artifact inspection run with `publish = false`.
 
 ### Live-provider validation
 
@@ -131,7 +132,7 @@ The workstream later expanded to cover the local browser UI as well: the web fro
 2. Confirm the exact error text or exception shape for quota exhaustion in the Google SDK runtime you use.
 3. Tighten `_is_gemini_quota_or_rate_limit_error()` if the real payloads differ.
 4. Re-run the full test suite in an environment where pytest temp directories are writable.
-5. Only after that, decide whether this lands in the next `0.1.x` patch or a broader `0.5.x` integration-focused release.
+5. Only after that, cut the next release from `master` on the `0.5.x` integration line if the browser UI, provider smoke, and live-provider validation all hold up together.
 
 ## Frontend Notes
 

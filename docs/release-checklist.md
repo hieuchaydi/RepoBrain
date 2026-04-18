@@ -41,9 +41,10 @@ Recommended tag format:
 v0.1.0
 v0.2.0
 v0.3.0
+v0.5.0
 ```
 
-Tag only after the release artifact build succeeds. If the first public release includes parser hardening and provider adapters, prefer `v0.2.0`; otherwise use `v0.1.0`.
+Tag only after the release artifact build succeeds. Use `v0.5.0` when the release includes the integration-heavy track now on `master` such as provider adapters, provider smoke, and the React browser UI. Use `v0.2.0` for a narrower parser/retrieval-quality line, or `v0.1.0` only for the bare MVP line.
 
 ## Rollback
 
