@@ -1,0 +1,79 @@
+<svg width="192" height="192" viewBox="0 0 192 192" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="shieldGradient" x1="22" y1="28" x2="170" y2="170" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1A2540"/>
+      <stop offset="0.5" stop-color="#243D76"/>
+      <stop offset="1" stop-color="#162543"/>
+    </linearGradient>
+    <linearGradient id="networkGradient" x1="64" y1="42" x2="140" y2="146" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#85F9F4"/>
+      <stop offset="0.55" stop-color="#42C9D9"/>
+      <stop offset="1" stop-color="#1C86D1"/>
+    </linearGradient>
+    <radialGradient id="glowGradient" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(101 87) rotate(90) scale(66 64)">
+      <stop stop-color="#7CF7F0" stop-opacity="0.95"/>
+      <stop offset="0.45" stop-color="#5BCAE6" stop-opacity="0.4"/>
+      <stop offset="1" stop-color="#5BCAE6" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <path
+    d="M31 54.5L52.4 33H101.8L156 87.2V122.2L129.8 148.5H78.5L31 101V54.5Z"
+    fill="url(#shieldGradient)"
+    stroke="#334A79"
+    stroke-width="4"
+    stroke-linejoin="round"
+  />
+  <ellipse cx="99" cy="96" rx="42" ry="46" fill="url(#glowGradient)"/>
+
+  <path
+    d="M75.2 58.3L90.4 46.6L116.3 48.8L133.7 67.3L133 93.8L117.6 110.9L90 115.8L67.8 103.5L57.5 80.7L62.8 60.1L75.2 58.3Z"
+    stroke="url(#networkGradient)"
+    stroke-width="5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path d="M75 58L58 81" stroke="url(#networkGradient)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M90 47L88 78" stroke="url(#networkGradient)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M116 49L109 81" stroke="url(#networkGradient)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M134 67L110 81" stroke="url(#networkGradient)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M133 94L110 81" stroke="url(#networkGradient)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M118 111L109 81" stroke="url(#networkGradient)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M90 116L88 78" stroke="url(#networkGradient)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M68 104L88 78" stroke="url(#networkGradient)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M58 81L88 78L109 81L90 116" stroke="url(#networkGradient)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <circle cx="75" cy="58" r="6.5" fill="#0E1830" stroke="#86FBF6" stroke-width="4"/>
+  <circle cx="90" cy="47" r="6.5" fill="#0E1830" stroke="#86FBF6" stroke-width="4"/>
+  <circle cx="116" cy="49" r="6.5" fill="#0E1830" stroke="#86FBF6" stroke-width="4"/>
+  <circle cx="134" cy="67" r="6.5" fill="#0E1830" stroke="#86FBF6" stroke-width="4"/>
+  <circle cx="133" cy="94" r="6.5" fill="#0E1830" stroke="#86FBF6" stroke-width="4"/>
+  <circle cx="118" cy="111" r="6.5" fill="#0E1830" stroke="#86FBF6" stroke-width="4"/>
+  <circle cx="90" cy="116" r="6.5" fill="#0E1830" stroke="#86FBF6" stroke-width="4"/>
+  <circle cx="68" cy="104" r="6.5" fill="#0E1830" stroke="#86FBF6" stroke-width="4"/>
+  <circle cx="58" cy="81" r="6.5" fill="#0E1830" stroke="#86FBF6" stroke-width="4"/>
+  <circle cx="88" cy="78" r="8" fill="#E6FFFD"/>
+  <circle cx="109" cy="81" r="7.5" fill="#D7FFF8"/>
+
+  <path
+    d="M41 68L49.4 59.5H71.6L79 67V78L70.3 86.7H50.6L41 77.1V68Z"
+    fill="#101B34"
+    stroke="#2F4A77"
+    stroke-width="3"
+    stroke-linejoin="round"
+  />
+  <path d="M57.8 67.5L53 72.4L57.8 77.2" stroke="#67ECE9" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M62.4 79L64.9 65.7" stroke="#67ECE9" stroke-width="3" stroke-linecap="round"/>
+  <path d="M67.3 67.6L72.1 72.4L67.3 77.3" stroke="#67ECE9" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <path
+    d="M62 114L68.1 107.9H92.7L98 113.2V128.9L91.4 135.5H69.8L62 127.7V114Z"
+    fill="#101B34"
+    stroke="#2F4A77"
+    stroke-width="3"
+    stroke-linejoin="round"
+  />
+  <path d="M74 118L70 122L74 126" stroke="#67ECE9" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M78 128L82 116" stroke="#67ECE9" stroke-width="3" stroke-linecap="round"/>
+  <path d="M86 118L90 122L86 126" stroke="#67ECE9" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

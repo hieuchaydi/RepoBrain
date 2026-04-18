@@ -1,0 +1,147 @@
+@import '@fontsource/space-grotesk/latin-400.css';
+@import '@fontsource/space-grotesk/latin-500.css';
+@import '@fontsource/space-grotesk/latin-700.css';
+@import '@fontsource/space-grotesk/vietnamese-400.css';
+@import '@fontsource/space-grotesk/vietnamese-500.css';
+@import '@fontsource/space-grotesk/vietnamese-700.css';
+@import '@fontsource/source-sans-3/latin-400.css';
+@import '@fontsource/source-sans-3/latin-600.css';
+@import '@fontsource/source-sans-3/latin-700.css';
+@import '@fontsource/source-sans-3/vietnamese-400.css';
+@import '@fontsource/source-sans-3/vietnamese-600.css';
+@import '@fontsource/source-sans-3/vietnamese-700.css';
+
+:root {
+  --bg: #07111e;
+  --bg-elevated: #0c1829;
+  --sidebar-bg: rgba(6, 11, 22, 0.92);
+  --panel: rgba(12, 23, 39, 0.88);
+  --panel-hero: linear-gradient(180deg, rgba(8, 18, 33, 0.96), rgba(10, 25, 43, 0.9));
+  --border: rgba(124, 148, 179, 0.22);
+  --text: #d7e1ef;
+  --muted: #93a7c4;
+  --muted-soft: #7588a3;
+  --heading: #f7fbff;
+  --accent: #6df2ea;
+  --accent-link: #8feff4;
+  --brand-repo: #4c7fd4;
+  --code-bg: #06101d;
+  --code-text: #d5f2ff;
+  --code-inline: #b8ecff;
+  --shadow:
+    0 30px 60px rgba(0, 0, 0, 0.24),
+    0 10px 26px rgba(8, 22, 46, 0.34);
+  --font-body: 'Source Sans 3', 'Segoe UI', sans-serif;
+  --font-heading: 'Space Grotesk', 'Segoe UI', sans-serif;
+  --font-mono: 'Cascadia Code', 'SFMono-Regular', Consolas, monospace;
+
+  color: var(--text);
+  background:
+    radial-gradient(circle at top left, rgba(58, 207, 218, 0.13), transparent 28rem),
+    radial-gradient(circle at top right, rgba(66, 115, 226, 0.14), transparent 26rem),
+    linear-gradient(180deg, #07111e 0%, #09131f 56%, #08111b 100%);
+  color-scheme: dark;
+  font-family: var(--font-body);
+  font-synthesis: none;
+  line-height: 1.6;
+  font-weight: 400;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+:root[data-theme='light'] {
+  --bg: #eef4fb;
+  --bg-elevated: #ffffff;
+  --sidebar-bg: rgba(242, 247, 253, 0.94);
+  --panel: rgba(255, 255, 255, 0.88);
+  --panel-hero: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(242, 250, 253, 0.96));
+  --border: rgba(46, 76, 121, 0.14);
+  --text: #31425b;
+  --muted: #5f7391;
+  --muted-soft: #7b8eaa;
+  --heading: #0f1f39;
+  --accent: #168ea8;
+  --accent-link: #0f7db0;
+  --brand-repo: #2455a8;
+  --code-bg: #edf6fb;
+  --code-text: #123554;
+  --code-inline: #0d5d91;
+  --shadow:
+    0 24px 50px rgba(83, 108, 150, 0.12),
+    0 8px 20px rgba(53, 82, 128, 0.08);
+  color-scheme: light;
+  background:
+    radial-gradient(circle at top left, rgba(80, 207, 214, 0.22), transparent 24rem),
+    radial-gradient(circle at top right, rgba(54, 113, 221, 0.14), transparent 22rem),
+    linear-gradient(180deg, #f3f8fd 0%, #e9f0f8 54%, #eef5fb 100%);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: transparent;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+a,
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+button {
+  border: none;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-heading);
+  letter-spacing: -0.04em;
+}
+
+h2 {
+  margin: 0;
+  font-size: clamp(2rem, 3vw, 2.8rem);
+  line-height: 1.05;
+  color: var(--heading);
+}
+
+h3 {
+  font-size: 1.3rem;
+  line-height: 1.15;
+}
+
+p,
+li,
+small,
+span,
+code {
+  letter-spacing: 0.01em;
+}
+
+::selection {
+  background: rgba(105, 239, 237, 0.32);
+  color: var(--heading);
+}

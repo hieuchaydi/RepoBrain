@@ -172,6 +172,16 @@ See the full run guide in [docs/run.md](docs/run.md).
 
 Frontend source for the browser UI lives in `webapp/`. The built local assets are generated into `webapp/dist/`, and `repobrain serve-web` serves that React build directly. If `webapp/dist/` is missing, run `npm run build` inside `webapp/` once before starting the Python web server.
 
+There is also a separate human-friendly documentation frontend in `docs-for-repobrain/` for onboarding, repo reading, and demo prep:
+
+```bash
+cd docs-for-repobrain
+npm install
+npm run dev
+```
+
+That app renders a curated command guide, release-state summary, and selected repo markdown files inside a modern light/dark docs UI.
+
 ## CLI Surface
 
 ```text
