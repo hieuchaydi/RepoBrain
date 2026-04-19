@@ -113,9 +113,27 @@ class RepoBrainEngine:
         dependency_edges = self.store.get_edges_for_files([item.file_path for item in top_files], limit=14)
         call_chain = self._build_call_chain(dependency_edges)
         edit_targets = self._build_edit_targets(intent, top_files, dependency_edges)
+        query_tokens = set(tokenize(query))
         confidence = self._confidence(intent, profile, top_hits, dependency_edges)
-        warnings = self._warnings(query, intent, confidence, top_hits, dependency_edges)
-        next_questions = self._next_questions(intent, top_hits, warnings)
+        confidence_label = self._confidence_label(confidence)
+        warnings = self._warnings(
+            query,
+            intent,
+            confidence,
+            confidence_label,
+            top_hits,
+            dependency_edges,
+            query_tokens=query_tokens,
+        )
+        next_questions = self._next_questions(intent, top_hits, warnings, confidence_label)
+        confidence_summary = self._confidence_summary(
+            intent,
+            confidence_label,
+            top_hits,
+            dependency_edges,
+            warnings,
+            query_tokens=query_tokens,
+        )
 
         return QueryResult(
             query=query,
@@ -129,6 +147,8 @@ class RepoBrainEngine:
             warnings=warnings,
             next_questions=next_questions,
             plan=plan,
+            confidence_label=confidence_label,
+            confidence_summary=confidence_summary,
         )
 
     def trace(self, query: str, *, context: str | None = None) -> QueryResult:
@@ -142,13 +162,30 @@ class RepoBrainEngine:
 
     def build_change_context(self, query: str) -> dict[str, object]:
         result = self.targets(query)
+        top_file_map = {item.file_path: item for item in result.top_files}
+        edit_targets: list[dict[str, object]] = []
+        for item in result.edit_targets[:3]:
+            payload = item.to_dict()
+            support = top_file_map.get(item.file_path)
+            if support is not None:
+                payload["role"] = support.role
+                payload["evidence_score"] = round(support.score, 3)
+                payload["supporting_reasons"] = support.reasons[:4]
+            edit_targets.append(payload)
+
         return {
             "query": result.query,
             "intent": result.intent.value,
             "top_files": [item.to_dict() for item in result.top_files[:4]],
-            "edit_targets": [item.to_dict() for item in result.edit_targets[:3]],
+            "edit_targets": edit_targets,
+            "supporting_snippets": [self._change_context_snippet(hit) for hit in result.snippets[:3]],
             "warnings": result.warnings,
+            "risk_notes": result.warnings[:3],
             "confidence": result.confidence,
+            "confidence_label": result.confidence_label,
+            "confidence_summary": result.confidence_summary,
+            "evidence_summary": self._change_context_evidence_summary(result),
+            "next_questions": result.next_questions,
             "plan_steps": result.plan.steps,
         }
 
@@ -821,6 +858,7 @@ class RepoBrainEngine:
         role_diversity = len(unique_roles) / max(min(len(considered_hits), 3), 1)
         source_diversity = multi_source_hits / max(len(considered_hits), 1)
         edge_support = min(len(dependency_edges) / 8, 1.0)
+        token_overlap = self._best_evidence_overlap(profile.tokens, considered_hits)
 
         confidence = (
             0.16
@@ -829,6 +867,7 @@ class RepoBrainEngine:
             + (source_diversity * 0.16)
             + (file_diversity * 0.1)
             + (edge_support * 0.12)
+            + (token_overlap * 0.14)
         )
         if intent == QueryIntent.TRACE:
             confidence += role_diversity * 0.07
@@ -841,6 +880,12 @@ class RepoBrainEngine:
             confidence -= 0.08
         if top_score < 1.0:
             confidence -= 0.06
+        if token_overlap < 0.12:
+            confidence -= 0.12
+        elif token_overlap < 0.2:
+            confidence -= 0.06
+        if intent == QueryIntent.CHANGE and not dependency_edges:
+            confidence -= 0.05
         if not profile.include_tests and unique_roles == {"test"}:
             confidence -= 0.22
 
@@ -851,13 +896,18 @@ class RepoBrainEngine:
         query: str,
         intent: QueryIntent,
         confidence: float,
+        confidence_label: str,
         hits: list[SearchHit],
         dependency_edges: list[dict[str, str | None]],
+        *,
+        query_tokens: set[str] | None = None,
     ) -> list[str]:
         warnings: list[str] = []
-        query_tokens = set(tokenize(query))
-        if confidence < 0.45:
-            warnings.append("Low-confidence retrieval. Narrow the query or re-index after updating the repo.")
+        query_tokens = set(query_tokens or tokenize(query))
+        if confidence_label == "exploratory":
+            warnings.append("Confidence band is exploratory. Treat the result as directional and confirm the exact source file before editing.")
+        elif confidence_label == "weak":
+            warnings.append("Confidence band is weak. Cross-check the lead files before planning a patch.")
         if not hits:
             warnings.append("No grounded evidence was found for this query.")
         if "github" in query.lower() and not any("github" in hit.content.lower() for hit in hits):
@@ -867,11 +917,7 @@ class RepoBrainEngine:
         if hits and not any("multi_source" in hit.reasons for hit in hits[:4]):
             warnings.append("Evidence is dominated by one retrieval source. Cross-check lexical and semantic coverage.")
         if hits:
-            best_overlap = 0.0
-            for hit in hits[:4]:
-                evidence_tokens = set(tokenize(f"{hit.file_path} {hit.symbol_name or ''} {hit.content}"))
-                overlap = len(query_tokens & evidence_tokens) / max(len(query_tokens), 1)
-                best_overlap = max(best_overlap, overlap)
+            best_overlap = self._best_evidence_overlap(query_tokens, hits[:4])
             if best_overlap < 0.2:
                 warnings.append("Retrieved evidence has weak explicit token overlap with the query. Treat the result as exploratory.")
         if intent == QueryIntent.TRACE and len({hit.role for hit in hits[:4]}) < 2:
@@ -881,11 +927,28 @@ class RepoBrainEngine:
         if intent == QueryIntent.CHANGE and not dependency_edges:
             warnings.append("Edit-target suggestions have limited structural edge support. Review imports and callbacks manually.")
         warnings.extend(self._contradiction_warnings(query_tokens, hits))
-        return warnings
+        deduped: list[str] = []
+        for warning in warnings:
+            if warning not in deduped:
+                deduped.append(warning)
+        return deduped
 
-    def _next_questions(self, intent: QueryIntent, hits: list[SearchHit], warnings: list[str]) -> list[str]:
-        if hits and not warnings:
+    def _next_questions(
+        self,
+        intent: QueryIntent,
+        hits: list[SearchHit],
+        warnings: list[str],
+        confidence_label: str,
+    ) -> list[str]:
+        if hits and not warnings and confidence_label in {"moderate", "strong"}:
             return []
+        joined_warnings = " ".join(warnings).lower()
+        if "test files" in joined_warnings:
+            return ["Which runtime source file should RepoBrain prioritize beyond the tests?"]
+        if "provider" in joined_warnings:
+            return ["Which auth provider symbol or callback handler should RepoBrain narrow on next?"]
+        if intent == QueryIntent.CHANGE and confidence_label in {"exploratory", "weak"}:
+            return ["Which route, service, or config file is the most likely starting point for this change?"]
         prompts = {
             QueryIntent.LOCATE: "Which module or symbol name should RepoBrain prioritize next?",
             QueryIntent.EXPLAIN: "Should the answer focus on route flow, background jobs, or configuration?",
@@ -899,6 +962,93 @@ class RepoBrainEngine:
         if hasattr(payload, "to_dict"):
             return json.dumps(payload.to_dict(), indent=2)
         return json.dumps(payload, indent=2)
+
+    def _confidence_label(self, confidence: float) -> str:
+        if confidence < 0.28:
+            return "exploratory"
+        if confidence < 0.5:
+            return "weak"
+        if confidence < 0.72:
+            return "moderate"
+        return "strong"
+
+    def _best_evidence_overlap(self, query_tokens: set[str], hits: list[SearchHit]) -> float:
+        filtered_tokens = {token for token in query_tokens if len(token) >= 3}
+        if not filtered_tokens or not hits:
+            return 0.0
+
+        best_overlap = 0.0
+        for hit in hits[:4]:
+            evidence_tokens = set(tokenize(f"{hit.file_path} {hit.symbol_name or ''} {hit.content}"))
+            overlap = len(filtered_tokens & evidence_tokens) / max(len(filtered_tokens), 1)
+            best_overlap = max(best_overlap, overlap)
+        return round(best_overlap, 3)
+
+    def _confidence_summary(
+        self,
+        intent: QueryIntent,
+        confidence_label: str,
+        hits: list[SearchHit],
+        dependency_edges: list[dict[str, str | None]],
+        warnings: list[str],
+        *,
+        query_tokens: set[str],
+    ) -> str:
+        if not hits:
+            return "No grounded evidence was found for this query."
+
+        file_count = len({hit.file_path for hit in hits[:4]})
+        role_count = len({hit.role for hit in hits[:4]})
+        overlap = self._best_evidence_overlap(query_tokens, hits[:4])
+        multi_source = any("multi_source" in hit.reasons for hit in hits[:4])
+        lead = {
+            "strong": "Strong grounding",
+            "moderate": "Moderate grounding",
+            "weak": "Weak grounding",
+            "exploratory": "Exploratory grounding",
+        }[confidence_label]
+
+        parts = [f"{lead} across {file_count} file(s)"]
+        if multi_source:
+            parts.append("with lexical and semantic agreement")
+        else:
+            parts.append("with limited retrieval-source agreement")
+        if dependency_edges:
+            parts.append(f"and {min(len(dependency_edges), 3)} structural edge hint(s)")
+        if intent == QueryIntent.TRACE:
+            parts.append(f"covering {role_count} role type(s)")
+        if overlap < 0.2:
+            parts.append("but weak token overlap to the query")
+        if warnings and confidence_label in {"weak", "exploratory"}:
+            parts.append("so inspect the lead files before planning edits")
+        return " ".join(parts) + "."
+
+    def _change_context_snippet(self, hit: SearchHit) -> dict[str, object]:
+        preview = " ".join(hit.content.split())
+        if len(preview) > 180:
+            preview = preview[:177] + "..."
+        return {
+            "file_path": hit.file_path,
+            "start_line": hit.start_line,
+            "end_line": hit.end_line,
+            "symbol_name": hit.symbol_name,
+            "score": round(hit.score, 3),
+            "reasons": hit.reasons[:4],
+            "preview": preview,
+        }
+
+    def _change_context_evidence_summary(self, result: QueryResult) -> str:
+        lead_files = [item.file_path for item in result.top_files[:3]]
+        if not lead_files:
+            return "No grounded edit surfaces were identified."
+
+        lead_text = ", ".join(lead_files[:3])
+        if result.confidence_label in {"exploratory", "weak"}:
+            return (
+                f"Lead change surfaces are {lead_text}, but the evidence is {result.confidence_label}. "
+                "Verify the entrypoint and config wiring before patching."
+            )
+        return f"Primary change surfaces are {lead_text}. Start there before touching adjacent files."
 
     def _contradiction_warnings(self, query_tokens: set[str], hits: list[SearchHit]) -> list[str]:
         if not hits:

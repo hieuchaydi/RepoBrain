@@ -254,6 +254,8 @@ Notes:
     }
   ],
   "confidence": 0.82,
+  "confidence_label": "moderate",
+  "confidence_summary": "Moderate grounding across 3 file(s) with lexical and semantic agreement and 1 structural edge hint(s).",
   "warnings": [],
   "next_questions": [],
   "plan": {
@@ -335,8 +337,14 @@ Returns a compact subset intended for planning agents:
   "intent": "change",
   "top_files": [],
   "edit_targets": [],
+  "supporting_snippets": [],
   "warnings": [],
+  "risk_notes": [],
   "confidence": 0.82,
+  "confidence_label": "moderate",
+  "confidence_summary": "Moderate grounding across 3 file(s) with lexical and semantic agreement.",
+  "evidence_summary": "Primary change surfaces are frontend/src/services/oauth.ts, frontend/src/routes/login.ts.",
+  "next_questions": [],
   "plan_steps": ["planner", "retriever", "file_selector"]
 }
 ```

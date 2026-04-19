@@ -187,6 +187,8 @@ class QueryResult:
     warnings: list[str]
     next_questions: list[str]
     plan: QueryPlan
+    confidence_label: str = ""
+    confidence_summary: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -198,6 +200,8 @@ class QueryResult:
             "dependency_edges": self.dependency_edges,
             "edit_targets": [item.to_dict() for item in self.edit_targets],
             "confidence": round(self.confidence, 3),
+            "confidence_label": self.confidence_label,
+            "confidence_summary": self.confidence_summary,
             "warnings": self.warnings,
             "next_questions": self.next_questions,
             "plan": self.plan.to_dict(),

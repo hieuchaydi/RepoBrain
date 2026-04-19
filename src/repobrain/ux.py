@@ -210,10 +210,11 @@ def ship_to_text(report: ShipReport) -> str:
 
 
 def query_result_to_text(result: QueryResult) -> str:
+    confidence_tail = f" ({result.confidence_label})" if result.confidence_label else ""
     lines = [
         "RepoBrain Result",
         f"Query: {result.query}",
-        f"Intent: {result.intent.value} | Confidence: {result.confidence:.3f}",
+        f"Intent: {result.intent.value} | Confidence: {result.confidence:.3f}{confidence_tail}",
         "",
         "Top files:",
     ]
@@ -246,6 +247,10 @@ def query_result_to_text(result: QueryResult) -> str:
         for target in result.edit_targets[:3]:
             lines.append(f"- {target.file_path} score={target.score:.3f}")
             lines.append(f"  {target.rationale}")
+
+    if result.confidence_summary:
+        lines.extend(["", "Assessment:"])
+        lines.append(f"- {result.confidence_summary}")
 
     if result.warnings:
         lines.extend(["", "Warnings:"])

@@ -72,6 +72,8 @@ def test_index_and_query_find_retry_logic(mixed_repo: Path) -> None:
     assert any("retry_handler.py" in item.file_path for item in result.top_files)
     assert any("payment_retry_job.py" in item.file_path for item in result.top_files)
     assert result.confidence > 0.45
+    assert result.confidence_label in {"moderate", "strong"}
+    assert result.confidence_summary
 
 
 def test_trace_and_targets_return_grounded_files(mixed_repo: Path) -> None:
@@ -89,6 +91,11 @@ def test_trace_and_targets_return_grounded_files(mixed_repo: Path) -> None:
     assert change_context["edit_targets"]
     assert len(change_context["top_files"]) <= 4
     assert len(change_context["edit_targets"]) <= 3
+    assert change_context["supporting_snippets"]
+    assert change_context["confidence_label"] in {"moderate", "strong"}
+    assert change_context["confidence_summary"]
+    assert change_context["evidence_summary"]
+    assert "supporting_reasons" in change_context["edit_targets"][0]
     assert change_context["plan_steps"]
 
 
@@ -238,6 +245,8 @@ def test_low_evidence_query_returns_warning(mixed_repo: Path) -> None:
 
     assert result.warnings
     assert result.confidence < 0.7
+    assert result.confidence_label in {"exploratory", "weak"}
+    assert any("confidence band" in warning.lower() for warning in result.warnings)
 
 
 def test_confidence_calibration_bands(mixed_repo: Path) -> None:
@@ -246,10 +255,12 @@ def test_confidence_calibration_bands(mixed_repo: Path) -> None:
     engine.index_repository()
     grounded = engine.query("Where is payment retry logic implemented?")
     weak = engine.query("Where is kerberos saml tenant federation broker pipeline implemented?")
+    rank = {"exploratory": 0, "weak": 1, "moderate": 2, "strong": 3}
 
     assert 0.45 <= grounded.confidence <= 0.97
     assert 0.05 <= weak.confidence <= 0.7
     assert weak.confidence < grounded.confidence
+    assert rank[weak.confidence_label] < rank[grounded.confidence_label]
 
 
 def test_trace_query_can_surface_contradiction_or_surface_warning(mixed_repo: Path) -> None:

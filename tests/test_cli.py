@@ -91,6 +91,7 @@ def test_cli_text_output_and_quickstart(mixed_repo: Path, capsys) -> None:
     query_output = capsys.readouterr().out
     assert "RepoBrain Result" in query_output
     assert "Top files:" in query_output
+    assert "Assessment:" in query_output
 
     assert main(["review", "--repo", str(mixed_repo), "--format", "text"]) == 0
     review_output = capsys.readouterr().out
