@@ -77,7 +77,7 @@ class RepoBrainEngine:
         config_path = self.config.write_default(force=force)
         return {"repo_root": str(self.config.resolved_repo_root), "config_path": str(config_path), "state_dir": str(self.config.state_path)}
 
-    def index_repository(self) -> dict[str, object]:
+    def index_repository(self, *, include_review: bool = False) -> dict[str, object]:
         candidates = self.scanner.scan()
         documents = [self.scanner.parse(candidate) for candidate in candidates]
         stats = self.store.replace_documents(documents, self.providers.embedder)
@@ -86,6 +86,11 @@ class RepoBrainEngine:
             parser_counts[document.parser_name] += 1
         stats["parsers"] = dict(sorted(parser_counts.items()))
         stats["repo_root"] = str(self.config.resolved_repo_root)
+        if include_review:
+            review = self.reviewer.review_from_documents(documents)
+            self._attach_index_stats_to_review(review, stats)
+            stats["review"] = review.to_dict()
+            stats["import_assessment"] = self._import_assessment(stats, review)
         return stats
 
     def query(
@@ -286,14 +291,48 @@ class RepoBrainEngine:
         baseline_label: str = "baseline",
     ) -> ReviewReport:
         report = self.reviewer.review(focus=focus, max_findings=max_findings)
-        report.stats["indexed"] = self.store.indexed()
-        if self.store.indexed():
-            index_stats = self.store.stats()
-            report.stats["indexed_files"] = index_stats.get("files", 0)
-            report.stats["indexed_chunks"] = index_stats.get("chunks", 0)
+        self._attach_index_stats_to_review(report)
         if compare_baseline:
             report.delta = self.review_artifacts.compare(report, label=baseline_label)
         return report
+
+    def _attach_index_stats_to_review(
+        self,
+        report: ReviewReport,
+        index_stats: dict[str, object] | None = None,
+    ) -> None:
+        indexed = bool(index_stats) or self.store.indexed()
+        report.stats["indexed"] = indexed
+        if indexed:
+            stats = index_stats or self.store.stats()
+            report.stats["indexed_files"] = int(stats.get("files", 0) or 0)
+            report.stats["indexed_chunks"] = int(stats.get("chunks", 0) or 0)
+
+    def _import_assessment(self, stats: dict[str, object], review: ReviewReport) -> dict[str, object]:
+        top_findings = [
+            {
+                "severity": finding.severity.value,
+                "category": finding.category,
+                "title": finding.title,
+                "file_paths": finding.file_paths[:4],
+            }
+            for finding in review.findings[:3]
+        ]
+        return {
+            "kind": "import_assessment",
+            "repo_root": str(self.config.resolved_repo_root),
+            "readiness": review.readiness,
+            "score": round(review.score, 1),
+            "summary": review.summary,
+            "top_findings": top_findings,
+            "next_steps": review.next_steps[:3],
+            "index": {
+                "files": int(stats.get("files", 0) or 0),
+                "chunks": int(stats.get("chunks", 0) or 0),
+                "symbols": int(stats.get("symbols", 0) or 0),
+                "edges": int(stats.get("edges", 0) or 0),
+            },
+        }
 
     def save_review_baseline(self, report: ReviewReport, label: str = "baseline") -> dict[str, str]:
         saved = self.review_artifacts.save_baseline(report, label=label)

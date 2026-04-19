@@ -7,7 +7,7 @@ from pathlib import Path
 
 from repobrain.config import RepoBrainConfig
 from repobrain.engine.scanner import FileCandidate, RepositoryScanner
-from repobrain.models import ReviewFinding, ReviewFocus, ReviewReport, ReviewSeverity
+from repobrain.models import ParsedDocument, ReviewFinding, ReviewFocus, ReviewReport, ReviewSeverity
 
 
 ROOT_TEXT_FILES = (
@@ -93,7 +93,17 @@ class ProjectReviewer:
         self.scanner = scanner or RepositoryScanner(config)
 
     def review(self, focus: ReviewFocus = ReviewFocus.FULL, max_findings: int = 6) -> ReviewReport:
-        snapshot = self._snapshot()
+        return self._review_snapshot(self._snapshot(), focus=focus, max_findings=max_findings)
+
+    def review_from_documents(
+        self,
+        documents: list[ParsedDocument],
+        focus: ReviewFocus = ReviewFocus.FULL,
+        max_findings: int = 6,
+    ) -> ReviewReport:
+        return self._review_snapshot(self._snapshot_from_documents(documents), focus=focus, max_findings=max_findings)
+
+    def _review_snapshot(self, snapshot: RepoSnapshot, *, focus: ReviewFocus, max_findings: int) -> ReviewReport:
         findings = self._collect_findings(snapshot)
         allowed_categories = FOCUS_CATEGORIES[focus]
         filtered = [finding for finding in findings if finding.category in allowed_categories]
@@ -124,12 +134,41 @@ class ProjectReviewer:
             candidate.rel_path: candidate.path.read_text(encoding="utf-8", errors="ignore")
             for candidate in code_files
         }
+        return RepoSnapshot(
+            repo_root=self.config.resolved_repo_root,
+            code_files=code_files,
+            code_text=code_text,
+            root_text=self._root_text_snapshot(),
+            workflow_text=self._workflow_text_snapshot(),
+        )
+
+    def _snapshot_from_documents(self, documents: list[ParsedDocument]) -> RepoSnapshot:
+        code_files = [
+            FileCandidate(
+                path=self.config.resolved_repo_root / document.file_path,
+                rel_path=document.file_path,
+                language=document.language,
+                role=document.role,
+            )
+            for document in documents
+        ]
+        return RepoSnapshot(
+            repo_root=self.config.resolved_repo_root,
+            code_files=code_files,
+            code_text={document.file_path: document.content for document in documents},
+            root_text=self._root_text_snapshot(),
+            workflow_text=self._workflow_text_snapshot(),
+        )
+
+    def _root_text_snapshot(self) -> dict[str, str]:
         root_text: dict[str, str] = {}
         for name in ROOT_TEXT_FILES:
             path = self.config.resolved_repo_root / name
             if path.exists() and path.is_file():
                 root_text[name] = path.read_text(encoding="utf-8", errors="ignore")
+        return root_text
 
+    def _workflow_text_snapshot(self) -> dict[str, str]:
         workflow_text: dict[str, str] = {}
         workflow_dir = self.config.resolved_repo_root / ".github" / "workflows"
         if workflow_dir.exists():
@@ -138,14 +177,7 @@ class ProjectReviewer:
                     encoding="utf-8",
                     errors="ignore",
                 )
-
-        return RepoSnapshot(
-            repo_root=self.config.resolved_repo_root,
-            code_files=code_files,
-            code_text=code_text,
-            root_text=root_text,
-            workflow_text=workflow_text,
-        )
+        return workflow_text
 
     def _collect_findings(self, snapshot: RepoSnapshot) -> list[ReviewFinding]:
         findings: list[ReviewFinding] = []

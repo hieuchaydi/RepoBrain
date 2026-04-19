@@ -54,6 +54,8 @@ def _payload_to_text_plain(payload: object) -> str:
             return workspace_summary_to_text(payload)
         if payload.get("kind") == "workspace_query":
             return workspace_query_to_text(payload)
+        if payload.get("kind") == "import_assessment":
+            return import_assessment_to_text(payload)
         if payload.get("kind") == "patch_review":
             return patch_review_to_text(
                 PatchReviewReport(
@@ -607,6 +609,41 @@ def index_stats_to_text(payload: dict[str, Any]) -> str:
             "repobrain chat",
         ]
     )
+
+
+def import_assessment_to_text(payload: dict[str, Any]) -> str:
+    index_payload = payload.get("index", {}) if isinstance(payload.get("index"), dict) else {}
+    top_findings = payload.get("top_findings", []) if isinstance(payload.get("top_findings"), list) else []
+    next_steps = payload.get("next_steps", []) if isinstance(payload.get("next_steps"), list) else []
+    lines = [
+        "RepoBrain Import Assessment",
+        f"Repo: {payload.get('repo_root')}",
+        f"Readiness: {payload.get('readiness')}",
+        f"Score: {payload.get('score')}/10",
+        "",
+        str(payload.get("summary", "")).strip() or "No review summary was generated.",
+        "",
+        "Indexed surface:",
+        f"files={index_payload.get('files', 0)} chunks={index_payload.get('chunks', 0)} "
+        f"symbols={index_payload.get('symbols', 0)} edges={index_payload.get('edges', 0)}",
+        "",
+        "Top opinion signals:",
+    ]
+    if top_findings:
+        for index, item in enumerate(top_findings[:3], start=1):
+            if not isinstance(item, dict):
+                continue
+            files = item.get("file_paths", [])
+            file_text = ", ".join(str(path) for path in files[:4]) if isinstance(files, list) else ""
+            lines.append(f"{index}. [{item.get('severity')}] {item.get('title')}")
+            if file_text:
+                lines.append(f"   files: {file_text}")
+    else:
+        lines.append("- No high-signal findings from the import-time review.")
+    if next_steps:
+        lines.extend(["", "Suggested next checks:"])
+        lines.extend(f"- {item}" for item in next_steps[:3] if str(item).strip())
+    return "\n".join(lines)
 
 
 def benchmark_to_text(payload: dict[str, Any]) -> str:

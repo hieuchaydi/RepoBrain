@@ -63,17 +63,35 @@ def _frontend_asset_path(asset_name: str) -> Path:
     )
 
 
-def _import_and_index(repo_path: str) -> tuple[str, str, str]:
+def _import_project_payload(repo_path: str) -> tuple[str, str, str, dict[str, object]]:
     repo_root = Path(repo_path).expanduser().resolve()
     if not repo_root.exists() or not repo_root.is_dir():
         raise ValueError("Project path does not exist or is not a directory.")
     engine = _engine_from_repo(repo_root)
     init_payload = engine.init_workspace(force=False)
-    stats = engine.index_repository()
+    stats = engine.index_repository(include_review=True)
     write_active_repo(repo_root)
     message = f"Imported and indexed: {repo_root}"
-    result = payload_to_text({**init_payload, "active_repo": str(repo_root)}) + "\n\n" + payload_to_text(stats)
-    return str(repo_root), message, result
+    index_stats = dict(stats)
+    review = index_stats.pop("review", None)
+    import_assessment = index_stats.pop("import_assessment", None)
+    result_parts = [
+        payload_to_text({**init_payload, "active_repo": str(repo_root)}),
+        payload_to_text(index_stats),
+    ]
+    if isinstance(import_assessment, dict):
+        result_parts.append(payload_to_text(import_assessment))
+    data: dict[str, object] = {
+        "index": index_stats,
+        "review": review if isinstance(review, dict) else None,
+        "import_assessment": import_assessment if isinstance(import_assessment, dict) else None,
+    }
+    return str(repo_root), message, "\n\n".join(result_parts), data
+
+
+def _import_and_index(repo_path: str) -> tuple[str, str, str]:
+    repo_text, message, result, _ = _import_project_payload(repo_path)
+    return repo_text, message, result
 
 
 def _active_engine() -> tuple[Path, RepoBrainEngine]:
@@ -373,8 +391,14 @@ def _application(default_repo: str = ""):
             fields = _read_request_fields(environ)
             try:
                 if path == "/api/import":
-                    repo_text, message, result = _import_and_index(_text_field(fields, "repo_path"))
-                    payload = _web_action_payload(repo_text=repo_text, title="Import + Index", result=result, message=message)
+                    repo_text, message, result, data = _import_project_payload(_text_field(fields, "repo_path"))
+                    payload = _web_action_payload(
+                        repo_text=repo_text,
+                        title="Import + Index",
+                        result=result,
+                        message=message,
+                        data=data,
+                    )
                 elif path == "/api/index":
                     repo_text, result = _index_result()
                     payload = _web_action_payload(repo_text=repo_text, title="Index", result=result, message="Active repo re-indexed.")

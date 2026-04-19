@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from heapq import nlargest
 import sqlite3
 from pathlib import Path
 
@@ -14,6 +15,8 @@ class MetadataStore:
         self.config = config
         self.db_path = config.metadata_db_path
         self.vector_path = config.vectors_dir / "chunks.jsonl"
+        self._vector_cache_signature: tuple[int, int] | None = None
+        self._vector_cache: list[tuple[int, list[float]]] | None = None
 
     def initialize(self, reset: bool = False) -> None:
         self.config.state_path.mkdir(parents=True, exist_ok=True)
@@ -89,17 +92,19 @@ class MetadataStore:
         chunk_texts: list[str] = []
         chunk_ids: list[int] = []
         with self.connect() as connection:
+            connection.execute("PRAGMA synchronous=NORMAL")
+            connection.execute("PRAGMA temp_store=MEMORY")
             for document in documents:
                 connection.execute(
                     "INSERT OR REPLACE INTO files(path, language, role, size) VALUES (?, ?, ?, ?)",
                     (document.file_path, document.language, document.role, len(document.content)),
                 )
-                for symbol in document.symbols:
-                    connection.execute(
-                        """
-                        INSERT INTO symbols(file_path, name, kind, start_line, end_line, signature, doc_hint)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
-                        """,
+                connection.executemany(
+                    """
+                    INSERT INTO symbols(file_path, name, kind, start_line, end_line, signature, doc_hint)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
                         (
                             document.file_path,
                             symbol.name,
@@ -108,16 +113,20 @@ class MetadataStore:
                             symbol.end_line,
                             symbol.signature,
                             symbol.doc_hint,
-                        ),
-                    )
-                for edge in document.edges:
-                    connection.execute(
-                        """
-                        INSERT INTO edges(source_file, source_symbol, target, edge_type, target_file)
-                        VALUES (?, ?, ?, ?, ?)
-                        """,
-                        (edge.source_file, edge.source_symbol, edge.target, edge.edge_type, edge.target_file),
-                    )
+                        )
+                        for symbol in document.symbols
+                    ),
+                )
+                connection.executemany(
+                    """
+                    INSERT INTO edges(source_file, source_symbol, target, edge_type, target_file)
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                    (
+                        (edge.source_file, edge.source_symbol, edge.target, edge.edge_type, edge.target_file)
+                        for edge in document.edges
+                    ),
+                )
                 for chunk in document.chunks:
                     cursor = connection.execute(
                         """
@@ -153,6 +162,8 @@ class MetadataStore:
         with self.vector_path.open("w", encoding="utf-8") as handle:
             for chunk_id, vector in zip(chunk_ids, vectors):
                 handle.write(json.dumps({"chunk_id": chunk_id, "vector": vector}) + "\n")
+        self._vector_cache_signature = None
+        self._vector_cache = None
 
         return {
             "files": len(documents),
@@ -201,16 +212,17 @@ class MetadataStore:
         if not self.vector_path.exists():
             return []
         query_vector = embedder.embed([query])[0]
-        with self.vector_path.open("r", encoding="utf-8") as handle:
-            scored: list[tuple[int, float]] = []
-            for line in handle:
-                payload = json.loads(line)
-                scored.append((int(payload["chunk_id"]), cosine_similarity(query_vector, payload["vector"])))
-        top_ids = [chunk_id for chunk_id, score in sorted(scored, key=lambda item: item[1], reverse=True)[:limit] if score > 0]
+        vectors = self._load_vectors()
+        scored = (
+            (chunk_id, cosine_similarity(query_vector, vector))
+            for chunk_id, vector in vectors
+        )
+        top_scored = [item for item in nlargest(limit, scored, key=lambda item: item[1]) if item[1] > 0]
+        top_ids = [chunk_id for chunk_id, _ in top_scored]
         if not top_ids:
             return []
         rows = self.get_chunks(top_ids)
-        score_map = dict(scored)
+        score_map = dict(top_scored)
         hits: list[SearchHit] = []
         for row in rows:
             hits.append(
@@ -228,6 +240,24 @@ class MetadataStore:
                 )
             )
         return hits
+
+    def _load_vectors(self) -> list[tuple[int, list[float]]]:
+        try:
+            stat = self.vector_path.stat()
+        except OSError:
+            return []
+        signature = (stat.st_mtime_ns, stat.st_size)
+        if self._vector_cache_signature == signature and self._vector_cache is not None:
+            return self._vector_cache
+
+        vectors: list[tuple[int, list[float]]] = []
+        with self.vector_path.open("r", encoding="utf-8") as handle:
+            for line in handle:
+                payload = json.loads(line)
+                vectors.append((int(payload["chunk_id"]), [float(item) for item in payload["vector"]]))
+        self._vector_cache_signature = signature
+        self._vector_cache = vectors
+        return vectors
 
     def get_chunks(self, chunk_ids: list[int]) -> list[sqlite3.Row]:
         if not chunk_ids:

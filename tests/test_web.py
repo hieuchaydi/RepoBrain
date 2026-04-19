@@ -25,6 +25,8 @@ def test_web_import_and_query_flow(mixed_repo: Path) -> None:
     assert repo_text == str(mixed_repo.resolve())
     assert "Imported and indexed" in message
     assert "RepoBrain Index Complete" in result
+    assert "RepoBrain Import Assessment" in result
+    assert "Top opinion signals" in result
 
     active_repo, title, query_result = _action_result("query", "Where is payment retry logic implemented?")
     assert active_repo == str(mixed_repo.resolve())
@@ -143,6 +145,36 @@ def test_web_review_api_renders_project_review_payload(mixed_repo: Path) -> None
     assert payload["title"] == "Project Review"
     assert "RepoBrain Review" in payload["result"]
     assert "data" in payload
+
+
+def test_web_import_api_returns_structured_import_assessment(mixed_repo: Path) -> None:
+    app = _application(default_repo=str(mixed_repo))
+    status_headers: dict[str, object] = {}
+
+    def start_response(status: str, headers: list[tuple[str, str]]) -> None:
+        status_headers["status"] = status
+        status_headers["headers"] = headers
+
+    request = json.dumps({"repo_path": str(mixed_repo)}).encode("utf-8")
+    body = b"".join(
+        app(
+            {
+                "REQUEST_METHOD": "POST",
+                "PATH_INFO": "/api/import",
+                "CONTENT_TYPE": "application/json",
+                "wsgi.input": io.BytesIO(request),
+                "CONTENT_LENGTH": str(len(request)),
+            },
+            start_response,
+        )
+    ).decode("utf-8")
+
+    payload = json.loads(body)
+    assert status_headers["status"] == "200 OK"
+    assert payload["title"] == "Import + Index"
+    assert payload["data"]["import_assessment"]["kind"] == "import_assessment"
+    assert payload["data"]["review"]["summary"]
+    assert "RepoBrain Import Assessment" in payload["result"]
 
 
 def test_web_doctor_api_renders_structured_doctor_payload(mixed_repo: Path) -> None:

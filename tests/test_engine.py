@@ -71,11 +71,13 @@ def test_config_write_and_load(tmp_path: Path) -> None:
 def test_index_and_query_find_retry_logic(mixed_repo: Path) -> None:
     engine = RepoBrainEngine(mixed_repo)
     engine.init_workspace(force=True)
-    stats = engine.index_repository()
+    stats = engine.index_repository(include_review=True)
     result = engine.query("Where is payment retry logic implemented?")
 
     assert stats["files"] >= 7
     assert stats["parsers"]
+    assert stats["import_assessment"]["kind"] == "import_assessment"
+    assert stats["review"]["summary"]
     assert "retry_handler.py" in result.top_files[0].file_path or "payment_retry_job.py" in result.top_files[0].file_path
     assert any("retry_handler.py" in item.file_path for item in result.top_files)
     assert any("payment_retry_job.py" in item.file_path for item in result.top_files)
