@@ -1,5 +1,7 @@
 .doc-page {
+  width: 100%;
   max-width: min(920px, 100%);
+  min-width: 0;
   scroll-margin-top: 96px;
 }
 
@@ -100,6 +102,8 @@
 
 .doc-article {
   margin-top: 36px;
+  min-width: 0;
+  max-width: 100%;
   color: var(--text);
 }
 
@@ -165,6 +169,7 @@
 .doc-article li {
   color: var(--text);
   line-height: 1.85;
+  overflow-wrap: anywhere;
 }
 
 .doc-article a {
@@ -206,12 +211,15 @@
 .doc-article pre {
   position: relative;
   margin: 1.6rem 0;
+  min-width: 0;
+  max-width: 100%;
   overflow-x: auto;
   padding: 56px 20px 20px;
   border: 1px solid var(--border);
   border-radius: 20px;
   background: var(--code-bg);
   box-shadow: var(--shadow-soft);
+  -webkit-overflow-scrolling: touch;
 }
 
 .doc-article pre::before {
@@ -240,6 +248,7 @@
 
 .doc-article pre code {
   display: block;
+  min-width: 0;
   padding: 0;
   border-radius: 0;
   background: transparent;

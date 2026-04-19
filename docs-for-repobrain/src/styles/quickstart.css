@@ -1,14 +1,18 @@
 .quickstart-section {
   display: grid;
   gap: 22px;
+  width: 100%;
   max-width: min(1080px, 100%);
+  min-width: 0;
   scroll-margin-top: 96px;
 }
 
 .quickstart-header {
   display: grid;
   gap: 12px;
+  width: 100%;
   max-width: 760px;
+  min-width: 0;
 }
 
 .quickstart-header h2,
@@ -20,12 +24,14 @@
   color: var(--text);
   font-size: 1.08rem;
   line-height: 1.75;
+  overflow-wrap: anywhere;
 }
 
 .quickstart-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
+  min-width: 0;
 }
 
 .quickstart-card {
@@ -33,6 +39,8 @@
   display: grid;
   gap: 16px;
   min-height: 100%;
+  min-width: 0;
+  max-width: 100%;
   padding: 20px;
   border: 1px solid var(--border);
   border-radius: 22px;
@@ -59,6 +67,7 @@
 .quickstart-card-copy {
   display: grid;
   gap: 8px;
+  min-width: 0;
 }
 
 .quickstart-card h3,
@@ -76,23 +85,30 @@
 .quickstart-card p {
   color: var(--text);
   line-height: 1.7;
+  overflow-wrap: anywhere;
 }
 
 .quickstart-card pre {
   margin: 0;
+  min-width: 0;
+  max-width: 100%;
   overflow-x: auto;
   padding: 14px;
   border: 1px solid var(--border);
   border-radius: 16px;
   background: var(--code-bg);
+  -webkit-overflow-scrolling: touch;
 }
 
 .quickstart-card code {
+  display: block;
+  min-width: 0;
   color: var(--code-text);
   font-family: var(--font-mono);
   font-size: 0.9rem;
   line-height: 1.7;
-  white-space: pre;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .quickstart-doc-links {

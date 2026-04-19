@@ -1,5 +1,8 @@
 .docs-app {
   min-height: 100vh;
+  width: 100%;
+  min-width: 0;
+  overflow-x: clip;
   color: var(--text);
 }
 
@@ -14,6 +17,7 @@
 .docs-header-inner,
 .docs-layout {
   width: min(1480px, calc(100% - 32px));
+  min-width: 0;
   margin: 0 auto;
 }
 
@@ -23,11 +27,14 @@
   gap: 32px;
   align-items: start;
   padding: 28px 0 64px;
+  overflow-x: clip;
 }
 
 .docs-main {
   display: grid;
+  width: 100%;
   min-width: 0;
+  max-width: 100%;
   gap: 42px;
 }
 

@@ -11,6 +11,7 @@
 - Added MIT `LICENSE`
 - Added GitHub Actions CI workflow for Python `3.12` and `3.13`
 - Added a release-driven project narrative for `0.1.x` through `1.0.0`
+- Fixed the docs frontend mobile header and quickstart/code-card overflow
 - Added bilingual English/Vietnamese installation instructions
 - Added a dedicated run guide with local setup, CLI usage, and troubleshooting
 - Added a feature-direction file to capture next moves after the current MVP
@@ -23,6 +24,7 @@
 - Added a manual GitHub Actions release workflow for wheel/sdist builds
 - Kept PyPI publishing behind an explicit `publish = true` workflow input
 - Updated CI and release automation to build the React web frontend and package `webapp/dist` with Python artifacts
+- Updated CI and release automation to lint/build the docs frontend and upload its release artifact
 - Added `repobrain release-check` to validate version alignment, frontend build assets, and built wheel/sdist contents before publishing
 
 ### Engine

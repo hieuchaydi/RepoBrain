@@ -30,7 +30,9 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: webapp/package-lock.json
+          cache-dependency-path: |
+            webapp/package-lock.json
+            docs-for-repobrain/package-lock.json
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -43,6 +45,18 @@ jobs:
 
       - name: Build frontend assets
         working-directory: webapp
+        run: npm run build
+
+      - name: Install docs frontend dependencies
+        working-directory: docs-for-repobrain
+        run: npm ci
+
+      - name: Lint docs frontend
+        working-directory: docs-for-repobrain
+        run: npm run lint
+
+      - name: Build docs frontend
+        working-directory: docs-for-repobrain
         run: npm run build
 
       - name: Install build dependencies
@@ -68,6 +82,12 @@ jobs:
         with:
           name: repobrain-dist
           path: dist/*
+
+      - name: Upload docs frontend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: repobrain-docs-frontend
+          path: docs-for-repobrain/dist
 
       - name: Publish to PyPI
         if: ${{ inputs.publish == 'true' }}

@@ -74,20 +74,56 @@
 
   .docs-header-inner,
   .docs-layout {
-    width: min(1480px, calc(100% - 20px));
+    width: 100%;
+    padding-right: 12px;
+    padding-left: 12px;
   }
 
   .docs-header-inner {
     min-height: 68px;
+    gap: 10px;
   }
 
   .docs-header-left {
     flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .docs-header-actions {
+    flex: 0 0 auto;
+  }
+
+  .docs-menu-button,
+  .docs-theme-button {
+    width: 44px;
+    min-height: 44px;
+    padding: 0;
+    border-radius: 12px;
+  }
+
+  .brand-lockup {
+    gap: 9px;
+  }
+
+  .brand-mark {
+    width: 30px;
+    height: 30px;
+  }
+
+  .brand-wordmark {
+    font-size: 1.34rem;
+    letter-spacing: 0;
   }
 
   .docs-layout {
     display: block;
-    padding-top: 20px;
+    padding-top: 18px;
+    max-width: 100vw;
+  }
+
+  .docs-main {
+    max-width: calc(100vw - 24px);
+    overflow-x: clip;
   }
 
   .docs-sidebar {
@@ -118,6 +154,7 @@
 
   .doc-page,
   .quickstart-section {
+    width: 100%;
     max-width: 100%;
   }
 }
@@ -145,5 +182,106 @@
 
   .doc-action-button {
     width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .docs-header-inner,
+  .docs-layout {
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+
+  .docs-main {
+    gap: 30px;
+  }
+
+  .quickstart-section {
+    gap: 18px;
+    scroll-margin-top: 76px;
+  }
+
+  .quickstart-header {
+    gap: 10px;
+  }
+
+  .quickstart-header h2 {
+    font-size: 1.62rem;
+    line-height: 1.14;
+    letter-spacing: 0;
+  }
+
+  .quickstart-header p {
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  .quickstart-grid {
+    gap: 12px;
+  }
+
+  .quickstart-card {
+    gap: 14px;
+    padding: 16px;
+    border-radius: 16px;
+  }
+
+  .quickstart-card h3 {
+    font-size: 1.08rem;
+    letter-spacing: 0;
+  }
+
+  .quickstart-card p {
+    line-height: 1.56;
+  }
+
+  .quickstart-card pre,
+  .doc-article pre {
+    padding-right: 12px;
+    padding-left: 12px;
+    border-radius: 12px;
+  }
+
+  .quickstart-card code,
+  .doc-article pre code {
+    font-size: 0.86rem;
+    line-height: 1.58;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .doc-header {
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .doc-header h1 {
+    font-size: 2rem;
+    line-height: 1.05;
+    letter-spacing: 0;
+  }
+
+  .doc-summary {
+    font-size: 1rem;
+    line-height: 1.62;
+  }
+
+  .doc-article {
+    margin-top: 28px;
+  }
+
+  .terminal-preview {
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .terminal-preview-frame img {
+    min-width: 0;
   }
 }
