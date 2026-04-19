@@ -30,9 +30,20 @@ TS_SYMBOL_RE = re.compile(
 )
 TS_IMPORT_RE = re.compile(r"^\s*import\s+(.+?)\s+from\s+['\"]([^'\"]+)['\"]")
 CALL_RE = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*)\s*\(")
-ROUTE_HINT_RE = re.compile(r"(router\.(get|post|put|delete)|app\.(get|post|put|delete)|@router\.)")
-JOB_HINT_RE = re.compile(r"(cron|schedule|retry|job)", re.IGNORECASE)
-CONFIG_HINT_RE = re.compile(r"(os\.getenv|process\.env|settings\.|config\.)")
+ROUTE_HINT_RE = re.compile(
+    r"(router\.(get|post|put|delete|patch)|app\.(get|post|put|delete|patch)|@router\.|@app\.route|APIRouter|Blueprint|"
+    r"export\s+async\s+function\s+(GET|POST|PUT|DELETE|PATCH)|NextRequest|NextResponse|Response\.json\()",
+    re.IGNORECASE,
+)
+JOB_HINT_RE = re.compile(r"(cron|schedule|retry|job|worker|queue|shared_task|celery|bullmq|enqueue|background)", re.IGNORECASE)
+CONFIG_HINT_RE = re.compile(r"(os\.getenv|os\.environ|process\.env|import\.meta\.env|settings\.|config\.|BaseSettings|load_dotenv|dotenv)", re.IGNORECASE)
+ROUTE_PATH_PARTS = {"api", "apis", "routes", "route", "controllers", "controller", "handlers", "handler", "endpoints", "endpoint"}
+JOB_PATH_PARTS = {"jobs", "job", "workers", "worker", "tasks", "task", "queues", "queue", "background", "cron"}
+CONFIG_PATH_PARTS = {"config", "configs", "settings", "setting"}
+SERVICE_PATH_PARTS = {"services", "service", "usecases", "usecase"}
+ROUTE_FILE_STEMS = {"route", "handler", "callback", "webhook"}
+JOB_FILE_STEMS = {"job", "worker", "task", "queue", "scheduler", "revalidate"}
+CONFIG_FILE_STEMS = {"config", "settings", "configuration", "env"}
 
 TREE_SITTER_LANGUAGE_ALIASES = {
     "python": ("python",),
@@ -371,15 +382,26 @@ class RepositoryScanner:
 
     def _detect_role(self, rel_path: str) -> str:
         lowered = rel_path.lower()
-        if "/tests/" in lowered or lowered.startswith("tests/") or lowered.endswith("_test.py") or ".test." in lowered:
+        parts = [part for part in lowered.split("/") if part]
+        stem = Path(lowered).stem
+        if (
+            "/tests/" in lowered
+            or lowered.startswith("tests/")
+            or lowered.endswith("_test.py")
+            or lowered.endswith("_spec.py")
+            or ".test." in lowered
+            or ".spec." in lowered
+        ):
             return "test"
-        if "/api/" in lowered or "/routes/" in lowered:
+        if lowered.startswith("app/api/") or "pages/api/" in lowered:
             return "route"
-        if "/jobs/" in lowered or "/workers/" in lowered:
+        if any(part in ROUTE_PATH_PARTS for part in parts) or stem in ROUTE_FILE_STEMS:
+            return "route"
+        if any(part in JOB_PATH_PARTS for part in parts) or stem in JOB_FILE_STEMS:
             return "job"
-        if "config" in lowered or lowered.endswith(".env"):
+        if lowered.endswith(".env") or any(part in CONFIG_PATH_PARTS for part in parts) or stem in CONFIG_FILE_STEMS:
             return "config"
-        if "/services/" in lowered:
+        if any(part in SERVICE_PATH_PARTS for part in parts) or stem.endswith("_service"):
             return "service"
         return "module"
 
@@ -611,11 +633,11 @@ class RepositoryScanner:
     def _extract_hints(self, rel_path: str, content: str) -> list[str]:
         hints: list[str] = []
         lowered_path = rel_path.lower()
-        if ROUTE_HINT_RE.search(content) or "/api/" in lowered_path or "/routes/" in lowered_path:
+        if ROUTE_HINT_RE.search(content) or lowered_path.startswith("app/api/") or "pages/api/" in lowered_path or "/api/" in lowered_path or "/routes/" in lowered_path:
             hints.append("route_flow")
-        if JOB_HINT_RE.search(content) or "/jobs/" in lowered_path:
+        if JOB_HINT_RE.search(content) or any(token in lowered_path for token in ("/jobs/", "/workers/", "/tasks/", "/queue/", "/background/")):
             hints.append("job_or_retry")
-        if CONFIG_HINT_RE.search(content):
+        if CONFIG_HINT_RE.search(content) or any(token in lowered_path for token in ("/config/", "/configs/", "/settings/")):
             hints.append("config_touchpoint")
         if "oauth" in content.lower() or "github" in content.lower() or "google" in content.lower():
             hints.append("oauth_or_social_login")
