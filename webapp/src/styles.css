@@ -663,6 +663,43 @@ h3 {
   margin-top: 14px;
 }
 
+.attached-files-panel {
+  margin-top: 14px;
+}
+
+.attached-files-panel .subpanel-head {
+  align-items: flex-start;
+}
+
+.attached-files-panel .subpanel-head p,
+.improvement-copy {
+  margin: 8px 0 0;
+  color: var(--ink-soft);
+  line-height: 1.6;
+}
+
+.attached-file-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.attached-file-card {
+  padding: 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+:root[data-theme="dark"] .attached-file-card {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.attached-warning-list {
+  margin-top: 14px;
+}
+
 .result-summary-grid {
   margin-top: 0;
 }

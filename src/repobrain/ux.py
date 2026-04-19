@@ -36,6 +36,16 @@ def _payload_to_text_plain(payload: object) -> str:
     if hasattr(payload, "to_dict"):
         payload = payload.to_dict()
     if isinstance(payload, dict):
+        if payload.get("kind") == "file_context":
+            return file_context_to_text(payload)
+        if "file_context" in payload:
+            file_context = payload.get("file_context")
+            base_payload = dict(payload)
+            base_payload.pop("file_context", None)
+            base_text = _payload_to_text_plain(base_payload)
+            if isinstance(file_context, dict):
+                return base_text + "\n\n" + file_context_to_text(file_context)
+            return base_text
         if "embedding_smoke" in payload and "reranker_smoke" in payload:
             return provider_smoke_to_text(payload)
         if payload.get("kind") == "workspace_projects":
@@ -144,6 +154,51 @@ def _payload_to_text_plain(payload: object) -> str:
         if {"recall_at_3", "mrr", "citation_accuracy", "edit_target_hit_rate"}.issubset(payload):
             return benchmark_to_text(payload)
     return payload_to_json(payload)
+
+
+def file_context_to_text(payload: dict[str, Any]) -> str:
+    files = payload.get("files", [])
+    file_items = [item for item in files if isinstance(item, dict)]
+    lines = [
+        "RepoBrain Auto-Attached Files",
+        str(payload.get("summary", "Files were attached from the latest result.")).strip(),
+        "",
+        "Files added to context:",
+    ]
+    if file_items:
+        for index, item in enumerate(file_items[:8], start=1):
+            score = item.get("score")
+            score_text = f" score={float(score):.3f}" if isinstance(score, int | float) else ""
+            line_range = str(item.get("line_range") or "").strip()
+            line_text = f":{line_range}" if line_range else ""
+            lines.append(
+                f"{index}. {item.get('file_path')}{line_text} [{item.get('role', 'unknown')}] "
+                f"source={item.get('source', 'evidence')}{score_text}"
+            )
+            reason = str(item.get("reason", "")).strip()
+            if reason:
+                lines.append(f"   why: {reason}")
+            improvement = str(item.get("improvement", "")).strip()
+            if improvement:
+                lines.append(f"   improve: {improvement}")
+    else:
+        lines.append("- No concrete files were attached.")
+
+    warnings = [str(item) for item in payload.get("warnings", []) if str(item).strip()]
+    if warnings:
+        lines.extend(["", "Warnings:"])
+        lines.extend(f"- {item}" for item in warnings[:4])
+
+    next_steps = [str(item) for item in payload.get("next_steps", []) if str(item).strip()]
+    if next_steps:
+        lines.extend(["", "Next steps:"])
+        lines.extend(f"- {item}" for item in next_steps[:4])
+
+    memory_summary = str(payload.get("memory_summary", "")).strip()
+    if memory_summary:
+        lines.extend(["", f"Repo memory: {memory_summary}"])
+
+    return "\n".join(lines)
 
 
 def review_to_text(report: ReviewReport) -> str:

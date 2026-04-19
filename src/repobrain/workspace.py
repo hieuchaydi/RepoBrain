@@ -382,6 +382,37 @@ def remember_query_result(repo_root: str | Path, *, query: str, result: QueryRes
     return _project_payload(project, state["current_repo"])
 
 
+def remember_file_context(
+    repo_root: str | Path,
+    *,
+    files: list[str],
+    warnings: list[str] | None = None,
+    next_questions: list[str] | None = None,
+) -> dict[str, Any]:
+    resolved = _resolve_repo_root(repo_root)
+    cleaned_files = [str(item).strip() for item in files if str(item).strip()]
+    if not cleaned_files:
+        raise ValueError("At least one file is required to update repo memory.")
+
+    state = load_workspace_state()
+    project = _ensure_project(state, resolved)
+    memory = _normalize_memory(project.get("memory"))
+    memory["top_files"] = _merge_recent(memory["top_files"], cleaned_files[:_MAX_TOP_FILES], limit=_MAX_TOP_FILES)
+    memory["warnings"] = _merge_recent(memory["warnings"], list(warnings or [])[:2], limit=_MAX_WARNINGS)
+    memory["next_questions"] = _merge_recent(
+        memory["next_questions"],
+        list(next_questions or [])[:2],
+        limit=_MAX_NEXT_QUESTIONS,
+    )
+    memory["updated_at"] = _now_iso()
+    memory["summary"] = _compose_summary(memory)
+    project["memory"] = memory
+    project["last_used_at"] = _now_iso()
+    state["current_repo"] = str(resolved)
+    save_workspace_state(state)
+    return _project_payload(project, state["current_repo"])
+
+
 def project_context_hint(repo_root: str | Path, *, focus: str | None = None) -> str | None:
     state = load_workspace_state()
     project = _find_project_by_repo(state, _resolve_repo_root(repo_root))

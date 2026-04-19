@@ -142,6 +142,7 @@ def test_web_review_api_renders_project_review_payload(mixed_repo: Path) -> None
     assert status_headers["status"] == "200 OK"
     assert payload["title"] == "Project Review"
     assert "RepoBrain Review" in payload["result"]
+    assert "data" in payload
 
 
 def test_web_doctor_api_renders_structured_doctor_payload(mixed_repo: Path) -> None:
@@ -262,7 +263,9 @@ def test_web_patch_review_api_supports_working_tree_and_files_mode(patch_review_
     assert status_headers["status"] == "200 OK"
     assert working_tree_payload["title"] == "Patch Review"
     assert "RepoBrain Patch Review" in working_tree_payload["result"]
+    assert "RepoBrain Auto-Attached Files" in working_tree_payload["result"]
     assert working_tree_payload["data"]["kind"] == "patch_review"
+    assert working_tree_payload["file_context"]["files"]
 
     files_request = json.dumps({"files": ["backend/app/api/auth.py"]}).encode("utf-8")
     files_body = b"".join(
@@ -281,6 +284,7 @@ def test_web_patch_review_api_supports_working_tree_and_files_mode(patch_review_
     files_payload = json.loads(files_body)
     assert status_headers["status"] == "200 OK"
     assert files_payload["data"]["changed_files"][0]["file_path"] == "backend/app/api/auth.py"
+    assert "backend/app/api/auth.py" in files_payload["summary"]["top_files"]
 
 
 def test_web_workspace_use_memory_and_multi_query_flow(mixed_repo: Path, tmp_path: Path) -> None:
@@ -347,8 +351,10 @@ def test_web_workspace_use_memory_and_multi_query_flow(mixed_repo: Path, tmp_pat
     assert status_headers["status"] == "200 OK"
     assert multi_payload["title"] == "Cross-Repo Query"
     assert "RepoBrain Cross-Repo Query" in multi_payload["result"]
+    assert "RepoBrain Auto-Attached Files" in multi_payload["result"]
     assert "sample_repo_two" in multi_payload["result"]
     assert multi_payload["data"]["kind"] == "workspace_query"
+    assert multi_payload["file_context"]["files"]
     assert multi_payload["data"]["comparison"]["best_match"]["name"] in {"sample_repo", "sample_repo_two"}
     assert isinstance(multi_payload["data"]["comparison"]["global_evidence"], list)
     assert "global_rank" in multi_payload["data"]["results"][0]

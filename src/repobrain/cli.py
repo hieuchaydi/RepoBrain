@@ -8,6 +8,7 @@ from pathlib import Path
 from repobrain.active_repo import read_active_repo, resolve_repo_root, write_active_repo
 from repobrain.cleanup import cleanup_demo_artifacts
 from repobrain.engine.core import RepoBrainEngine
+from repobrain.file_context import attach_file_context, build_file_context, file_paths_from_context
 from repobrain.mcp_server import serve_mcp
 from repobrain.models import QueryResult, ReviewFocus
 from repobrain.release import inspect_release_artifacts
@@ -26,6 +27,7 @@ from repobrain.workspace import (
     add_workspace_project,
     clear_workspace_notes,
     project_context_hint,
+    remember_file_context,
     remember_query_result,
     remember_workspace_note,
     set_current_workspace_project,
@@ -173,6 +175,33 @@ def _dump(payload: object, output_format: str = "json") -> None:
         print(payload_to_text(payload, styled=True))
         return
     print(payload_to_json(payload))
+
+
+def _build_and_remember_file_context(repo_root: Path, payload: object, *, action_label: str) -> dict[str, object] | None:
+    file_context = build_file_context(payload, action_label=action_label)
+    paths = file_paths_from_context(file_context)
+    if not file_context or not paths:
+        return None
+    summary = remember_file_context(
+        repo_root,
+        files=paths,
+        warnings=[str(item) for item in file_context.get("warnings", [])],
+        next_questions=[str(item) for item in file_context.get("next_steps", [])],
+    )
+    file_context["memory_updated"] = True
+    file_context["memory_summary"] = str(summary.get("summary", "")).strip()
+    return file_context
+
+
+def _dump_with_file_context(repo_root: Path, payload: object, output_format: str, *, action_label: str) -> None:
+    file_context = _build_and_remember_file_context(repo_root, payload, action_label=action_label)
+    if output_format == "text":
+        _dump(payload, output_format)
+        if file_context:
+            print()
+            _dump(file_context, output_format)
+        return
+    _dump(attach_file_context(payload, file_context), output_format)
 
 
 def _chat_focus_status(state: ChatSessionState) -> str:
@@ -399,25 +428,30 @@ def main(argv: list[str] | None = None) -> int:
         _dump(engine.index_repository(), output_format)
         return 0
     if args.command == "query":
-        _dump(engine.query(args.query), output_format)
+        _dump_with_file_context(repo_root, engine.query(args.query), output_format, action_label="query")
         return 0
     if args.command == "trace":
-        _dump(engine.trace(args.query), output_format)
+        _dump_with_file_context(repo_root, engine.trace(args.query), output_format, action_label="trace")
         return 0
     if args.command == "impact":
-        _dump(engine.impact(args.query), output_format)
+        _dump_with_file_context(repo_root, engine.impact(args.query), output_format, action_label="impact")
         return 0
     if args.command == "targets":
-        _dump(engine.targets(args.query), output_format)
+        _dump_with_file_context(repo_root, engine.targets(args.query), output_format, action_label="targets")
         return 0
     if args.command == "benchmark":
         _dump(engine.benchmark(), output_format)
         return 0
     if args.command == "patch-review":
-        _dump(engine.patch_review(base=args.base, files=args.files), output_format)
+        _dump_with_file_context(
+            repo_root,
+            engine.patch_review(base=args.base, files=args.files),
+            output_format,
+            action_label="patch-review",
+        )
         return 0
     if args.command == "ship":
-        _dump(engine.ship(baseline_label=args.baseline_label), output_format)
+        _dump_with_file_context(repo_root, engine.ship(baseline_label=args.baseline_label), output_format, action_label="ship")
         return 0
     if args.command == "doctor":
         _dump(engine.doctor(), output_format)
@@ -426,7 +460,12 @@ def main(argv: list[str] | None = None) -> int:
         _dump(engine.provider_smoke(), output_format)
         return 0
     if args.command == "review":
-        _dump(engine.review(focus=ReviewFocus(args.focus)), output_format)
+        _dump_with_file_context(
+            repo_root,
+            engine.review(focus=ReviewFocus(args.focus)),
+            output_format,
+            action_label="review",
+        )
         return 0
     if args.command == "baseline":
         report = engine.review(focus=ReviewFocus(args.focus), compare_baseline=False)

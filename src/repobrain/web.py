@@ -10,10 +10,12 @@ from wsgiref.simple_server import make_server
 
 from repobrain.active_repo import read_active_repo, write_active_repo
 from repobrain.engine.core import RepoBrainEngine
-from repobrain.ux import build_report, payload_to_text
+from repobrain.file_context import attach_file_context, build_file_context, file_paths_from_context
+from repobrain.ux import build_report, file_context_to_text, payload_to_text
 from repobrain.workspace import (
     clear_workspace_notes,
     project_context_hint,
+    remember_file_context,
     remember_workspace_note,
     set_current_workspace_project,
     workspace_projects_payload,
@@ -176,6 +178,26 @@ def _patch_review_payload(*, base: str | None = None, files: list[str] | None = 
     return str(repo_root), report.to_dict()
 
 
+def _with_file_context(repo_root: str | Path, title: str, payload: object) -> tuple[object, dict[str, object] | None, str]:
+    data_payload: object = payload.to_dict() if hasattr(payload, "to_dict") else payload
+    file_context = build_file_context(payload, action_label=title)
+    paths = file_paths_from_context(file_context)
+    result_text = payload_to_text(payload)
+    if not file_context or not paths:
+        return data_payload, None, result_text
+
+    summary = remember_file_context(
+        repo_root,
+        files=paths,
+        warnings=[str(item) for item in file_context.get("warnings", [])],
+        next_questions=[str(item) for item in file_context.get("next_steps", [])],
+    )
+    file_context["memory_updated"] = True
+    file_context["memory_summary"] = str(summary.get("summary", "")).strip()
+    attached_payload = attach_file_context(data_payload, file_context)
+    return attached_payload, file_context, result_text + "\n\n" + file_context_to_text(file_context)
+
+
 def _json_response(start_response, status: str, payload: dict[str, object]) -> list[bytes]:
     body = json.dumps(payload).encode("utf-8")
     start_response(status, [("Content-Type", "application/json; charset=utf-8")])
@@ -234,6 +256,7 @@ def _web_action_payload(
     message: str,
     report_url: str = "/report",
     data: object | None = None,
+    file_context: dict[str, object] | None = None,
     workspace: dict[str, object] | None = None,
     summary: dict[str, object] | None | object = _MISSING,
 ) -> dict[str, object]:
@@ -256,6 +279,8 @@ def _web_action_payload(
     }
     if data is not None:
         payload["data"] = data
+    if file_context is not None:
+        payload["file_context"] = file_context
     return payload
 
 
@@ -354,11 +379,29 @@ def _application(default_repo: str = ""):
                     repo_text, result = _index_result()
                     payload = _web_action_payload(repo_text=repo_text, title="Index", result=result, message="Active repo re-indexed.")
                 elif path == "/api/review":
-                    repo_text, result = _review_result()
-                    payload = _web_action_payload(repo_text=repo_text, title="Project Review", result=result, message="Project review generated.")
+                    repo_root, engine = _active_engine()
+                    report = engine.review()
+                    data, file_context, result = _with_file_context(repo_root, "Project Review", report)
+                    payload = _web_action_payload(
+                        repo_text=str(repo_root),
+                        title="Project Review",
+                        result=result,
+                        message="Project review generated.",
+                        data=data,
+                        file_context=file_context,
+                    )
                 elif path == "/api/ship":
-                    repo_text, result = _ship_result()
-                    payload = _web_action_payload(repo_text=repo_text, title="Ship Readiness", result=result, message="Ship gate completed.")
+                    repo_root, engine = _active_engine()
+                    report = engine.ship()
+                    data, file_context, result = _with_file_context(repo_root, "Ship Readiness", report)
+                    payload = _web_action_payload(
+                        repo_text=str(repo_root),
+                        title="Ship Readiness",
+                        result=result,
+                        message="Ship gate completed.",
+                        data=data,
+                        file_context=file_context,
+                    )
                 elif path == "/api/baseline":
                     repo_text, result = _baseline_result()
                     payload = _web_action_payload(repo_text=repo_text, title="Baseline Saved", result=result, message="Baseline snapshot saved.")
@@ -375,12 +418,14 @@ def _application(default_repo: str = ""):
                     base = _text_field(fields, "base") or None
                     files = _files_field(fields, "files")
                     repo_text, data = _patch_review_payload(base=base, files=files)
+                    data, file_context, result = _with_file_context(repo_text, "Patch Review", data)
                     payload = _web_action_payload(
                         repo_text=repo_text,
                         title="Patch Review",
-                        result=payload_to_text(data),
+                        result=result,
                         message="Patch review completed.",
                         data=data,
+                        file_context=file_context,
                     )
                 elif path == "/api/workspace/use":
                     project = _text_field(fields, "project")
@@ -433,12 +478,14 @@ def _application(default_repo: str = ""):
                     if not query_text:
                         raise ValueError("Query text is required.")
                     repo_text, title, action_data = _action_payload_result(mode, query_text)
+                    action_data, file_context, result = _with_file_context(repo_text, title, action_data)
                     payload = _web_action_payload(
                         repo_text=repo_text,
                         title=title,
-                        result=payload_to_text(action_data),
+                        result=result,
                         message=f"{title} completed.",
-                        data=action_data if isinstance(action_data, dict) and action_data.get("kind") == "workspace_query" else None,
+                        data=action_data if isinstance(action_data, dict) else None,
+                        file_context=file_context,
                     )
                 else:
                     return _text_response(start_response, "404 Not Found", "Not Found")

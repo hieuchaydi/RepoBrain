@@ -196,6 +196,27 @@ type WorkspaceQueryData = {
   comparison: WorkspaceComparison;
 };
 
+type FileContextItem = {
+  file_path: string;
+  source: string;
+  role: string;
+  score?: number | null;
+  reason: string;
+  improvement: string;
+  line_range?: string;
+};
+
+type FileContext = {
+  kind: "file_context";
+  action: string;
+  summary: string;
+  files: FileContextItem[];
+  warnings: string[];
+  next_steps: string[];
+  memory_updated?: boolean;
+  memory_summary?: string;
+};
+
 type BootstrapPayload = {
   ok: boolean;
   active_repo: string;
@@ -216,6 +237,7 @@ type ActionPayload = {
   result: string;
   report_url?: string;
   data?: DoctorData | ProviderSmokeData | WorkspaceQueryData | Record<string, unknown> | null;
+  file_context?: FileContext | null;
   workspace?: WorkspacePayload;
   summary?: WorkspaceSummary | null;
 };
@@ -279,6 +301,11 @@ const copy = {
     citationScore: "Citation score",
     globalRank: "Global rank",
     citations: "Citations",
+    autoFiles: "Auto-attached files",
+    autoFilesHint:
+      "RepoBrain found concrete files in this result, added them to repo memory, and ranked what to inspect next.",
+    improve: "Improve",
+    source: "Source",
     repoMemory: "Repo memory",
     rawTranscript: "Raw transcript",
     workspaceErrors: "Workspace errors",
@@ -403,6 +430,11 @@ const copy = {
     citationScore: "Diem citation",
     globalRank: "Hang toan workspace",
     citations: "Citation",
+    autoFiles: "File da tu dong them",
+    autoFilesHint:
+      "RepoBrain da tim thay file cu the trong ket qua nay, them vao repo memory, va xep hang viec can inspect tiep.",
+    improve: "Cai thien",
+    source: "Nguon",
     repoMemory: "Bo nho repo",
     rawTranscript: "Ban raw",
     workspaceErrors: "Loi workspace",
@@ -652,6 +684,7 @@ export function App() {
   const [resultBody, setResultBody] = useState("");
   const [resultAction, setResultAction] = useState<ActionKind>("query");
   const [resultData, setResultData] = useState<ActionPayload["data"] | null>(null);
+  const [fileContext, setFileContext] = useState<FileContext | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [doctorData, setDoctorData] = useState<DoctorData | null>(null);
   const [smokeData, setSmokeData] = useState<ProviderSmokeData | null>(null);
@@ -751,6 +784,7 @@ export function App() {
     setResultBody(payload.result);
     setResultAction(action);
     setResultData(payload.data ?? null);
+    setFileContext(payload.file_context ?? null);
     appendActivity(action, payload.message);
 
     if (action === "doctor" && payload.data) {
@@ -929,6 +963,7 @@ export function App() {
   const comparisonNotes = comparison?.notes || [];
   const globalEvidence = comparison?.global_evidence || [];
   const workspaceErrors = workspaceQueryData?.errors || [];
+  const attachedFiles = fileContext?.files || [];
 
   return (
     <main className="app-shell">
@@ -1391,6 +1426,47 @@ export function App() {
           <h2>{resultTitle || t.resultTitle}</h2>
           <span className="result-chip">{resultBadge}</span>
         </div>
+        {attachedFiles.length > 0 ? (
+          <article className="subpanel-card attached-files-panel">
+            <div className="subpanel-head">
+              <div>
+                <h3>{t.autoFiles}</h3>
+                <p>{fileContext?.summary || t.autoFilesHint}</p>
+              </div>
+              <span className="mini-pill">{attachedFiles.length}</span>
+            </div>
+            <div className="attached-file-list">
+              {attachedFiles.map((item) => (
+                <article key={`${item.file_path}:${item.source}:${item.line_range || ""}`} className="attached-file-card">
+                  <div className="citation-meta">
+                    <strong className="citation-path">
+                      {item.file_path}
+                      {item.line_range ? `:${item.line_range}` : ""}
+                    </strong>
+                    <span>{item.score == null ? item.role : item.score.toFixed(3)}</span>
+                  </div>
+                  <div className="inline-pills">
+                    <span className="inline-pill">
+                      {t.source}: {item.source}
+                    </span>
+                    <span className="inline-pill neutral">{item.role}</span>
+                  </div>
+                  <p className="citation-preview">{item.reason || t.noSummary}</p>
+                  <p className="improvement-copy">
+                    <strong>{t.improve}:</strong> {item.improvement || t.noSummary}
+                  </p>
+                </article>
+              ))}
+            </div>
+            {fileContext?.warnings?.length ? (
+              <ul className="summary-list attached-warning-list">
+                {fileContext.warnings.map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            ) : null}
+          </article>
+        ) : null}
         {workspaceQueryData ? (
           <div className="result-stack">
             <div className="compact-grid result-summary-grid">

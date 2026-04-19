@@ -28,6 +28,7 @@ def test_cli_init_index_query_and_doctor(mixed_repo: Path, capsys) -> None:
     assert main(["query", "Where is payment retry logic implemented?", "--repo", str(mixed_repo)]) == 0
     query_payload = json.loads(capsys.readouterr().out)
     assert query_payload["top_files"]
+    assert query_payload["file_context"]["files"]
 
     assert main(["doctor", "--repo", str(mixed_repo)]) == 0
     doctor_payload = json.loads(capsys.readouterr().out)
@@ -56,6 +57,7 @@ def test_cli_remembers_active_repo_after_init(mixed_repo: Path, capsys) -> None:
     query_output = capsys.readouterr().out
     assert "RepoBrain Result" in query_output
     assert "Top files:" in query_output
+    assert "RepoBrain Auto-Attached Files" in query_output
 
 
 def test_cli_chat_can_exit(mixed_repo: Path, capsys, monkeypatch) -> None:
@@ -136,12 +138,14 @@ def test_cli_patch_review_outputs_text_and_json(patch_review_repo: Path, capsys)
     assert "Changed files:" in text_output
     assert "Suggested tests:" in text_output
     assert "Config surfaces:" in text_output
+    assert "RepoBrain Auto-Attached Files" in text_output
 
     assert main(["patch-review", "--repo", str(patch_review_repo)]) == 0
     payload = json.loads(capsys.readouterr().out)
     assert payload["kind"] == "patch_review"
     assert payload["changed_files"]
     assert "risk_label" in payload
+    assert payload["file_context"]["files"][0]["file_path"] == "backend/app/api/auth.py"
 
 
 def test_cli_patch_review_rejects_base_and_files_together(patch_review_repo: Path) -> None:
