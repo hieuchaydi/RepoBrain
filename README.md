@@ -468,6 +468,7 @@ Start from `.env.example` and fill the key for the provider you enable.
 - [Docker Setup](docs-for-repobrain/docs/docker.md)
 - [Product Spec](docs-for-repobrain/docs/product-spec.md)
 - [Production Readiness](docs-for-repobrain/docs/production-readiness.md)
+- [Production Gates v1](docs-for-repobrain/docs/production-gates-v1.md)
 - [Release Checklist](docs-for-repobrain/docs/release-checklist.md)
 - [Architecture](docs-for-repobrain/docs/architecture.md)
 - [CLI](docs-for-repobrain/docs/cli.md)
@@ -486,10 +487,7 @@ Start from `.env.example` and fill the key for the provider you enable.
 - [Self Review](docs-for-repobrain/docs/self-review.md)
 - [Roadmap](docs-for-repobrain/docs/roadmap.md)
 - [Model Provider Roadmap](docs-for-repobrain/docs/model-provider-roadmap.md)
-- [Feature Direction](feat.md)
 - [Security Policy](SECURITY.md)
-- [Repo Rules](RULES.md)
-- [Repo Skills](SKILLS.md)
 
 ## Release Track
 

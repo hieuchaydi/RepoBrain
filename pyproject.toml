@@ -31,7 +31,12 @@ Documentation = "https://github.com/hieuchaydi/RepoBrain#readme"
 Issues = "https://github.com/hieuchaydi/RepoBrain/issues"
 
 [project.optional-dependencies]
-dev = []
+dev = [
+  "mypy>=1.11.0",
+  "pytest>=8.3.0",
+  "pytest-cov>=5.0.0",
+  "ruff>=0.6.9",
+]
 mcp = ["mcp>=1.6.0"]
 tree-sitter = ["tree-sitter>=0.23", "tree-sitter-language-pack>=0.2.0"]
 providers = ["google-genai>=1.0.0", "openai>=1.0.0", "voyageai>=0.2.0", "cohere>=5.0.0", "groq>=0.13.0"]

@@ -2,6 +2,8 @@
 
 RepoBrain releases should be boring, reproducible, and explicit. Do not publish because code changed; publish because a user-facing capability is meaningfully more complete or more trustworthy.
 
+Use [Production Gates v1](production-gates-v1.md) as the canonical pass/fail baseline.
+
 ## Before A Release
 
 - Confirm `CHANGELOG.md` describes the release in user-facing language.

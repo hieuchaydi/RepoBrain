@@ -64,6 +64,8 @@ webapp/.npm-cache/
 *.tmp
 *.temp
 smoke_workspace/pytest_*/
+.tmp-pip/
+.pip-build-tracker/
 
 # Editor and OS noise
 .idea/
