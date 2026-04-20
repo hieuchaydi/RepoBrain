@@ -409,6 +409,7 @@ def _chat(engine: RepoBrainEngine) -> int:
     print(render_cli_wordmark())
     print()
     print(chat_intro(repo_root, styled=True))
+    print()
     while True:
         try:
             raw_query = input(chat_prompt(repo_root)).strip()
@@ -460,6 +461,7 @@ def _chat(engine: RepoBrainEngine) -> int:
             repo_root = selected_repo
             write_active_repo(selected_repo)
             print(chat_intro(repo_root, styled=True))
+            print()
             _dump(payload, output_format)
             continue
         if lowered.startswith("/multi "):

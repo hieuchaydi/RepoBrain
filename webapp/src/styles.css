@@ -135,9 +135,9 @@ textarea {
 }
 
 .app-shell {
-  width: min(1280px, calc(100vw - 32px));
+  width: min(1220px, calc(100vw - 36px));
   margin: 0 auto;
-  padding: 20px 0 44px;
+  padding: 24px 0 48px;
 }
 
 .hero-grid,
@@ -146,33 +146,33 @@ textarea {
 .memory-grid,
 .status-grid {
   display: grid;
-  gap: 18px;
+  gap: 16px;
 }
 
 .hero-grid {
-  grid-template-columns: minmax(0, 1.08fr) minmax(340px, 0.92fr);
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 1fr);
 }
 
 .primary-flow-grid {
-  margin-top: 18px;
-  grid-template-columns: minmax(360px, 1.15fr) minmax(280px, 0.85fr);
+  margin-top: 16px;
+  grid-template-columns: minmax(340px, 1fr) minmax(320px, 1fr);
   align-items: start;
 }
 
 .workspace-grid {
-  margin-top: 18px;
-  grid-template-columns: minmax(300px, 1fr) minmax(320px, 1fr);
+  margin-top: 16px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   align-items: start;
 }
 
 .memory-grid {
-  margin-top: 18px;
+  margin-top: 16px;
   grid-template-columns: 1fr 1fr;
 }
 
 .status-grid {
-  margin-top: 18px;
-  grid-template-columns: 1.2fr 0.8fr;
+  margin-top: 16px;
+  grid-template-columns: 1fr 1fr;
 }
 
 .hero-card,
@@ -199,7 +199,7 @@ textarea {
 }
 
 .hero-card {
-  padding: clamp(24px, 3vw, 34px);
+  padding: clamp(20px, 2.6vw, 30px);
   animation: page-rise 560ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   transition:
     transform 180ms ease,
@@ -215,7 +215,7 @@ textarea {
 .result-card {
   position: relative;
   overflow: hidden;
-  padding: 24px;
+  padding: 20px;
   box-shadow: var(--shadow-tight);
   animation: page-rise 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   transition:
@@ -249,7 +249,7 @@ textarea {
 .brand-card {
   position: relative;
   overflow: hidden;
-  min-height: 470px;
+  min-height: 440px;
   background:
     linear-gradient(135deg, color-mix(in srgb, var(--panel-strong) 92%, transparent), var(--panel));
 }
@@ -494,7 +494,7 @@ h3 {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
-  margin: 22px 0 18px;
+  margin: 18px 0 16px;
 }
 
 .info-strip div,
@@ -534,7 +534,7 @@ h3 {
   display: grid;
   grid-template-columns: minmax(280px, 1.2fr) repeat(3, minmax(0, 1fr));
   gap: 14px;
-  margin-top: 18px;
+  margin-top: 16px;
 }
 
 .newcomer-lead-card,
@@ -663,6 +663,12 @@ h3 {
 .focus-list {
   display: grid;
   gap: 12px;
+  margin-top: 14px;
+}
+
+.focus-actions {
+  display: flex;
+  justify-content: flex-end;
   margin-top: 14px;
 }
 
@@ -869,7 +875,7 @@ h3 {
 
 .metric-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin-top: 18px;
+  margin-top: 14px;
 }
 
 .metric-grid.small {
@@ -1018,7 +1024,7 @@ h3 {
 }
 
 .result-card {
-  margin-top: 18px;
+  margin-top: 16px;
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--panel-strong) 82%, transparent), var(--panel));
 }
@@ -1029,6 +1035,12 @@ h3 {
 .result-meta-block {
   display: grid;
   gap: 12px;
+}
+
+.result-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .result-stack {
@@ -1161,8 +1173,8 @@ h3 {
   align-items: flex-end;
   justify-content: space-between;
   gap: 22px;
-  margin-top: 18px;
-  padding: 24px;
+  margin-top: 16px;
+  padding: 20px;
 }
 
 .app-footer h2 {
@@ -1271,7 +1283,7 @@ h3 {
 
   .app-shell {
     width: min(100vw - 18px, 1220px);
-    padding-top: 16px;
+    padding-top: 14px;
   }
 
   .hero-topline,
@@ -1286,6 +1298,16 @@ h3 {
   .control-cluster {
     width: 100%;
     justify-content: flex-start;
+  }
+
+  .focus-actions {
+    justify-content: flex-start;
+  }
+
+  .result-header-actions {
+    width: 100%;
+    align-items: flex-start;
+    flex-wrap: wrap;
   }
 
   .brand-lockup {

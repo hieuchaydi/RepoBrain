@@ -314,6 +314,7 @@ const baseCopy = {
     saveGroqConfig: "Save Groq config",
     doctor: "Health check",
     openReport: "Open report",
+    exportMarkdown: "Export .md",
     queryTitle: "Chat Query",
     mode: "Mode",
     question: "Question",
@@ -642,6 +643,7 @@ const viOverrides: Partial<typeof baseCopy.en> = {
   saveGroqConfig: "Lưu cấu hình Groq",
   doctor: "Kiểm tra sức khỏe",
   openReport: "Mở báo cáo",
+  exportMarkdown: "Xuất .md",
   mode: "Chế độ",
   question: "Câu hỏi",
   questionPlaceholder: "Logic payment retry nằm ở đâu?",
@@ -779,6 +781,7 @@ const zhOverrides: Partial<typeof baseCopy.en> = {
   saveGroqConfig: "保存 Groq 配置",
   doctor: "健康检查",
   openReport: "打开报告",
+  exportMarkdown: "导出 .md",
   queryTitle: "问答查询",
   mode: "模式",
   question: "问题",
@@ -911,7 +914,7 @@ function useLocale(): [Locale, (next: Locale) => void] {
 
   useEffect(() => {
     window.localStorage.setItem("repobrain-web-locale", locale);
-    document.documentElement.lang = locale;
+    document.documentElement.lang = locale === "vi" ? "vi-VN" : locale === "zh" ? "zh-CN" : "en-US";
   }, [locale]);
 
   return [locale, setLocale];
@@ -1055,6 +1058,35 @@ function parserSummary(detail?: ParserDetail, locale?: Locale): string {
     return selected;
   }
   return `${selected} | fallback ${fallback ? "on" : "off"}`;
+}
+
+function setNamedMetaTag(name: string, content: string) {
+  let tag = document.head.querySelector(`meta[name="${name}"]`) as HTMLMetaElement | null;
+  if (!tag) {
+    tag = document.createElement("meta");
+    tag.setAttribute("name", name);
+    document.head.appendChild(tag);
+  }
+  tag.setAttribute("content", content);
+}
+
+function setPropertyMetaTag(property: string, content: string) {
+  let tag = document.head.querySelector(`meta[property="${property}"]`) as HTMLMetaElement | null;
+  if (!tag) {
+    tag = document.createElement("meta");
+    tag.setAttribute("property", property);
+    document.head.appendChild(tag);
+  }
+  tag.setAttribute("content", content);
+}
+
+function sanitizeFilename(input: string): string {
+  const cleaned = input
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return cleaned || "report";
 }
 
 function hasSummaryField(payload: ActionPayload): payload is ActionPayload & { summary: WorkspaceSummary | null } {
@@ -1374,6 +1406,50 @@ export function App() {
     }
   }
 
+  function handleExportMarkdown() {
+    const timestamp = new Date().toISOString();
+    const title = resultTitle || t.resultTitle;
+    const safeAction = sanitizeFilename(resultAction);
+    const safeRepo = sanitizeFilename(activeRepo.split(/[\\/]/).pop() || "workspace");
+    const messageBlock = message.trim() ? message.trim() : t.unavailable;
+    const bodyBlock = resultBody.trim() ? resultBody.trim() : t.emptyResult;
+    const fileSummary =
+      attachedFiles.length > 0
+        ? attachedFiles
+            .map((item) => `- ${item.file_path}${item.line_range ? `:${item.line_range}` : ""} (${item.source})`)
+            .join("\n")
+        : "- none";
+    const markdown = [
+      "# RepoBrain Export",
+      `- generated_at: ${timestamp}`,
+      `- locale: ${locale}`,
+      `- action: ${resultAction}`,
+      `- title: ${title}`,
+      `- active_repo: ${activeRepo || t.none}`,
+      "",
+      "## Message",
+      messageBlock,
+      "",
+      "## Attached Files",
+      fileSummary,
+      "",
+      "## Output",
+      "```text",
+      bodyBlock,
+      "```",
+      "",
+    ].join("\n");
+    const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `repobrain-${safeRepo}-${safeAction}-${timestamp.slice(0, 10)}.md`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
   async function handleGeminiConfig(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     try {
@@ -1453,10 +1529,40 @@ export function App() {
   const globalEvidence = comparison?.global_evidence || [];
   const workspaceErrors = workspaceQueryData?.errors || [];
   const attachedFiles = fileContext?.files || [];
+  const hasExportContent = Boolean(resultBody.trim() || message.trim() || attachedFiles.length > 0);
+
+  useEffect(() => {
+    const repoName = activeRepo.split(/[\\/]/).pop() || "";
+    const seoByLocale: Record<Locale, { title: string; description: string }> = {
+      en: {
+        title: repoName ? `RepoBrain Workbench | ${repoName}` : "RepoBrain Workbench | Local Code Intelligence",
+        description:
+          "RepoBrain Workbench helps teams import repositories, run grounded chat queries, review patches, and track release readiness with local-first code intelligence.",
+      },
+      vi: {
+        title: repoName ? `RepoBrain Workbench | ${repoName}` : "RepoBrain Workbench | Phan tich code local",
+        description:
+          "RepoBrain Workbench giup import repository, hoi chat query co bang chung, review patch va theo doi release readiness voi mo hinh local-first.",
+      },
+      zh: {
+        title: repoName ? `RepoBrain Workbench | ${repoName}` : "RepoBrain Workbench | 本地代码智能",
+        description:
+          "RepoBrain Workbench 用于导入仓库、执行有依据的查询、审查补丁并跟踪发布就绪度，提供 local-first 的代码智能体验。",
+      },
+    };
+    const seo = seoByLocale[locale];
+    document.title = seo.title;
+    setNamedMetaTag("description", seo.description);
+    setNamedMetaTag("twitter:title", seo.title);
+    setNamedMetaTag("twitter:description", seo.description);
+    setNamedMetaTag("application-name", "RepoBrain Workbench");
+    setPropertyMetaTag("og:title", seo.title);
+    setPropertyMetaTag("og:description", seo.description);
+  }, [locale, activeRepo]);
 
   return (
     <main className="app-shell">
-      <section className="hero-grid">
+      <header className="hero-grid" aria-label={t.brand}>
         <article className="hero-card brand-card">
           <div className="hero-topline">
             <span className="status-pill">{t.localOnly}</span>
@@ -1506,7 +1612,7 @@ export function App() {
             <img className="brand-mark" src={markUrl} alt="RepoBrain mark" />
             <div className="brand-copy">
               <span className="brand-kicker">{t.localOnly}</span>
-              <h1 className="brand-wordmark" aria-label={t.brand}>
+              <h1 id="app-title" className="brand-wordmark" aria-label={t.brand}>
                 <span className="brand-word brand-word-repo">Repo</span>
                 <span className="brand-word brand-word-brain">Brain</span>
               </h1>
@@ -1567,7 +1673,7 @@ export function App() {
           <p className="muted-copy">{t.importHint}</p>
           {!hasActiveRepo ? <div className="notice-box neutral">{t.disabledUntilImport}</div> : null}
         </article>
-      </section>
+      </header>
 
       <section className="primary-flow-grid">
         <article className="panel-card query-card">
@@ -1604,9 +1710,6 @@ export function App() {
               <h2>{t.focusTitle}</h2>
               <p className="section-copy">{t.focusAdvancedHint}</p>
             </div>
-            <button className="ghost-button" onClick={() => setShowAdvanced((current) => !current)} type="button">
-              {showAdvanced ? t.hideAdvanced : t.showAdvanced}
-            </button>
           </div>
           <div className="focus-list">
             <article className="focus-item">
@@ -1630,6 +1733,11 @@ export function App() {
                 <p>{t.focusAdvancedHint}</p>
               </div>
             </article>
+          </div>
+          <div className="focus-actions">
+            <button className="ghost-button" onClick={() => setShowAdvanced((current) => !current)} type="button">
+              {showAdvanced ? t.hideAdvanced : t.showAdvanced}
+            </button>
           </div>
           {message ? <div className="notice-box">{message}</div> : null}
         </article>
@@ -2079,7 +2187,12 @@ export function App() {
       <section className="result-card">
         <div className="result-header">
           <h2>{resultTitle || t.resultTitle}</h2>
-          <span className="result-chip">{resultBadge}</span>
+          <div className="result-header-actions">
+            <span className="result-chip">{resultBadge}</span>
+            <button className="ghost-button small-button" disabled={!hasExportContent} onClick={handleExportMarkdown} type="button">
+              {t.exportMarkdown}
+            </button>
+          </div>
         </div>
         {attachedFiles.length > 0 ? (
           <article className="subpanel-card attached-files-panel">

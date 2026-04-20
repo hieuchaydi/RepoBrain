@@ -930,18 +930,31 @@ def workspace_query_to_text(payload: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _base_cli_logo_lines() -> list[str]:
+    return [
+        "||\\\\  ||||| ||\\\\   /\\\\   ||\\\\  ||\\\\   /\\\\   || ||  ||",
+        "|| || ||    || || /    \\\\ || || || || /    \\\\ || ||| ||",
+        "||//  ||||  ||//  |||||| ||\\\\  ||//  |||||| || || |||",
+        "||\\\\  ||    ||\\\\  ||  || || || ||\\\\  ||  || || ||  ||",
+        "|| \\\\ ||||| || \\\\ ||  || ||//  || \\\\ ||  || || ||  ||",
+    ]
+
+
+def _scale_ascii_block(lines: list[str], *, factor: int) -> list[str]:
+    if factor <= 1:
+        return list(lines)
+    scaled: list[str] = []
+    for line in lines:
+        expanded = "".join(character * factor for character in line)
+        scaled.extend([expanded] * factor)
+    return scaled
+
+
 def cli_wordmark() -> str:
-    return "\n".join(
-        [
-            "||\\\\  ||||| ||\\\\   /\\\\   ||\\\\  ||\\\\   /\\\\   || ||  ||",
-            "|| || ||    || || /    \\\\ || || || || /    \\\\ || ||| ||",
-            "||//  ||||  ||//  |||||| ||\\\\  ||//  |||||| || || |||",
-            "||\\\\  ||    ||\\\\  ||  || || || ||\\\\  ||  || || ||  ||",
-            "|| \\\\ ||||| || \\\\ ||  || ||//  || \\\\ ||  || || ||  ||",
-            "",
-            "codebase memory | flow trace | grounded answers",
-        ]
-    )
+    logo_lines = _base_cli_logo_lines()
+    if _terminal_columns() >= 140:
+        logo_lines = _scale_ascii_block(logo_lines, factor=2)
+    return "\n".join([*logo_lines, "", "codebase memory | flow trace | grounded answers"])
 
 
 def _terminal_columns() -> int:
@@ -1069,12 +1082,13 @@ def _style_terminal_block(text: str) -> str:
 
 def render_cli_wordmark() -> str:
     lines = cli_wordmark().splitlines()
+    logo_line_count = max(0, len(lines) - 2)
     if getattr(sys.stdout, "isatty", lambda: False)():
         lines = _center_block_lines(lines, _terminal_columns())
     if not _terminal_supports_color():
         return "\n".join(lines)
     return "\n".join(
-        _ansi(line, "1", "96") if index < 5 else _ansi(line, "1", "94")
+        _ansi(line, "1", "96") if index < logo_line_count else _ansi(line, "1", "94")
         for index, line in enumerate(lines)
     )
 
@@ -1085,10 +1099,13 @@ def chat_intro(repo_root: str | Path, *, styled: bool = False) -> str:
     text = "\n".join(
         [
             "RepoBrain chat is a local workbench. Type /help for commands, /json for raw payloads, or /exit to quit.",
+            "",
             f"Attached repo: {repo_name}",
             f"Workspace: {root}",
+            "",
             "Lanes: ask directly, /map for flow, /impact for blast radius, /targets for edit planning, /multi for cross-repo.",
             "Memory: /focus, /summary, /remember, /projects, /add, /use",
+            "",
             'Starter prompt: "Where is auth callback handled?"',
         ]
     )
