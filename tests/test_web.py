@@ -70,7 +70,7 @@ def test_web_home_page_serves_react_shell(mixed_repo: Path) -> None:
 
     assert status_headers["status"] == "200 OK"
     assert '<div id="root">' in body
-    assert "RepoBrain Control Room" in body
+    assert "RepoBrain Workbench" in body
     assert "Booting local codebase memory" in body
     assert "/static/app.js" in body
     assert "/static/app.css" in body

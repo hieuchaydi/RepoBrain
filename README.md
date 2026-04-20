@@ -241,20 +241,27 @@ That app renders a curated command guide, release-state summary, selected repo m
 
 ```text
 repobrain first-look
+repobrain start
 repobrain demo
 repobrain init
 repobrain index
 repobrain review
 repobrain baseline
 repobrain query "<question>"
+repobrain ask "<question>"
 repobrain trace "<question>"
+repobrain map "<question>"
 repobrain impact "<question>"
+repobrain blast "<question>"
 repobrain targets "<question>"
+repobrain plan "<question>"
 repobrain patch-review
 repobrain benchmark
 repobrain ship
 repobrain doctor
+repobrain check
 repobrain provider-smoke
+repobrain smoke
 repobrain key gemini
 repobrain key groq
 repobrain chat
@@ -262,6 +269,7 @@ repobrain report
 repobrain report --open
 repobrain demo-clean --format text
 repobrain serve-web
+repobrain ui
 repobrain workspace add "<path>"
 repobrain workspace list
 repobrain workspace use "<project>"
@@ -273,7 +281,9 @@ repobrain release-check --format text
 repobrain serve-mcp
 ```
 
-For human-friendly terminal output, add `--format text` to `review`, `index`, `query`, `trace`, `impact`, `targets`, `benchmark`, `doctor`, `provider-smoke`, or `report`. JSON remains the default for agents and automation.
+For human-friendly terminal output, add `--format text` to `review`, `index`, `query`/`ask`, `trace`/`map`, `impact`/`blast`, `targets`/`plan`, `benchmark`, `doctor`/`check`, `provider-smoke`/`smoke`, or `report`. JSON remains the default for agents and automation.
+
+Friendly aliases keep the CLI short without removing the original command names: `start=first-look`, `ask=query`, `map=trace`, `blast=impact`, `plan=targets`, `check=doctor`, `smoke=provider-smoke`, and `ui=serve-web`.
 
 `repobrain patch-review` reviews the current working tree by default, supports `--base <ref>` for committed diff review, and supports `--files <path...>` for explicit repo-relative patch slices.
 

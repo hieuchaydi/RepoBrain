@@ -64,6 +64,33 @@ def test_cli_remembers_active_repo_after_init(mixed_repo: Path, capsys) -> None:
     assert "RepoBrain Auto-Attached Files" in query_output
 
 
+def test_cli_friendly_aliases_match_core_workflows(mixed_repo: Path, capsys) -> None:
+    assert main(["init", "--repo", str(mixed_repo), "--force"]) == 0
+    capsys.readouterr()
+    assert main(["index", "--repo", str(mixed_repo)]) == 0
+    capsys.readouterr()
+
+    assert main(["ask", "Where is payment retry logic implemented?", "--repo", str(mixed_repo), "--format", "text"]) == 0
+    ask_output = capsys.readouterr().out
+    assert "RepoBrain Result" in ask_output
+
+    assert main(["map", "Trace login with Google from route to service", "--repo", str(mixed_repo), "--format", "text"]) == 0
+    map_output = capsys.readouterr().out
+    assert "Intent: trace" in map_output
+
+    assert main(["plan", "Which files should I edit?", "--repo", str(mixed_repo), "--format", "text"]) == 0
+    plan_output = capsys.readouterr().out
+    assert "Edit targets:" in plan_output
+
+    assert main(["check", "--repo", str(mixed_repo), "--format", "text"]) == 0
+    check_output = capsys.readouterr().out
+    assert "RepoBrain Doctor" in check_output
+
+    assert main(["smoke", "--repo", str(mixed_repo), "--format", "text"]) == 0
+    smoke_output = capsys.readouterr().out
+    assert "RepoBrain Provider Smoke" in smoke_output
+
+
 def test_cli_key_gemini_writes_env_and_provider_config(mixed_repo: Path, capsys, monkeypatch) -> None:
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
 
@@ -138,7 +165,7 @@ def test_cli_chat_can_exit(mixed_repo: Path, capsys, monkeypatch) -> None:
     assert main(["chat", "--repo", str(mixed_repo)]) == 0
     chat_output = capsys.readouterr().out
     assert cli_wordmark() in chat_output
-    assert "RepoBrain chat is local-only" in chat_output
+    assert "RepoBrain chat is a local workbench" in chat_output
 
 
 def test_cli_chat_key_command_prompts_for_gemini_key(mixed_repo: Path, capsys, monkeypatch) -> None:
@@ -284,7 +311,7 @@ def test_cli_report_generates_local_html(mixed_repo: Path, tmp_path: Path, capsy
     assert output.exists()
     assert "RepoBrain Report" in report_output
     assert "RepoBrain" in output.read_text(encoding="utf-8")
-    assert "Control Room Report" in output.read_text(encoding="utf-8")
+    assert "Workbench Report" in output.read_text(encoding="utf-8")
     assert "Ship Gate" in output.read_text(encoding="utf-8")
     assert "Baseline Trend" in output.read_text(encoding="utf-8")
     assert "Provider Posture" in output.read_text(encoding="utf-8")

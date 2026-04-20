@@ -1,19 +1,19 @@
 :root {
   color-scheme: light;
-  --bg: #eadcc8;
-  --bg-soft: #fff6e8;
-  --bg-strong: #fffaf0;
-  --ink: #18201c;
-  --ink-soft: #667068;
-  --line: rgba(24, 32, 28, 0.12);
-  --line-strong: rgba(24, 32, 28, 0.22);
-  --panel: rgba(255, 250, 239, 0.78);
-  --panel-strong: rgba(255, 253, 247, 0.96);
-  --panel-muted: rgba(255, 255, 255, 0.56);
-  --accent: #0e7c72;
-  --accent-strong: #064f4a;
-  --accent-warm: #c86f2e;
-  --secondary: #2651a8;
+  --bg: #eef2f6;
+  --bg-soft: #f7f9fc;
+  --bg-strong: #ffffff;
+  --ink: #111827;
+  --ink-soft: #5b6573;
+  --line: rgba(17, 24, 39, 0.1);
+  --line-strong: rgba(17, 24, 39, 0.2);
+  --panel: rgba(255, 255, 255, 0.9);
+  --panel-strong: #ffffff;
+  --panel-muted: #f3f6fa;
+  --accent: #087f5b;
+  --accent-strong: #07543f;
+  --accent-warm: #9a3412;
+  --secondary: #1d4ed8;
   --warning: #b95d18;
   --danger: #a51d1d;
   --good-bg: rgba(14, 124, 114, 0.11);
@@ -21,11 +21,11 @@
   --bad-bg: rgba(165, 29, 29, 0.1);
   --code-bg: #151c18;
   --code-ink: #edf6ee;
-  --shadow: 0 22px 55px rgba(58, 43, 24, 0.13);
-  --shadow-tight: 0 12px 28px rgba(58, 43, 24, 0.1);
-  --radius-xl: 28px;
-  --radius-lg: 20px;
-  --radius-md: 16px;
+  --shadow: 0 18px 46px rgba(15, 23, 42, 0.1);
+  --shadow-tight: 0 10px 26px rgba(15, 23, 42, 0.08);
+  --radius-xl: 8px;
+  --radius-lg: 8px;
+  --radius-md: 6px;
   --font-sans: "Aptos", "Source Sans 3", "Segoe UI Variable Text", "Segoe UI", sans-serif;
   --font-display: "Bahnschrift", "Aptos Display", "Segoe UI Variable Display", sans-serif;
   --font-mono: "Cascadia Code", "JetBrains Mono", Consolas, monospace;
@@ -33,20 +33,20 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #0d1714;
-  --bg-soft: #101f1b;
-  --bg-strong: #172b25;
-  --ink: #eff8f2;
-  --ink-soft: #a8bbb0;
-  --line: rgba(195, 221, 208, 0.12);
-  --line-strong: rgba(195, 221, 208, 0.24);
-  --panel: rgba(19, 32, 28, 0.78);
-  --panel-strong: rgba(25, 43, 37, 0.96);
-  --panel-muted: rgba(25, 43, 37, 0.72);
-  --accent: #44c8b9;
-  --accent-strong: #b1fff5;
-  --accent-warm: #f5a261;
-  --secondary: #8fb0ff;
+  --bg: #0b1120;
+  --bg-soft: #111827;
+  --bg-strong: #1f2937;
+  --ink: #f8fafc;
+  --ink-soft: #a7b2c1;
+  --line: rgba(226, 232, 240, 0.12);
+  --line-strong: rgba(226, 232, 240, 0.24);
+  --panel: rgba(15, 23, 42, 0.86);
+  --panel-strong: #111827;
+  --panel-muted: rgba(30, 41, 59, 0.86);
+  --accent: #34d399;
+  --accent-strong: #a7f3d0;
+  --accent-warm: #fb923c;
+  --secondary: #93c5fd;
   --warning: #f5a261;
   --danger: #fb7979;
   --good-bg: rgba(68, 200, 185, 0.15);
@@ -73,12 +73,10 @@ body {
   color: var(--ink);
   font-family: var(--font-sans);
   background:
-    linear-gradient(90deg, rgba(24, 32, 28, 0.045) 1px, transparent 1px),
-    linear-gradient(180deg, rgba(24, 32, 28, 0.04) 1px, transparent 1px),
-    radial-gradient(circle at 12% 4%, rgba(14, 124, 114, 0.24), transparent 28rem),
-    radial-gradient(circle at 88% 20%, rgba(200, 111, 46, 0.2), transparent 28rem),
-    linear-gradient(135deg, var(--bg-soft) 0%, var(--bg) 100%);
-  background-size: 42px 42px, 42px 42px, auto, auto, auto;
+    linear-gradient(90deg, rgba(17, 24, 39, 0.035) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(17, 24, 39, 0.03) 1px, transparent 1px),
+    linear-gradient(180deg, var(--bg-soft) 0%, var(--bg) 100%);
+  background-size: 40px 40px, 40px 40px, auto;
   transition: background 180ms ease, color 180ms ease;
 }
 
@@ -141,9 +139,9 @@ textarea {
 }
 
 .app-shell {
-  width: min(1220px, calc(100vw - 32px));
+  width: min(1280px, calc(100vw - 32px));
   margin: 0 auto;
-  padding: 28px 0 52px;
+  padding: 20px 0 44px;
 }
 
 .hero-grid,
@@ -194,8 +192,7 @@ textarea {
 .patch-card,
 .import-card {
   background:
-    radial-gradient(circle at top right, color-mix(in srgb, var(--accent) 11%, transparent), transparent 18rem),
-    linear-gradient(180deg, color-mix(in srgb, var(--panel-strong) 64%, transparent), transparent),
+    linear-gradient(180deg, color-mix(in srgb, var(--panel-strong) 74%, transparent), transparent),
     var(--panel);
 }
 
@@ -250,22 +247,13 @@ textarea {
 .brand-card {
   position: relative;
   overflow: hidden;
-  min-height: 540px;
+  min-height: 470px;
   background:
-    linear-gradient(135deg, color-mix(in srgb, var(--panel-strong) 90%, transparent), var(--panel)),
-    radial-gradient(circle at 88% 88%, rgba(200, 111, 46, 0.2), transparent 18rem);
+    linear-gradient(135deg, color-mix(in srgb, var(--panel-strong) 92%, transparent), var(--panel));
 }
 
 .brand-card::after {
-  content: "";
-  position: absolute;
-  inset: auto -5% -12% auto;
-  width: 280px;
-  height: 280px;
-  border-radius: 999px;
-  background: radial-gradient(circle, color-mix(in srgb, var(--secondary) 22%, transparent), transparent 70%);
-  pointer-events: none;
-  animation: soft-float 8s ease-in-out infinite;
+  content: none;
 }
 
 .hero-topline,
@@ -297,7 +285,7 @@ textarea {
   font-family: var(--font-mono);
   font-size: 0.82rem;
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   box-shadow: 0 10px 22px color-mix(in srgb, var(--ink) 15%, transparent);
 }
 
@@ -401,7 +389,7 @@ h1 {
   margin: 14px 0 10px;
   font-size: clamp(2.8rem, 8vw, 5.6rem);
   line-height: 0.9;
-  letter-spacing: -0.07em;
+  letter-spacing: 0;
   font-family: var(--font-display);
 }
 
@@ -592,7 +580,7 @@ h3 {
   color: var(--ink);
   font-size: clamp(1.55rem, 2.6vw, 2.25rem);
   line-height: 1.04;
-  letter-spacing: -0.045em;
+  letter-spacing: 0;
   text-transform: none;
 }
 
@@ -624,7 +612,7 @@ h3 {
   color: var(--ink);
   font-family: var(--font-display);
   font-size: 1.18rem;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .panel-form {
@@ -729,7 +717,7 @@ h3 {
 .ghost-button,
 .outline-button {
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-md);
   padding: 12px 16px;
   cursor: pointer;
   transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease;
@@ -989,8 +977,7 @@ h3 {
 .result-card {
   margin-top: 18px;
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--panel-strong) 70%, transparent), var(--panel)),
-    radial-gradient(circle at top right, color-mix(in srgb, var(--accent) 12%, transparent), transparent 22rem);
+    linear-gradient(180deg, color-mix(in srgb, var(--panel-strong) 82%, transparent), var(--panel));
 }
 
 .result-stack,
@@ -1140,7 +1127,7 @@ h3 {
   color: var(--ink);
   font-size: clamp(1.45rem, 2.2vw, 2rem);
   line-height: 1.08;
-  letter-spacing: -0.04em;
+  letter-spacing: 0;
   text-transform: none;
 }
 

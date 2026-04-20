@@ -1084,10 +1084,11 @@ def chat_intro(repo_root: str | Path, *, styled: bool = False) -> str:
     repo_name = root.name or str(root)
     text = "\n".join(
         [
-            "RepoBrain chat is local-only. Type /help for commands, /json for raw payloads, or /exit to quit.",
+            "RepoBrain chat is a local workbench. Type /help for commands, /json for raw payloads, or /exit to quit.",
             f"Attached repo: {repo_name}",
             f"Workspace: {root}",
-            "Lanes: ask directly, /evidence, /map, /focus, /key, /summary, /remember, /projects, /add, /use, /multi",
+            "Lanes: ask directly, /map for flow, /impact for blast radius, /targets for edit planning, /multi for cross-repo.",
+            "Memory: /focus, /summary, /remember, /projects, /add, /use",
             'Starter prompt: "Where is auth callback handled?"',
         ]
     )
@@ -1124,26 +1125,30 @@ def quickstart_text(*, styled: bool = False) -> str:
         [
             "RepoBrain Quickstart",
             "",
-            "1. Install:",
+            "1. Install",
             '   python -m pip install -e ".[dev,tree-sitter,mcp]"',
             "",
-            "2. Run the fastest local demo:",
-            "   repobrain first-look --repo /path/to/your-project --format text",
-            "   repobrain serve-web --open",
+            "2. Open the workbench",
+            "   repobrain start --repo /path/to/your-project --format text",
+            "   repobrain ui --open",
             "",
-            "3. Prepare local state manually:",
+            "3. Prepare local state manually",
             "   repobrain init --repo /path/to/your-project",
-            "   repobrain provider-smoke --format text",
-            "   repobrain review --format text",
             "   repobrain index --format text",
+            "   repobrain check --format text",
+            "   repobrain smoke --format text",
             "",
-            "4. Ask questions:",
-            '   repobrain query "Where is payment retry logic implemented?" --format text',
-            '   repobrain trace "Trace login with Google from route to service" --format text',
-            '   repobrain targets "Which files should I edit to add GitHub login?" --format text',
+            "4. Ask, map, and plan",
+            '   repobrain ask "Where is payment retry logic implemented?" --format text',
+            '   repobrain map "Trace login with Google from route to service" --format text',
+            '   repobrain plan "Which files should I edit to add GitHub login?" --format text',
+            "   repobrain review --format text",
             "   repobrain ship --format text",
             "",
-            "5. Friendlier modes:",
+            "5. Original command names still work",
+            "   ask=query, map=trace, blast=impact, plan=targets, check=doctor, smoke=provider-smoke, ui=serve-web, start=first-look",
+            "",
+            "6. Interactive modes",
             "   repobrain chat",
             "   repobrain baseline",
             "   repobrain report --format text",
@@ -1378,30 +1383,30 @@ def _report_html(doctor: dict[str, Any], review: ReviewReport, ship: ShipReport)
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>RepoBrain Control Room Report</title>
+  <title>RepoBrain Workbench Report</title>
   <style>
     :root {{
-      --bg: #efe1cc;
-      --bg-soft: #f8f0e2;
-      --ink: #17211d;
-      --ink-soft: #55645b;
-      --line: rgba(25, 31, 27, 0.12);
-      --line-strong: rgba(25, 31, 27, 0.18);
-      --panel: rgba(255, 250, 242, 0.88);
-      --panel-strong: rgba(255, 252, 246, 0.96);
-      --panel-muted: rgba(255, 255, 255, 0.46);
-      --accent: #0f766e;
-      --accent-strong: #0f5b58;
+      --bg: #eef2f6;
+      --bg-soft: #f7f9fc;
+      --ink: #111827;
+      --ink-soft: #5b6573;
+      --line: rgba(17, 24, 39, 0.1);
+      --line-strong: rgba(17, 24, 39, 0.18);
+      --panel: rgba(255, 255, 255, 0.9);
+      --panel-strong: #ffffff;
+      --panel-muted: #f3f6fa;
+      --accent: #087f5b;
+      --accent-strong: #07543f;
       --secondary: #1d4ed8;
-      --warning: #c2410c;
-      --good-bg: rgba(15, 118, 110, 0.1);
-      --warn-bg: rgba(194, 65, 12, 0.12);
-      --code-bg: #17211d;
+      --warning: #9a3412;
+      --good-bg: rgba(8, 127, 91, 0.1);
+      --warn-bg: rgba(154, 52, 18, 0.12);
+      --code-bg: #111827;
       --code-ink: #eef2ee;
-      --shadow: 0 24px 72px rgba(63, 41, 15, 0.14);
-      --radius-xl: 32px;
-      --radius-lg: 22px;
-      --radius-md: 16px;
+      --shadow: 0 18px 46px rgba(15, 23, 42, 0.1);
+      --radius-xl: 8px;
+      --radius-lg: 8px;
+      --radius-md: 6px;
       --font-sans: Aptos, "Segoe UI Variable Text", "Segoe UI", "Helvetica Neue", sans-serif;
       --font-mono: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
     }}
@@ -1411,14 +1416,15 @@ def _report_html(doctor: dict[str, Any], review: ReviewReport, ship: ShipReport)
       color: var(--ink);
       font-family: var(--font-sans);
       background:
-        radial-gradient(circle at top left, rgba(15, 118, 110, 0.24), transparent 32rem),
-        radial-gradient(circle at bottom right, rgba(194, 65, 12, 0.18), transparent 28rem),
-        linear-gradient(135deg, var(--bg-soft) 0%, var(--bg) 100%);
+        linear-gradient(90deg, rgba(17, 24, 39, 0.035) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(17, 24, 39, 0.03) 1px, transparent 1px),
+        linear-gradient(180deg, var(--bg-soft) 0%, var(--bg) 100%);
+      background-size: 40px 40px, 40px 40px, auto;
     }}
     main {{
-      width: min(1220px, calc(100vw - 32px));
+      width: min(1280px, calc(100vw - 32px));
       margin: 0 auto;
-      padding: 28px 0 52px;
+      padding: 20px 0 44px;
     }}
     .hero-grid,
     .card-grid,
@@ -1469,14 +1475,7 @@ def _report_html(doctor: dict[str, Any], review: ReviewReport, ship: ShipReport)
       overflow: hidden;
     }}
     .brand-card::after {{
-      content: "";
-      position: absolute;
-      inset: auto -8% -12% auto;
-      width: 240px;
-      height: 240px;
-      border-radius: 999px;
-      background: radial-gradient(circle, rgba(29, 78, 216, 0.18), transparent 70%);
-      pointer-events: none;
+      content: none;
     }}
     .hero-topline,
     .section-heading,
@@ -1525,7 +1524,7 @@ def _report_html(doctor: dict[str, Any], review: ReviewReport, ship: ShipReport)
       margin: 12px 0 10px;
       font-size: clamp(2.8rem, 8vw, 5.6rem);
       line-height: 0.9;
-      letter-spacing: -0.07em;
+      letter-spacing: 0;
     }}
     .brand-word-brain {{
       color: var(--accent-strong);
@@ -1721,12 +1720,12 @@ def _report_html(doctor: dict[str, Any], review: ReviewReport, ship: ShipReport)
         <div class="brand-lockup">
           {brand_mark_svg}
           <div class="brand-copy">
-            <span class="brand-kicker">grounded codebase memory</span>
+            <span class="brand-kicker">local code intelligence</span>
             <h1 class="brand-wordmark" aria-label="RepoBrain">
               <span class="brand-word brand-word-repo">Repo</span>
               <span class="brand-word brand-word-brain">Brain</span>
             </h1>
-            <p class="lead">Local-first codebase memory for indexing one project, tracing real flows, and ranking safer edit targets with evidence.</p>
+            <p class="lead">A local code intelligence workbench for importing repos, asking grounded questions, reviewing patches, and preparing releases.</p>
           </div>
         </div>
         <div class="brand-rail" aria-label="RepoBrain capabilities">
@@ -1739,7 +1738,7 @@ def _report_html(doctor: dict[str, Any], review: ReviewReport, ship: ShipReport)
         <div class="info-strip">
           <div>
             <span class="eyebrow">Report surface</span>
-            <strong>Control Room snapshot</strong>
+            <strong>Workbench snapshot</strong>
           </div>
           <div>
             <span class="eyebrow">Readiness</span>

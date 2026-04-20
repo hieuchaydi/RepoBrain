@@ -2,6 +2,17 @@
 
 ## Commands
 
+Friendly aliases are available for the highest-frequency flows:
+
+- `repobrain start` = `repobrain first-look`
+- `repobrain ask` = `repobrain query`
+- `repobrain map` = `repobrain trace`
+- `repobrain blast` = `repobrain impact`
+- `repobrain plan` = `repobrain targets`
+- `repobrain check` = `repobrain doctor`
+- `repobrain smoke` = `repobrain provider-smoke`
+- `repobrain ui` = `repobrain serve-web`
+
 ### `repobrain first-look`
 
 Runs the shortest local demo path without requiring a hosted backend or API key.
@@ -18,6 +29,7 @@ Examples:
 
 ```bash
 repobrain first-look --format text
+repobrain start --repo /path/to/project --format text
 repobrain first-look --repo /path/to/project --format text
 repobrain first-look --repo /path/to/project --open-report --format text
 repobrain demo --repo /path/to/project --no-report --format text
@@ -73,6 +85,8 @@ The review command does not depend on a previously built index. It scans the rep
 
 ### `repobrain query "<question>"`
 
+Alias: `repobrain ask "<question>"`
+
 Runs general retrieval and returns:
 
 - top files
@@ -90,13 +104,19 @@ repobrain query "Where is auth callback handled?" --format text
 
 ### `repobrain trace "<question>"`
 
+Alias: `repobrain map "<question>"`
+
 Biases the harness toward route, call-chain, and dependency-flow evidence.
 
 ### `repobrain impact "<question>"`
 
+Alias: `repobrain blast "<question>"`
+
 Biases ranking toward affected files and dependency-central code.
 
 ### `repobrain targets "<question>"`
+
+Alias: `repobrain plan "<question>"`
 
 Biases ranking toward files that are safest to inspect or edit next.
 
@@ -137,6 +157,8 @@ Runs the built-in benchmark queries against the current index and reports:
 
 ### `repobrain doctor`
 
+Alias: `repobrain check`
+
 Shows:
 
 - repo root
@@ -150,6 +172,8 @@ Shows:
 Supports `--format text` for a compact health check.
 
 ### `repobrain provider-smoke`
+
+Alias: `repobrain smoke`
 
 Runs a direct smoke request through the currently configured embedding and reranker providers.
 
@@ -322,10 +346,13 @@ For the JSON request/response shape, see [mcp.md](mcp.md).
 
 ### `repobrain serve-web`
 
+Alias: `repobrain ui`
+
 Starts a local browser UI for non-terminal import and query flows.
 
 ```bash
 repobrain serve-web --open
+repobrain ui --open
 repobrain serve-web --host 127.0.0.1 --port 8765
 ```
 
@@ -333,8 +360,8 @@ The page lets you:
 
 - paste a project path
 - click `Import + Index`
-- click `Scan Project Review` for the one-page audit view
-- run `query`, `trace`, `impact`, `targets`, or cross-repo mode
+- click `Project review` for the one-page audit view
+- run `ask/query`, `map/trace`, `blast/impact`, `plan/targets`, or cross-repo mode
 - switch between tracked repos without leaving the page
 - store or clear short repo memory notes
 - switch the interface between English and Vietnamese
@@ -350,12 +377,12 @@ The page lets you:
 repobrain init --repo /path/to/your-project
 repobrain review --format text
 repobrain index
-repobrain query "Where is auth callback handled?" --format text
-repobrain targets "Which files should I edit to add GitHub login?"
+repobrain ask "Where is auth callback handled?" --format text
+repobrain plan "Which files should I edit to add GitHub login?"
 repobrain report --format text
 repobrain report --open
 repobrain release-check --format text
 repobrain demo-clean --format text
-repobrain serve-web --open
+repobrain ui --open
 repobrain chat
 ```

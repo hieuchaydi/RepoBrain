@@ -64,13 +64,13 @@ def _parser() -> argparse.ArgumentParser:
     index_parser.add_argument("--repo", default=None)
     _add_format_argument(index_parser)
 
-    for command, help_text in (
-        ("query", "Run a grounded retrieval query."),
-        ("trace", "Trace a likely flow through routes, services, or jobs."),
-        ("impact", "Estimate impacted files and dependency edges."),
-        ("targets", "Rank suggested edit targets."),
+    for command, aliases, help_text in (
+        ("query", ("ask",), "Ask a grounded question and return cited files."),
+        ("trace", ("map",), "Map a likely flow through routes, services, or jobs."),
+        ("impact", ("blast",), "Estimate impacted files and dependency edges."),
+        ("targets", ("plan",), "Plan likely edit targets with evidence."),
     ):
-        command_parser = subparsers.add_parser(command, help=help_text)
+        command_parser = subparsers.add_parser(command, aliases=list(aliases), help=help_text)
         command_parser.add_argument("query")
         command_parser.add_argument("--repo", default=None)
         _add_format_argument(command_parser)
@@ -104,11 +104,15 @@ def _parser() -> argparse.ArgumentParser:
     ship_parser.add_argument("--baseline-label", default="baseline")
     _add_format_argument(ship_parser)
 
-    doctor_parser = subparsers.add_parser("doctor", help="Inspect local RepoBrain configuration and index health.")
+    doctor_parser = subparsers.add_parser("doctor", aliases=["check"], help="Inspect local RepoBrain configuration and index health.")
     doctor_parser.add_argument("--repo", default=None)
     _add_format_argument(doctor_parser)
 
-    smoke_parser = subparsers.add_parser("provider-smoke", help="Run a live smoke check through the configured embedding and reranker providers.")
+    smoke_parser = subparsers.add_parser(
+        "provider-smoke",
+        aliases=["smoke"],
+        help="Run a live smoke check through the configured embedding and reranker providers.",
+    )
     smoke_parser.add_argument("--repo", default=None)
     _add_format_argument(smoke_parser)
 
@@ -185,6 +189,7 @@ def _parser() -> argparse.ArgumentParser:
 
     first_look_parser = subparsers.add_parser(
         "first-look",
+        aliases=["start"],
         help="Run the lowest-friction local demo: init, index, starter questions, and an optional report.",
     )
     _add_first_look_arguments(first_look_parser)
@@ -197,7 +202,11 @@ def _parser() -> argparse.ArgumentParser:
     mcp_parser = subparsers.add_parser("serve-mcp", help="Serve RepoBrain tools over a stdio JSON transport.")
     mcp_parser.add_argument("--repo", default=None)
 
-    web_parser = subparsers.add_parser("serve-web", help="Serve a local browser UI for import, index, and query flows.")
+    web_parser = subparsers.add_parser(
+        "serve-web",
+        aliases=["ui"],
+        help="Serve a local browser UI for import, index, and query flows.",
+    )
     web_parser.add_argument("--repo", default=None)
     web_parser.add_argument("--host", default="127.0.0.1")
     web_parser.add_argument("--port", type=int, default=8765)
@@ -215,6 +224,19 @@ def _add_first_look_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--no-report", action="store_true", help="Skip report generation and only print the first-look summary.")
     parser.add_argument("--open-report", action="store_true", help="Open the generated local HTML report after the run.")
     _add_format_argument(parser)
+
+
+def _canonical_command(command: str) -> str:
+    return {
+        "ask": "query",
+        "map": "trace",
+        "blast": "impact",
+        "plan": "targets",
+        "check": "doctor",
+        "smoke": "provider-smoke",
+        "start": "first-look",
+        "ui": "serve-web",
+    }.get(command, command)
 
 
 def _dump(payload: object, output_format: str = "json") -> None:
@@ -498,6 +520,7 @@ def _chat(engine: RepoBrainEngine) -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = _parser()
     args = parser.parse_args(argv)
+    args.command = _canonical_command(args.command)
 
     if args.command == "quickstart":
         print(quickstart_text(styled=True))

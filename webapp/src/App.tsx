@@ -261,7 +261,7 @@ const copy = {
   en: {
     brand: "RepoBrain",
     subtitle:
-      "Local-first codebase memory for indexing one project, tracing real flows, and ranking safer edit targets with evidence.",
+      "A local code intelligence workbench for importing repos, asking grounded questions, reviewing patches, and preparing releases.",
     language: "Language",
     theme: "Theme",
     light: "Light",
@@ -269,16 +269,16 @@ const copy = {
     activeRepo: "Active repo",
     none: "None",
     noActiveRepo: "No active repo yet. Import a project path below.",
-    importTitle: "Fast import",
+    importTitle: "Project setup",
     projectPath: "Project path",
     projectPathPlaceholder: "C:\\path\\to\\your-project",
     chooseFolder: "Choose folder",
     importButton: "Import + Index",
     importHint:
       "Choose a local folder or paste a path. Import initializes RepoBrain state, stores the repo in the shared workspace, and builds the local index in one step.",
-    actionsTitle: "Active repo actions",
+    actionsTitle: "Workflow actions",
     actionsHint:
-      "Use Review for gaps, Ship Gate for a release verdict, Baseline for drift tracking, and Provider Smoke for direct model checks.",
+      "Run the core checks from one place: re-index after changes, review risks, score ship readiness, save baselines, and verify providers.",
     index: "Re-index active repo",
     patchReview: "Patch review",
     patchReviewTitle: "Patch review guardrail",
@@ -289,8 +289,8 @@ const copy = {
     patchFiles: "Files",
     patchFilesPlaceholder: "backend/app/api/auth.py\nbackend/app/services/auth_service.py",
     patchReviewRun: "Run patch review",
-    review: "Scan project review",
-    ship: "Ship gate",
+    review: "Project review",
+    ship: "Ship readiness",
     baseline: "Save baseline",
     providerSmoke: "Provider smoke",
     geminiSetup: "Gemini setup",
@@ -312,14 +312,14 @@ const copy = {
     groqModelPoolPlaceholder: "llama-3.3-70b-versatile,openai/gpt-oss-20b",
     useGroqReranker: "Use Groq reranker",
     saveGroqConfig: "Save Groq config",
-    doctor: "Doctor",
+    doctor: "Health check",
     openReport: "Open report",
-    queryTitle: "Grounded question",
+    queryTitle: "Ask with evidence",
     mode: "Mode",
     question: "Question",
     questionPlaceholder: "Where is payment retry logic implemented?",
     run: "Run",
-    resultTitle: "Result",
+    resultTitle: "Evidence result",
     crossRepoOverview: "Cross-repo overview",
     bestMatch: "Best match",
     activeRank: "Active rank",
@@ -346,17 +346,17 @@ const copy = {
     targetsMode: "Targets",
     multiMode: "Cross-repo",
     interfaceStatus: "Interface status",
-    localOnly: "Local-only browser UI",
+    localOnly: "Local workbench",
     localOnlyHint:
       "The browser app talks to your local RepoBrain Python server only. No hosted backend is required.",
     reportHint:
       "Single-repo queries automatically reuse stored repo memory. Use Cross-repo mode to compare evidence across all tracked projects.",
-    diagnosticsTitle: "Release diagnostics",
+    diagnosticsTitle: "Health and providers",
     diagnosticsHint:
       "Doctor posture and provider smoke stay visible here so release checks do not depend on scrolling through raw text output.",
     activityTitle: "Recent activity",
     activityHint: "RepoBrain keeps a short local timeline of what you just ran in this browser tab.",
-    workspaceTitle: "Workspace control",
+    workspaceTitle: "Workspace",
     workspaceHint:
       "Imported repos stay tracked here. Switch active repos instantly and keep asking without losing the main thread.",
     memoryTitle: "Repo memory",
@@ -378,7 +378,7 @@ const copy = {
     noDiagnostics: "Run Doctor after import to populate structured release diagnostics.",
     noSmoke: "Run Provider Smoke to see active models, failover state, and direct provider health here.",
     noActivity: "No activity yet in this session.",
-    newcomerTitle: "New here? Use this order.",
+    newcomerTitle: "Recommended workflow",
     newcomerHint:
       "RepoBrain is easier when the first run follows one path: import, ask, then review. The interface now keeps the next file context visible instead of hiding it in raw text.",
     newcomerImport: "Import + Index",
@@ -387,7 +387,7 @@ const copy = {
     newcomerAskHint: "Use Query for location, Trace for flows, Impact for blast radius, and Targets for edit planning.",
     newcomerReview: "Review with context",
     newcomerReviewHint: "Auto-attached files show what to open next and how to improve the patch.",
-    footerTitle: "Local control room",
+    footerTitle: "RepoBrain Workbench",
     footerBody: "Everything here talks to your local RepoBrain server and keeps project memory on this machine.",
     footerPrimary: "Start with Import + Index",
     footerSecondary: "Then run Patch Review",
@@ -418,12 +418,12 @@ const copy = {
     no: "No",
     ready: "Ready",
     notReady: "Not ready",
-    disabledUntilImport: "Import a repo to unlock actions, memory, and grounded queries.",
+    disabledUntilImport: "Import a repo to unlock checks, memory, and grounded queries.",
   },
   vi: {
     brand: "RepoBrain",
     subtitle:
-      "Bo nho codebase local-first de index nhieu du an, trace dung flow, va xep hang edit target an toan hon dua tren evidence.",
+      "Workbench phan tich code chay local de import repo, hoi co evidence, review patch, va chuan bi release.",
     language: "Ngon ngu",
     theme: "Giao dien",
     light: "Sang",
@@ -431,16 +431,16 @@ const copy = {
     activeRepo: "Repo dang active",
     none: "Chua co",
     noActiveRepo: "Chua co repo active. Hay import duong dan du an o ben duoi.",
-    importTitle: "Import nhanh",
+    importTitle: "Thiet lap project",
     projectPath: "Duong dan du an",
     projectPathPlaceholder: "C:\\duong-dan\\toi\\du-an-cua-ban",
     chooseFolder: "Chon folder",
     importButton: "Import + Index",
     importHint:
       "Chon folder local hoac dan duong dan. Import se tao state RepoBrain, them repo vao workspace chung, va build local index trong mot buoc.",
-    actionsTitle: "Tac vu tren repo active",
+    actionsTitle: "Workflow actions",
     actionsHint:
-      "Dung Review de xem gap, Ship Gate de xem verdict release, Baseline de track drift, va Provider Smoke de check model.",
+      "Chay cac check chinh o mot noi: index lai sau thay doi, review risk, cham diem ship readiness, luu baseline, va kiem tra provider.",
     index: "Index lai repo active",
     patchReview: "Patch review",
     patchReviewTitle: "Guardrail cho patch",
@@ -451,8 +451,8 @@ const copy = {
     patchFiles: "Danh sach file",
     patchFilesPlaceholder: "backend/app/api/auth.py\nbackend/app/services/auth_service.py",
     patchReviewRun: "Chay patch review",
-    review: "Quet project review",
-    ship: "Ship gate",
+    review: "Project review",
+    ship: "Ship readiness",
     baseline: "Luu baseline",
     providerSmoke: "Smoke provider",
     geminiSetup: "Cau hinh Gemini",
@@ -474,14 +474,14 @@ const copy = {
     groqModelPoolPlaceholder: "llama-3.3-70b-versatile,openai/gpt-oss-20b",
     useGroqReranker: "Dung reranker Groq",
     saveGroqConfig: "Luu cau hinh Groq",
-    doctor: "Doctor",
+    doctor: "Health check",
     openReport: "Mo report",
-    queryTitle: "Cau hoi grounded",
+    queryTitle: "Hoi co evidence",
     mode: "Che do",
     question: "Cau hoi",
     questionPlaceholder: "Logic payment retry nam o dau?",
     run: "Chay",
-    resultTitle: "Ket qua",
+    resultTitle: "Ket qua evidence",
     crossRepoOverview: "Tong quan da repo",
     bestMatch: "Repo dan dau",
     activeRank: "Hang repo active",
@@ -508,17 +508,17 @@ const copy = {
     targetsMode: "Targets",
     multiMode: "Da repo",
     interfaceStatus: "Trang thai giao dien",
-    localOnly: "Giao dien browser chi chay local",
+    localOnly: "Workbench local",
     localOnlyHint:
       "Ung dung browser nay chi goi toi RepoBrain Python server dang chay local cua ban. Khong can hosted backend.",
     reportHint:
       "Query mot repo se tu dong tai su dung repo memory da luu. Dung Da repo de so sanh evidence tren tat ca project da track.",
-    diagnosticsTitle: "Diagnostics cho release",
+    diagnosticsTitle: "Health va provider",
     diagnosticsHint:
       "Doctor posture va provider smoke duoc giu o day de luc release khong phai doc lai ca khoi text dai.",
     activityTitle: "Hoat dong gan day",
     activityHint: "RepoBrain giu mot timeline ngan cho nhung tac vu ban vua chay trong tab nay.",
-    workspaceTitle: "Dieu khien workspace",
+    workspaceTitle: "Workspace",
     workspaceHint:
       "Cac repo da import se duoc track tai day. Co the doi repo active ngay va hoi tiep ma khong mat mach.",
     memoryTitle: "Repo memory",
@@ -540,7 +540,7 @@ const copy = {
     noDiagnostics: "Hay chay Doctor sau khi import de do du lieu diagnostics co cau truc.",
     noSmoke: "Hay chay Provider Smoke de xem model active, failover state, va suc khoe provider tai day.",
     noActivity: "Chua co hoat dong nao trong session nay.",
-    newcomerTitle: "Moi vao thi di theo thu tu nay.",
+    newcomerTitle: "Workflow nen dung",
     newcomerHint:
       "RepoBrain de dung hon khi lan dau chi theo mot duong: import, hoi, roi review. Giao dien se giu file context can xem tiep thay vi giau trong raw text.",
     newcomerImport: "Import + Index",
@@ -549,7 +549,7 @@ const copy = {
     newcomerAskHint: "Dung Query de tim vi tri, Trace de xem flow, Impact de xem blast radius, Targets de lap ke hoach edit.",
     newcomerReview: "Review co context",
     newcomerReviewHint: "File auto-attached cho biet nen mo file nao tiep va cai thien theo huong nao.",
-    footerTitle: "Local control room",
+    footerTitle: "RepoBrain Workbench",
     footerBody: "Moi thu o day chi noi voi RepoBrain server local va giu project memory tren may nay.",
     footerPrimary: "Bat dau bang Import + Index",
     footerSecondary: "Sau do chay Patch Review",
@@ -580,7 +580,7 @@ const copy = {
     no: "Khong",
     ready: "San sang",
     notReady: "Chua san sang",
-    disabledUntilImport: "Hay import repo truoc de mo khoa action, memory, va grounded query.",
+    disabledUntilImport: "Hay import repo truoc de mo khoa check, memory, va grounded query.",
   },
 } as const;
 
@@ -1161,7 +1161,7 @@ export function App() {
           <div className="brand-lockup">
             <img className="brand-mark" src={markUrl} alt="RepoBrain mark" />
             <div className="brand-copy">
-              <span className="brand-kicker">grounded codebase memory</span>
+              <span className="brand-kicker">local code intelligence</span>
               <h1 className="brand-wordmark" aria-label={t.brand}>
                 <span className="brand-word brand-word-repo">Repo</span>
                 <span className="brand-word brand-word-brain">Brain</span>
@@ -1350,7 +1350,7 @@ export function App() {
                   <div className="status-row">
                     <strong>
                       {project.name}
-                      {project.active ? ` · ${t.activeLabel}` : ""}
+                      {project.active ? ` - ${t.activeLabel}` : ""}
                     </strong>
                     <button
                       className="ghost-button small-button"
@@ -1816,7 +1816,7 @@ export function App() {
                         <div className="citation-meta">
                           <strong className="citation-path">
                             #{citation.rank ?? "?"} {citation.name}
-                            {citation.active ? ` · ${t.activeLabel}` : ""} · {citation.file_path}:{citation.start_line}-
+                            {citation.active ? ` - ${t.activeLabel}` : ""} - {citation.file_path}:{citation.start_line}-
                             {citation.end_line}
                             {citation.symbol_name ? `::${citation.symbol_name}` : ""}
                           </strong>
@@ -1840,7 +1840,7 @@ export function App() {
                   <ul className="summary-list">
                     {sharedHotspots.map((item) => (
                       <li key={`${item.label}:${item.count}`}>
-                        {item.label} · {item.count} repo · {item.repos.join(" | ")}
+                        {item.label} - {item.count} repo - {item.repos.join(" | ")}
                       </li>
                     ))}
                   </ul>
@@ -1878,7 +1878,7 @@ export function App() {
                   <div className="status-row">
                     <strong>
                       {item.name}
-                      {item.active ? ` · ${t.activeLabel}` : ""}
+                      {item.active ? ` - ${t.activeLabel}` : ""}
                     </strong>
                     <span>
                       #{item.global_rank ?? "?"} | {item.intent} | {item.evidence_score.toFixed(3)} /{" "}

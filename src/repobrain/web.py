@@ -673,7 +673,7 @@ def serve_web(repo_root: str = "", host: str = "127.0.0.1", port: int = 8765, op
     if open_browser:
         webbrowser.open(url)
     else:
-        sys.stdout.write(f"RepoBrain Control Room running at {url}\n")
+        sys.stdout.write(f"RepoBrain Workbench running at {url}\n")
         sys.stdout.flush()
 
     app = _application(default_repo=default_repo)
