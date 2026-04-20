@@ -115,6 +115,7 @@ def test_web_bootstrap_api_returns_active_repo(mixed_repo: Path) -> None:
     assert payload["ok"] is True
     assert payload["active_repo"] == str(mixed_repo.resolve())
     assert "vi" in payload["locales"]
+    assert "zh" in payload["locales"]
     assert payload["workspace"]["current_repo"] == str(mixed_repo.resolve())
     assert payload["summary"]["repo_root"] == str(mixed_repo.resolve())
 
