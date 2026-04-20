@@ -10,6 +10,7 @@ from repobrain.active_repo import read_active_repo, resolve_repo_root, write_act
 from repobrain.cleanup import cleanup_demo_artifacts
 from repobrain.engine.core import RepoBrainEngine
 from repobrain.file_context import attach_file_context, build_file_context, file_paths_from_context
+from repobrain.first_look import run_first_look
 from repobrain.mcp_server import serve_mcp
 from repobrain.models import QueryResult, ReviewFocus
 from repobrain.provider_setup import (
@@ -181,6 +182,15 @@ def _parser() -> argparse.ArgumentParser:
     clean_parser.add_argument("--include-state", action="store_true", help="Also remove the root .repobrain workspace state.")
     _add_format_argument(clean_parser)
 
+    first_look_parser = subparsers.add_parser(
+        "first-look",
+        help="Run the lowest-friction local demo: init, index, starter questions, and an optional report.",
+    )
+    _add_first_look_arguments(first_look_parser)
+
+    demo_parser = subparsers.add_parser("demo", help="Alias for `first-look`, optimized for a shareable local demo run.")
+    _add_first_look_arguments(demo_parser)
+
     subparsers.add_parser("quickstart", help="Print the shortest path from install to first query.")
 
     mcp_parser = subparsers.add_parser("serve-mcp", help="Serve RepoBrain tools over a stdio JSON transport.")
@@ -196,6 +206,14 @@ def _parser() -> argparse.ArgumentParser:
 
 def _add_format_argument(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--format", choices=("json", "text"), default="json", help="Output format. Defaults to json.")
+
+
+def _add_first_look_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--repo", default=None)
+    parser.add_argument("--report-output", default=None, help="Optional output path for the generated HTML report.")
+    parser.add_argument("--no-report", action="store_true", help="Skip report generation and only print the first-look summary.")
+    parser.add_argument("--open-report", action="store_true", help="Open the generated local HTML report after the run.")
+    _add_format_argument(parser)
 
 
 def _dump(payload: object, output_format: str = "json") -> None:
@@ -567,6 +585,21 @@ def main(argv: list[str] | None = None) -> int:
 
     engine = RepoBrainEngine(repo_root)
     output_format = getattr(args, "format", "json")
+
+    if args.command in {"first-look", "demo"}:
+        if args.open_report and args.no_report:
+            parser.error("`--open-report` cannot be used with `--no-report`.")
+            return 2
+        payload = run_first_look(
+            repo_root,
+            report_output=args.report_output,
+            include_report=not args.no_report,
+        )
+        report_path = str(payload.get("report_path", "")).strip()
+        if args.open_report and report_path:
+            webbrowser.open(Path(report_path).expanduser().resolve().as_uri())
+        _dump(payload, output_format)
+        return 0
 
     if args.command == "init":
         payload = engine.init_workspace(force=args.force)

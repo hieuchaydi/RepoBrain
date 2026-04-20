@@ -178,6 +178,38 @@ def test_web_import_api_returns_structured_import_assessment(mixed_repo: Path) -
     assert "RepoBrain Import Assessment" in payload["result"]
 
 
+def test_web_select_folder_api_returns_native_picker_path(tmp_path: Path, monkeypatch) -> None:
+    selected = tmp_path / "selected_repo"
+    selected.mkdir()
+    monkeypatch.setattr(web_module, "_select_local_directory", lambda initial_dir="": selected.resolve())
+    app = _application()
+    status_headers: dict[str, object] = {}
+
+    def start_response(status: str, headers: list[tuple[str, str]]) -> None:
+        status_headers["status"] = status
+        status_headers["headers"] = headers
+
+    request = json.dumps({"initial_dir": str(tmp_path)}).encode("utf-8")
+    body = b"".join(
+        app(
+            {
+                "REQUEST_METHOD": "POST",
+                "PATH_INFO": "/api/select-folder",
+                "CONTENT_TYPE": "application/json",
+                "wsgi.input": io.BytesIO(request),
+                "CONTENT_LENGTH": str(len(request)),
+            },
+            start_response,
+        )
+    ).decode("utf-8")
+
+    payload = json.loads(body)
+    assert status_headers["status"] == "200 OK"
+    assert payload["ok"] is True
+    assert payload["repo_path"] == str(selected.resolve())
+    assert "Import + Index" in payload["message"]
+
+
 def test_web_doctor_api_renders_structured_doctor_payload(mixed_repo: Path) -> None:
     _import_and_index(str(mixed_repo))
     app = _application(default_repo=str(mixed_repo))

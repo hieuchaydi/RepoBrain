@@ -1,13 +1,51 @@
 # RepoBrain
-![alt text](image.png)
-RepoBrain is a local-first codebase memory engine for AI coding assistants. It indexes a repository, extracts symbols and lightweight dependency edges, combines lexical and semantic retrieval, and returns grounded evidence about where logic lives, how flows connect, and which files are safest to inspect before code is changed.
+
+[![CI](https://github.com/hieuchaydi/RepoBrain/actions/workflows/ci.yml/badge.svg)](https://github.com/hieuchaydi/RepoBrain/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/python-3.12%2B-3776ab)](pyproject.toml)
+[![License](https://img.shields.io/badge/license-MIT-0e7c72)](LICENSE)
+
+RepoBrain is a local-first AI codebase analyst. Point it at any repo, build a local index, then ask where logic lives, how flows connect, what files are risky, and which files an agent should inspect before editing.
+
+![RepoBrain local browser UI](image.png)
+
+## 60-Second Local Demo
+
+No VPS, hosted backend, or API key is required for the first run:
+
+```bash
+python -m pip install -e ".[dev,tree-sitter,mcp]"
+repobrain first-look --repo /path/to/your-project --format text
+```
+
+Windows PowerShell:
+
+```powershell
+python -m pip install -e ".[dev,tree-sitter,mcp]"
+repobrain first-look --repo "C:\path\to\your-project" --format text
+```
+
+`first-look` initializes RepoBrain state, indexes the repo, runs starter questions, writes a local HTML report, and prints the files worth opening first. The same flow is also available as:
+
+```bash
+repobrain demo --format text
+```
+
+Then open the local browser UI:
+
+```bash
+repobrain serve-web --open
+```
+
+In the web UI you can click `Choose folder` or paste a path, then run `Import + Index`.
+
+Example output lives in [examples/first-look.md](examples/first-look.md).
 
 
 ## Overview
 
 <p>
   <a href="#overview-english"><strong>Read in English</strong></a> |
-  <a href="#overview-tieng-viet"><strong>Đọc bằng Tiếng Việt</strong></a>
+  <a href="#overview-tieng-viet"><strong>Doc bang Tieng Viet</strong></a>
 </p>
 
 <details open>
@@ -31,21 +69,21 @@ The product is intentionally local-first and conservative. It ships as a CLI, a 
 </details>
 
 <details>
-<summary id="overview-tieng-viet"><strong>Tiếng Việt</strong></summary>
+<summary id="overview-tieng-viet"><strong>Tieng Viet</strong></summary>
 
-RepoBrain được tạo ra để giúp AI coding assistant bớt "đoán mò" hơn.
+RepoBrain duoc tao ra de giup AI coding assistant bot "doan mo" hon.
 
-Phần lớn lỗi của AI không bắt đầu ở bước sinh code, mà bắt đầu sớm hơn: đọc sai file, bỏ sót luồng route -> service -> job, hoặc trả lời rất tự tin dù bằng chứng còn mỏng.
+Phan lon loi cua AI khong bat dau o buoc sinh code, ma bat dau som hon: doc sai file, bo sot luong route -> service -> job, hoac tra loi rat tu tin du bang chung con mong.
 
-RepoBrain tập trung vào đúng bước trước khi generate:
+RepoBrain tap trung vao dung buoc truoc khi generate:
 
-- index repo thành metadata cục bộ, chunks, symbols và dependency edges
-- truy xuất bằng chứng có grounding bằng BM25, embedding và reranking
-- trace luồng khả dĩ giữa route, service, background job và config
-- xếp hạng file nên inspect hoặc edit với lý do rõ ràng
-- tự hạ confidence và cảnh báo khi bằng chứng yếu hoặc mâu thuẫn
+- index repo thanh metadata local, chunks, symbols va dependency edges
+- truy xuat bang chung co grounding bang BM25, embedding va reranking
+- trace luong kha di giua route, service, background job va config
+- xep hang file nen inspect hoac edit voi ly do ro rang
+- tu ha confidence va canh bao khi bang chung yeu hoac mau thuan
 
-Sản phẩm được thiết kế theo hướng local-first và thận trọng. RepoBrain hiện có CLI, giao diện web local, report/dashboard local, và adapter stdio MCP để gắn vào Cursor, Codex, Claude Code hoặc workflow agent tương tự.
+San pham duoc thiet ke theo huong local-first va than trong. RepoBrain hien co CLI, giao dien web local, report/dashboard local, va adapter stdio MCP de gan vao Cursor, Codex, Claude Code hoac workflow agent tuong tu.
 
 </details>
 
@@ -66,7 +104,16 @@ This makes RepoBrain useful both as:
 - a CLI you can run locally against any repo
 - a stdio MCP-style tool adapter for Cursor, Codex, and Claude Code
 
-## What Ships In `0.1.x`
+## How It Differs
+
+| Tool | Best for | RepoBrain's lane |
+| --- | --- | --- |
+| `grep` / `ripgrep` | exact text search | grounded answers with symbols, snippets, edges, and confidence |
+| ChatGPT paste | small snippets | whole-repo local indexing before asking questions |
+| Cursor / IDE agents | editing inside the IDE | pre-edit context maps, review reports, and MCP-ready evidence |
+| Sourcegraph | enterprise code search | lightweight local-first analysis for one developer or small teams |
+
+## What Ships Today
 
 - Python package under `src/repobrain`
 - Local SQLite metadata store in `.repobrain/metadata.db`
@@ -109,6 +156,7 @@ Fast path for end users:
 python -m venv .venv
 . .venv/bin/activate
 python -m pip install -e ".[dev,tree-sitter,mcp]"
+repobrain first-look --format text
 repobrain init
 repobrain review --format text
 repobrain baseline --format text
@@ -126,6 +174,7 @@ repobrain serve-web --open
 From outside the target repo, initialize it once and then keep commands short:
 
 ```powershell
+repobrain first-look --repo "C:\path\to\your-project" --format text
 repobrain init --repo "C:\path\to\your-project" --format text
 repobrain review --format text
 repobrain baseline --format text
@@ -143,6 +192,7 @@ repobrain serve-web --open
 ```
 
 Then paste the project path and click `Import + Index`.
+On desktop runs, you can also click `Choose folder` to open the native OS folder picker through the local Python server.
 For the one-page audit flow, click `Scan Project Review`.
 The browser UI now ships as a React TSX frontend with English/Vietnamese interface labels, a light/dark theme toggle, and structured `doctor` / `provider-smoke` diagnostics cards.
 You can also switch tracked repos, save repo memory notes, run cross-repo query mode, and trigger `Patch Review` with either a base ref or an explicit file list from the same page.
@@ -219,6 +269,8 @@ That app renders a curated command guide, release-state summary, selected repo m
 ## CLI Surface
 
 ```text
+repobrain first-look
+repobrain demo
 repobrain init
 repobrain index
 repobrain review

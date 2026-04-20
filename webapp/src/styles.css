@@ -670,6 +670,12 @@ h3 {
   margin-bottom: 14px;
 }
 
+.form-button-row {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.85fr) minmax(150px, 1fr);
+  gap: 12px;
+}
+
 .memory-form-row {
   display: flex;
   flex-wrap: wrap;
@@ -1225,6 +1231,7 @@ h3 {
   .status-grid,
   .info-strip,
   .button-grid,
+  .form-button-row,
   .metric-grid,
   .compact-grid,
   .subpanel-grid {

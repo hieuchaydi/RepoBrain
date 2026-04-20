@@ -334,6 +334,26 @@ def test_cli_demo_clean_outputs_text(tmp_path: Path, capsys) -> None:
     assert str((repo_root / "webapp" / "dist").resolve()) in output
 
 
+def test_cli_first_look_outputs_local_demo_summary(mixed_repo: Path, capsys) -> None:
+    assert main(["first-look", "--repo", str(mixed_repo), "--format", "text"]) == 0
+    output = capsys.readouterr().out
+
+    assert "RepoBrain First Look" in output
+    assert "Mode: local-only" in output
+    assert "Indexed surface:" in output
+    assert "Starter questions already tested:" in output
+    assert "Report:" in output
+    assert (mixed_repo / ".repobrain" / "report.html").exists()
+
+
+def test_cli_demo_alias_can_skip_report(mixed_repo: Path, capsys) -> None:
+    assert main(["demo", "--repo", str(mixed_repo), "--no-report", "--format", "text"]) == 0
+    output = capsys.readouterr().out
+
+    assert "RepoBrain First Look" in output
+    assert "Report:" not in output
+
+
 def test_terminal_styling_is_opt_in(monkeypatch) -> None:
     monkeypatch.setattr("repobrain.ux._terminal_supports_color", lambda stream=None: True)
     payload = {"files": 1, "chunks": 2, "symbols": 3, "edges": 4, "parsers": {"heuristic": 1}}

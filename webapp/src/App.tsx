@@ -230,6 +230,12 @@ type BootstrapPayload = {
   summary: WorkspaceSummary | null;
 };
 
+type SelectFolderPayload = {
+  ok: boolean;
+  repo_path: string;
+  message: string;
+};
+
 type ActionPayload = {
   ok: boolean;
   active_repo: string;
@@ -266,9 +272,10 @@ const copy = {
     importTitle: "Fast import",
     projectPath: "Project path",
     projectPathPlaceholder: "C:\\path\\to\\your-project",
+    chooseFolder: "Choose folder",
     importButton: "Import + Index",
     importHint:
-      "Import initializes RepoBrain state, stores the repo in the shared workspace, and builds the local index in one step.",
+      "Choose a local folder or paste a path. Import initializes RepoBrain state, stores the repo in the shared workspace, and builds the local index in one step.",
     actionsTitle: "Active repo actions",
     actionsHint:
       "Use Review for gaps, Ship Gate for a release verdict, Baseline for drift tracking, and Provider Smoke for direct model checks.",
@@ -427,9 +434,10 @@ const copy = {
     importTitle: "Import nhanh",
     projectPath: "Duong dan du an",
     projectPathPlaceholder: "C:\\duong-dan\\toi\\du-an-cua-ban",
+    chooseFolder: "Chon folder",
     importButton: "Import + Index",
     importHint:
-      "Import se tao state RepoBrain, them repo vao workspace chung, va build local index trong mot buoc.",
+      "Chon folder local hoac dan duong dan. Import se tao state RepoBrain, them repo vao workspace chung, va build local index trong mot buoc.",
     actionsTitle: "Tac vu tren repo active",
     actionsHint:
       "Dung Review de xem gap, Ship Gate de xem verdict release, Baseline de track drift, va Provider Smoke de check model.",
@@ -909,6 +917,22 @@ export function App() {
     }
   }
 
+  async function handleChooseFolder() {
+    try {
+      setBusy("choose-folder");
+      const payload = await readJson<SelectFolderPayload>("/api/select-folder", {
+        method: "POST",
+        body: JSON.stringify({ initial_dir: repoPath }),
+      });
+      setRepoPath(payload.repo_path);
+      setMessage(payload.message);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function handleImport(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     try {
@@ -1182,9 +1206,19 @@ export function App() {
               value={repoPath}
               onChange={(event) => setRepoPath(event.target.value)}
             />
-            <button className="primary-button" disabled={busy === "import"} type="submit">
-              {busy === "import" ? t.loading : t.importButton}
-            </button>
+            <div className="form-button-row">
+              <button
+                className="outline-button"
+                disabled={busy === "choose-folder" || busy === "import"}
+                onClick={() => void handleChooseFolder()}
+                type="button"
+              >
+                {busy === "choose-folder" ? t.loading : t.chooseFolder}
+              </button>
+              <button className="primary-button" disabled={busy === "import" || busy === "choose-folder"} type="submit">
+                {busy === "import" ? t.loading : t.importButton}
+              </button>
+            </div>
           </form>
           <p className="muted-copy">{t.importHint}</p>
           {!hasActiveRepo ? <div className="notice-box neutral">{t.disabledUntilImport}</div> : null}

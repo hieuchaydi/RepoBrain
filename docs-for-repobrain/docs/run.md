@@ -30,6 +30,14 @@ python -m pip install -e ".[dev,tree-sitter,mcp]"
 From the root of the repo you want to analyze:
 
 ```bash
+repobrain first-look --format text
+```
+
+That one command initializes local state, indexes the repo, runs starter questions, and writes `.repobrain/report.html`. It is the recommended no-VPS/no-API-key demo path.
+
+For the manual sequence:
+
+```bash
 repobrain init
 repobrain index
 repobrain doctor
@@ -148,7 +156,7 @@ Default URL:
 
 Web import flow:
 
-1. Paste the project path into the form.
+1. Click `Choose folder` or paste the project path into the form.
 2. Click `Import + Index`.
 3. Wait for indexing to finish.
 4. Switch tracked repos or store a short repo memory note if you want to keep the thread.

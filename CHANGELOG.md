@@ -4,6 +4,7 @@
 
 ### Docs
 
+- Added GitHub-first onboarding with a 60-second local demo path, a tool comparison table, and example first-look output.
 - Added user experience guide for terminal text output, chat mode, and local report flow
 - Fixed and expanded bilingual installation docs, including one-click dashboard usage
 - Added production readiness guidance and OSS release gates
@@ -56,6 +57,7 @@
 
 ### CLI
 
+- Added `repobrain first-look` and `repobrain demo` as no-VPS/no-API-key demo commands that init, index, run starter questions, and generate a local report.
 - Added active repo memory so `repobrain init --repo <path>` lets later commands omit `--repo`
 - Added `repobrain serve-web` for a local browser import and query flow
 - Reworked the local browser UI into a React TSX frontend with English/Vietnamese interface labels
@@ -76,6 +78,7 @@
 - Updated the local HTML report to surface provider posture, active reranker model, reranker pool, and last failover event
 - Added a web action for provider smoke checks from the local browser UI
 - Added a Groq setup panel to the local browser UI
+- Added a local web `Choose folder` flow backed by a native OS folder picker through the Python server, while keeping manual path entry for Docker/headless runs.
 
 ### Security
 

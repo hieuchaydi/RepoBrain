@@ -123,6 +123,8 @@ def _payload_to_text_plain(payload: object) -> str:
             )
         if payload.get("kind") == "demo_clean":
             return demo_clean_to_text(payload)
+        if payload.get("kind") == "first_look":
+            return first_look_to_text(payload)
         if payload.get("kind") == "release_check":
             return release_check_to_text(payload)
         if "baseline_path" in payload:
@@ -597,6 +599,85 @@ def demo_clean_to_text(payload: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def first_look_to_text(payload: dict[str, Any]) -> str:
+    index_payload = payload.get("index", {}) if isinstance(payload.get("index"), dict) else {}
+    assessment = payload.get("import_assessment", {}) if isinstance(payload.get("import_assessment"), dict) else {}
+    queries = payload.get("queries", []) if isinstance(payload.get("queries"), list) else []
+    next_commands = payload.get("next_commands", []) if isinstance(payload.get("next_commands"), list) else []
+    parsers = index_payload.get("parsers", {}) if isinstance(index_payload.get("parsers"), dict) else {}
+    parser_text = ", ".join(f"{name}={count}" for name, count in sorted(parsers.items())) or "unknown"
+
+    lines = [
+        "RepoBrain First Look",
+        f"Repo: {payload.get('repo_root')}",
+        "Mode: local-only, no hosted backend required",
+        "",
+        "Indexed surface:",
+        (
+            f"files={index_payload.get('files', 0)} chunks={index_payload.get('chunks', 0)} "
+            f"symbols={index_payload.get('symbols', 0)} edges={index_payload.get('edges', 0)}"
+        ),
+        f"Parsers: {parser_text}",
+    ]
+
+    if assessment:
+        lines.extend(
+            [
+                "",
+                "Project review snapshot:",
+                f"Readiness: {assessment.get('readiness', 'unknown')}",
+                f"Score: {assessment.get('score', 'unknown')}/10",
+                str(assessment.get("summary", "")).strip(),
+            ]
+        )
+        top_findings = assessment.get("top_findings", [])
+        if isinstance(top_findings, list) and top_findings:
+            lines.extend(["", "Top signals:"])
+            for index, finding in enumerate(top_findings[:3], start=1):
+                if isinstance(finding, dict):
+                    title = str(finding.get("title", "")).strip() or "Untitled signal"
+                    severity = str(finding.get("severity", "unknown")).strip()
+                    lines.append(f"{index}. [{severity}] {title}")
+
+    if queries:
+        lines.extend(["", "Starter questions already tested:"])
+        for item in queries:
+            if not isinstance(item, dict):
+                continue
+            mode = str(item.get("mode", "query"))
+            question = str(item.get("question", "")).strip()
+            if item.get("status") != "pass":
+                lines.append(f"- {mode}: {question} -> error: {item.get('error')}")
+                continue
+            confidence = float(item.get("confidence", 0.0) or 0.0)
+            label = str(item.get("confidence_label", "")).strip()
+            lines.append(f"- {mode}: {question} -> confidence={confidence:.3f} {label}".rstrip())
+            top_files = item.get("top_files", [])
+            if isinstance(top_files, list) and top_files:
+                file_labels = []
+                for top_file in top_files[:3]:
+                    if isinstance(top_file, dict) and top_file.get("file_path"):
+                        file_labels.append(str(top_file.get("file_path")))
+                if file_labels:
+                    lines.append(f"  files: {', '.join(file_labels)}")
+
+    report_path = str(payload.get("report_path", "")).strip()
+    if report_path:
+        lines.extend(["", f"Report: {report_path}"])
+
+    if next_commands:
+        lines.extend(["", "Next commands:"])
+        lines.extend(f"- {command}" for command in next_commands[:5] if str(command).strip())
+
+    lines.extend(
+        [
+            "",
+            "Tip: this is the lowest-friction demo path for GitHub visitors because it works without a VPS or API key.",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def index_stats_to_text(payload: dict[str, Any]) -> str:
     parsers = payload.get("parsers", {})
     parser_text = ", ".join(f"{name}={count}" for name, count in sorted(parsers.items())) if isinstance(parsers, dict) else "unknown"
@@ -1046,19 +1127,23 @@ def quickstart_text(*, styled: bool = False) -> str:
             "1. Install:",
             '   python -m pip install -e ".[dev,tree-sitter,mcp]"',
             "",
-            "2. Prepare local state:",
+            "2. Run the fastest local demo:",
+            "   repobrain first-look --repo /path/to/your-project --format text",
+            "   repobrain serve-web --open",
+            "",
+            "3. Prepare local state manually:",
             "   repobrain init --repo /path/to/your-project",
             "   repobrain provider-smoke --format text",
             "   repobrain review --format text",
             "   repobrain index --format text",
             "",
-            "3. Ask questions:",
+            "4. Ask questions:",
             '   repobrain query "Where is payment retry logic implemented?" --format text',
             '   repobrain trace "Trace login with Google from route to service" --format text',
             '   repobrain targets "Which files should I edit to add GitHub login?" --format text',
             "   repobrain ship --format text",
             "",
-            "4. Friendlier modes:",
+            "5. Friendlier modes:",
             "   repobrain chat",
             "   repobrain baseline",
             "   repobrain report --format text",

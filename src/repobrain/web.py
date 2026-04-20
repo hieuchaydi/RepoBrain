@@ -100,6 +100,48 @@ def _import_and_index(repo_path: str) -> tuple[str, str, str]:
     return repo_text, message, result
 
 
+def _select_local_directory(initial_dir: str = "") -> Path:
+    start_dir = Path(initial_dir).expanduser().resolve() if initial_dir.strip() else Path.cwd()
+    if not start_dir.exists() or not start_dir.is_dir():
+        start_dir = Path.cwd()
+
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+    except Exception as exc:  # pragma: no cover - depends on local Python GUI support
+        raise RuntimeError(
+            "Native folder selection is unavailable in this Python environment. Paste the project path instead."
+        ) from exc
+
+    try:
+        root = tk.Tk()
+    except Exception as exc:  # pragma: no cover - depends on desktop/session GUI support
+        raise RuntimeError(
+            "Native folder selection is unavailable in this desktop session. Paste the project path instead."
+        ) from exc
+    root.withdraw()
+    try:
+        try:
+            root.attributes("-topmost", True)
+        except tk.TclError:
+            pass
+        selected = filedialog.askdirectory(
+            parent=root,
+            initialdir=str(start_dir),
+            title="Choose a project folder for RepoBrain",
+            mustexist=True,
+        )
+    finally:
+        root.destroy()
+
+    if not selected:
+        raise ValueError("Folder selection was cancelled.")
+    selected_path = Path(selected).expanduser().resolve()
+    if not selected_path.exists() or not selected_path.is_dir():
+        raise ValueError("Selected path does not exist or is not a directory.")
+    return selected_path
+
+
 def _active_engine() -> tuple[Path, RepoBrainEngine]:
     repo_root = read_active_repo()
     if repo_root is None:
@@ -457,6 +499,17 @@ def _application(default_repo: str = ""):
         if method == "POST":
             fields = _read_request_fields(environ)
             try:
+                if path == "/api/select-folder":
+                    selected = _select_local_directory(_text_field(fields, "initial_dir"))
+                    return _json_response(
+                        start_response,
+                        "200 OK",
+                        {
+                            "ok": True,
+                            "repo_path": str(selected),
+                            "message": "Folder selected. Click Import + Index to build the local index.",
+                        },
+                    )
                 if path == "/api/import":
                     repo_text, message, result, data = _import_project_payload(_text_field(fields, "repo_path"))
                     payload = _web_action_payload(

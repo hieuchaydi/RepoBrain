@@ -2,6 +2,29 @@
 
 ## Commands
 
+### `repobrain first-look`
+
+Runs the shortest local demo path without requiring a hosted backend or API key.
+
+It performs the day-one flow in one command:
+
+- initializes `.repobrain/` and `repobrain.toml`
+- indexes the repo with local providers
+- runs a few starter questions
+- stores the repo in workspace memory
+- writes `.repobrain/report.html` unless `--no-report` is provided
+
+Examples:
+
+```bash
+repobrain first-look --format text
+repobrain first-look --repo /path/to/project --format text
+repobrain first-look --repo /path/to/project --open-report --format text
+repobrain demo --repo /path/to/project --no-report --format text
+```
+
+Use this command for screenshots, terminal recordings, and first-time GitHub visitors. It is intentionally local-only.
+
 ### `repobrain init`
 
 Creates:

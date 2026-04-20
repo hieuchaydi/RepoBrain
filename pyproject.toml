@@ -12,7 +12,7 @@ license = { text = "MIT" }
 authors = [
   { name = "RepoBrain Contributors" }
 ]
-keywords = ["ai", "code-search", "rag", "mcp", "developer-tools", "static-analysis"]
+keywords = ["ai", "code-analysis", "code-search", "codebase", "developer-tools", "local-first", "llm", "mcp", "rag", "static-analysis"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Environment :: Console",
@@ -26,9 +26,9 @@ classifiers = [
 dependencies = []
 
 [project.urls]
-Homepage = "https://github.com/repobrain/repobrain"
-Documentation = "https://github.com/repobrain/repobrain#readme"
-Issues = "https://github.com/repobrain/repobrain/issues"
+Homepage = "https://github.com/hieuchaydi/RepoBrain"
+Documentation = "https://github.com/hieuchaydi/RepoBrain#readme"
+Issues = "https://github.com/hieuchaydi/RepoBrain/issues"
 
 [project.optional-dependencies]
 dev = ["pytest>=8.2"]

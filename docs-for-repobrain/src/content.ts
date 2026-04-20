@@ -475,6 +475,20 @@ export const quickstartSteps = [
 
 export const commandCatalog: CommandEntry[] = [
   {
+    category: t('Demo', 'Demo', '演示'),
+    command: 'repobrain first-look --repo "<path>" --format text',
+    summary: t(
+      'Run the no-VPS/no-key first session: init, index, starter questions, and local report.',
+      'Chạy phiên đầu tiên không cần VPS/API key: init, index, câu hỏi mẫu, và report local.',
+      '运行不需要 VPS 或 API key 的首次会话：初始化、索引、示例问题和本地报告。',
+    ),
+    result: t(
+      'Prints a shareable local demo summary and writes `.repobrain/report.html`.',
+      'In ra tóm tắt demo local để chia sẻ và ghi `.repobrain/report.html`.',
+      '输出可分享的本地演示摘要，并写入 `.repobrain/report.html`。',
+    ),
+  },
+  {
     category: t('Setup', 'Thiết lập', '初始化'),
     command: 'repobrain init --repo "<path>" --format text',
     summary: t(
