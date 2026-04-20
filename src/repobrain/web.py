@@ -11,7 +11,12 @@ from wsgiref.simple_server import make_server
 from repobrain.active_repo import read_active_repo, write_active_repo
 from repobrain.engine.core import RepoBrainEngine
 from repobrain.file_context import attach_file_context, build_file_context, file_paths_from_context
-from repobrain.provider_setup import configure_gemini_provider, gemini_config_result_to_text
+from repobrain.provider_setup import (
+    configure_gemini_provider,
+    configure_groq_provider,
+    gemini_config_result_to_text,
+    groq_config_result_to_text,
+)
 from repobrain.ux import build_report, file_context_to_text, payload_to_text
 from repobrain.workspace import (
     clear_workspace_notes,
@@ -305,6 +310,29 @@ def _configure_gemini_payload(fields: dict[str, object]) -> tuple[str, dict[str,
     return str(repo_root), data, gemini_config_result_to_text(data)
 
 
+def _configure_groq_payload(fields: dict[str, object]) -> tuple[str, dict[str, object], str]:
+    repo_hint = _text_field(fields, "repo_path")
+    if repo_hint:
+        repo_root = Path(repo_hint).expanduser().resolve()
+        if not repo_root.exists() or not repo_root.is_dir():
+            raise ValueError("Project path does not exist or is not a directory.")
+    else:
+        repo_root, _ = _active_engine()
+
+    api_key = _text_field(fields, "api_key")
+    use_reranker = _bool_field(fields, "use_reranker", True)
+    rerank_model = _text_field(fields, "rerank_model", "llama-3.3-70b-versatile") or "llama-3.3-70b-versatile"
+    model_pool_text = _text_field(fields, "model_pool", "")
+    data = configure_groq_provider(
+        repo_root,
+        api_key=api_key,
+        use_reranker=use_reranker,
+        rerank_model=rerank_model,
+        model_pool=model_pool_text,
+    )
+    return str(repo_root), data, groq_config_result_to_text(data)
+
+
 def _web_action_payload(
     *,
     repo_text: str,
@@ -484,6 +512,15 @@ def _application(default_repo: str = ""):
                         title="Gemini Config",
                         result=result,
                         message="Gemini provider configuration saved.",
+                        data=data,
+                    )
+                elif path == "/api/providers/groq":
+                    repo_text, data, result = _configure_groq_payload(fields)
+                    payload = _web_action_payload(
+                        repo_text=repo_text,
+                        title="Groq Config",
+                        result=result,
+                        message="Groq provider configuration saved.",
                         data=data,
                     )
                 elif path == "/api/patch-review":

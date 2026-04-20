@@ -120,7 +120,7 @@ Shows:
 - config path
 - provider selection
 - active provider models
-- Gemini fallback pool when configured
+- reranker model pool when Gemini or Groq failover is configured
 - parser capability flags
 - current index stats
 
@@ -133,8 +133,8 @@ Runs a direct smoke request through the currently configured embedding and reran
 It is useful for:
 
 - validating remote API keys and SDK wiring
-- checking which Gemini reranker model is currently active
-- seeing the ordered Gemini fallback pool in one place
+- checking which remote reranker model is currently active
+- seeing the ordered reranker model pool in one place
 - confirming a real provider request works before using it in `index`, `query`, or `ship`
 
 Supports `--format text` and `--format json`.
@@ -157,11 +157,30 @@ repobrain key gemini --no-embedding --model-pool gemini-2.5-flash,gemini-3-flash
 
 Omit `--api-key` for the secure prompt. Use `--api-key` only in automation where process logs are controlled.
 
+### `repobrain key groq`
+
+Saves a Groq API key and writes the matching reranker defaults into the active repo:
+
+- `.env` gets `GROQ_API_KEY`, `REPOBRAIN_GROQ_RERANK_MODEL`, and `GROQ_MODELS`
+- `repobrain.toml` gets `embedding = "local"` and `reranker = "groq"` unless reranking is disabled
+- terminal output redacts the actual key
+
+Examples:
+
+```bash
+repobrain key groq --format text
+repobrain key groq --repo /path/to/project --format text
+repobrain key groq --model-pool llama-3.3-70b-versatile,openai/gpt-oss-20b --format text
+```
+
+Groq currently backs reranking/scoring only. RepoBrain keeps embeddings local so one Groq key is enough for a working setup.
+
 ### `repobrain chat`
 
 Starts a local interactive loop. Chat uses text summaries by default. Plain questions run through `query`; slash commands select specific harness modes:
 
 - `/key gemini`
+- `/key groq`
 - `/summary`
 - `/remember <note>`
 - `/remember clear`
@@ -216,7 +235,7 @@ repobrain report --open
 
 The report is local-only and summarizes index status, parser selection, provider mode, and suggested next commands.
 
-It also shows active provider models, Gemini fallback pool state, and provider readiness posture from `repobrain doctor`.
+It also shows active provider models, reranker pool state, and provider readiness posture from `repobrain doctor`.
 
 Use `--open` when you want RepoBrain to generate the report and ask the operating system to open it in the default browser.
 

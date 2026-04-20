@@ -93,6 +93,38 @@ def test_cli_key_gemini_writes_env_and_provider_config(mixed_repo: Path, capsys,
     assert config.providers.options["gemini_models"] == ["gemini-2.5-flash", "gemini-3-flash-preview"]
 
 
+def test_cli_key_groq_writes_env_and_provider_config(mixed_repo: Path, capsys, monkeypatch) -> None:
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+
+    assert (
+        main(
+            [
+                "key",
+                "groq",
+                "--repo",
+                str(mixed_repo),
+                "--api-key",
+                "cli-groq-key",
+                "--model-pool",
+                "llama-3.3-70b-versatile,openai/gpt-oss-20b",
+                "--format",
+                "text",
+            ]
+        )
+        == 0
+    )
+    output = capsys.readouterr().out
+    config = RepoBrainConfig.load(mixed_repo)
+
+    assert "RepoBrain Groq Config" in output
+    assert "API key: saved" in output
+    assert "cli-groq-key" not in output
+    assert (mixed_repo / ".env").read_text(encoding="utf-8").splitlines()[0] == "GROQ_API_KEY=cli-groq-key"
+    assert config.providers.embedding == "local"
+    assert config.providers.reranker == "groq"
+    assert config.providers.options["groq_models"] == ["llama-3.3-70b-versatile", "openai/gpt-oss-20b"]
+
+
 def test_cli_chat_can_exit(mixed_repo: Path, capsys, monkeypatch) -> None:
     assert main(["init", "--repo", str(mixed_repo), "--force"]) == 0
     capsys.readouterr()
@@ -123,6 +155,25 @@ def test_cli_chat_key_command_prompts_for_gemini_key(mixed_repo: Path, capsys, m
     assert (mixed_repo / ".env").read_text(encoding="utf-8").splitlines()[0] == "GEMINI_API_KEY=chat-gemini-key"
     assert config.providers.embedding == "gemini"
     assert config.providers.reranker == "gemini"
+
+
+def test_cli_chat_key_command_prompts_for_groq_key(mixed_repo: Path, capsys, monkeypatch) -> None:
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    inputs = iter(["/key groq", "/exit"])
+
+    monkeypatch.setattr("builtins.input", lambda _: next(inputs))
+    monkeypatch.setattr("repobrain.cli.getpass.getpass", lambda _: "chat-groq-key")
+
+    assert main(["chat", "--repo", str(mixed_repo)]) == 0
+    output = capsys.readouterr().out
+    config = RepoBrainConfig.load(mixed_repo)
+
+    assert "RepoBrain Groq Config" in output
+    assert "API key: saved" in output
+    assert "chat-groq-key" not in output
+    assert (mixed_repo / ".env").read_text(encoding="utf-8").splitlines()[0] == "GROQ_API_KEY=chat-groq-key"
+    assert config.providers.embedding == "local"
+    assert config.providers.reranker == "groq"
 
 
 def test_cli_text_output_and_quickstart(mixed_repo: Path, capsys) -> None:

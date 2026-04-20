@@ -93,7 +93,7 @@ This unreleased track now maps most closely to the `0.5.x` integration line: it 
 - React TSX local browser UI with English/Vietnamese interface toggle, light/dark theme, structured diagnostics cards, tracked workspace switching, repo memory notes, and cross-repo query mode with workspace-wide evidence leaders, shared hotspots, and citation previews
 - Persisted workspace memory shared across CLI chat, browser UI, and MCP tools
 - Concise repo scan through `repobrain review --format text`
-- Optional SDK-backed Gemini/OpenAI/Voyage/Cohere provider adapters
+- Optional SDK-backed Gemini/OpenAI/Voyage/Cohere/Groq provider adapters
 - Gemini rerank model pools through `GEMINI_MODELS` with automatic failover on quota/rate-limit exhaustion
 - Optional tree-sitter parser adapter layer with heuristic fallback
 - Parser usage stats in `repobrain index`
@@ -202,7 +202,7 @@ docker compose up --build repobrain-web
 docker compose --profile cli run --rm repobrain-cli
 ```
 
-The web UI includes a Gemini setup panel. After importing a project, paste `GEMINI_API_KEY`, keep or edit the Gemini model pool, and save. RepoBrain writes `.env` and `repobrain.toml` inside the mounted project so Docker and local runs share the same provider setup.
+The web UI includes Gemini and Groq setup panels. After importing a project, paste the provider API key, keep or edit the model pool, and save. RepoBrain writes `.env` and `repobrain.toml` inside the mounted project so Docker and local runs share the same provider setup.
 
 See [docs-for-repobrain/docs/docker.md](docs-for-repobrain/docs/docker.md).
 
@@ -233,6 +233,7 @@ repobrain ship
 repobrain doctor
 repobrain provider-smoke
 repobrain key gemini
+repobrain key groq
 repobrain chat
 repobrain report
 repobrain report --open
@@ -322,7 +323,7 @@ embedding = "local"
 reranker = "local"
 ```
 
-Remote providers are opt-in. Install `.[providers]`, set the relevant API key in `.env`, and explicitly change `repobrain.toml` before RepoBrain sends code to Gemini, OpenAI, Voyage, or Cohere.
+Remote providers are opt-in. Install `.[providers]`, set the relevant API key in `.env`, and explicitly change `repobrain.toml` before RepoBrain sends code to Gemini, OpenAI, Voyage, Cohere, or Groq.
 
 For the Gemini path, the CLI can write both `.env` and `repobrain.toml` without echoing the key:
 
@@ -349,7 +350,25 @@ gemini_models = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-3-flash-pr
 
 If you want automatic fallback when one Gemini rerank model hits quota or rate limits, set `GEMINI_MODELS` in `.env` as a comma-separated ordered pool. RepoBrain will keep the first healthy model active and move to the next one only for quota/rate-limit exhaustion errors.
 
-Start from `.env.example` and fill `GEMINI_API_KEY`.
+For a one-key Groq setup, keep embeddings local and enable Groq reranking:
+
+```bash
+repobrain key groq --repo /path/to/your-project --format text
+```
+
+Inside `repobrain chat`, use `/key groq` for the same secure prompt.
+
+```toml
+[providers]
+embedding = "local"
+reranker = "groq"
+groq_rerank_model = "llama-3.3-70b-versatile"
+groq_models = ["llama-3.3-70b-versatile", "openai/gpt-oss-20b"]
+```
+
+Groq reranking calls Chat Completions with JSON Object Mode and reads `choices[0].message.content` as `{"score": number}`. If a Groq model hits quota, rate limit, or temporary provider-capacity exhaustion, RepoBrain tries the next model in `GROQ_MODELS`.
+
+Start from `.env.example` and fill the key for the provider you enable.
 
 ## Design Principles
 

@@ -11,7 +11,7 @@ from typing import Any
 
 from repobrain.engine.core import RepoBrainEngine
 from repobrain.models import FileEvidence, PatchReviewChange, PatchReviewReport, QueryResult, ReviewReport, ShipReport
-from repobrain.provider_setup import gemini_config_result_to_text
+from repobrain.provider_setup import gemini_config_result_to_text, groq_config_result_to_text
 
 
 def payload_to_json(payload: object) -> str:
@@ -41,6 +41,8 @@ def _payload_to_text_plain(payload: object) -> str:
             return file_context_to_text(payload)
         if payload.get("kind") == "gemini_config":
             return gemini_config_result_to_text(payload)
+        if payload.get("kind") == "groq_config":
+            return groq_config_result_to_text(payload)
         if "file_context" in payload:
             file_context = payload.get("file_context")
             base_payload = dict(payload)
@@ -463,7 +465,7 @@ def doctor_to_text(payload: dict[str, Any]) -> str:
     ]
     reranker_models = providers.get("reranker_models")
     if isinstance(reranker_models, list) and reranker_models:
-        lines.insert(6, f"Gemini fallback pool: {', '.join(str(item) for item in reranker_models)}")
+        lines.insert(6, f"Reranker model pool: {', '.join(str(item) for item in reranker_models)}")
     if language_parsers:
         for language, detail in sorted(language_parsers.items()):
             selected = detail.get("selected", "unknown") if isinstance(detail, dict) else "unknown"
@@ -488,7 +490,7 @@ def provider_smoke_to_text(payload: dict[str, Any]) -> str:
         f"Repo: {payload.get('repo_root')}",
         f"Embedding: {providers.get('embedding')} model={providers.get('embedding_model', 'n/a')}",
         f"Reranker: {providers.get('reranker')} model={providers.get('reranker_model', 'n/a')}",
-        f"Gemini pool: {pool_text}",
+        f"Reranker pool: {pool_text}",
         "",
         "Embedding smoke:",
         f"- status={embedding_smoke.get('status')}",
@@ -1017,7 +1019,7 @@ def chat_help_text(*, styled: bool = False) -> str:
             "RepoBrain chat commands",
             "Ask directly: <question>",
             "Grounded retrieval: /query <q>, /evidence <q>, /trace <q>, /impact <q>, /targets <q>, /map <q>",
-            "Provider keys: /key gemini (secure prompt), /key gemini <api-key>",
+            "Provider keys: /key gemini, /key groq (secure prompt), /key groq <api-key>",
             "Chat focus: /focus <topic>, /focus, /focus clear",
             "Workspace memory: /summary, /remember <note>, /remember clear",
             "Workspace routing: /projects, /add <path>, /use <repo>, /multi <q>",
@@ -1275,7 +1277,7 @@ def _report_html(doctor: dict[str, Any], review: ReviewReport, ship: ShipReport)
             f"<li><span>Embedding model:</span><strong>{html.escape(str(providers.get('embedding_model', 'n/a')))}</strong></li>",
             f"<li><span>Reranker:</span><strong>{html.escape(str(providers.get('reranker', 'unknown')))}</strong></li>",
             f"<li><span>Reranker model:</span><strong>{html.escape(str(providers.get('reranker_model', 'n/a')))}</strong></li>",
-            f"<li><span>Gemini fallback pool:</span><strong>{html.escape(reranker_models_text)}</strong></li>",
+            f"<li><span>Reranker model pool:</span><strong>{html.escape(reranker_models_text)}</strong></li>",
             f"<li><span>Last failover event:</span><strong>{html.escape(last_failover_text)}</strong></li>",
             f"<li><span>Local storage only:</span><strong>{html.escape(str(security.get('local_storage_only', True)))}</strong></li>",
             f"<li><span>Remote providers:</span><strong>{html.escape(str(security.get('remote_providers_enabled', False)))}</strong></li>",
@@ -1717,13 +1719,13 @@ def _report_html(doctor: dict[str, Any], review: ReviewReport, ship: ShipReport)
       <div class="section-heading">
         <div>
           <h2>Provider Posture</h2>
-          <p class="section-copy">See which provider path is active, whether network-backed paths are ready, and which Gemini rerank models are available for failover.</p>
+          <p class="section-copy">See which provider path is active, whether network-backed paths are ready, and which rerank models are available for failover.</p>
         </div>
       </div>
       <div class="card-grid">{provider_cards}</div>
       <div class="double-grid">
         <article class="mini-card">
-          <span>gemini pool</span>
+          <span>reranker pool</span>
           <strong>{html.escape(str(providers.get('reranker_model', 'n/a')))}</strong>
           <small>active reranker model</small>
           <p>{html.escape(reranker_models_text)}</p>

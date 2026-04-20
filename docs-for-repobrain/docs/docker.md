@@ -52,19 +52,22 @@ CLI:
 docker compose --profile cli run --rm repobrain-cli
 ```
 
-## Gemini Setup In Docker
+## Provider Setup In Docker
 
-The web UI includes a Gemini setup panel. After importing a project, paste a Gemini API key, keep or edit the model pool, and save the config. RepoBrain writes:
+The web UI includes Gemini and Groq setup panels. After importing a project, paste the provider API key, keep or edit the model pool, and save the config. RepoBrain writes:
 
 - `.env` with `GEMINI_API_KEY`, Gemini model variables, and `GEMINI_MODELS`
 - `repobrain.toml` with `embedding = "gemini"` and `reranker = "gemini"` when the toggles are enabled
+- `.env` with `GROQ_API_KEY`, `REPOBRAIN_GROQ_RERANK_MODEL`, and `GROQ_MODELS`
+- `repobrain.toml` with `embedding = "local"` and `reranker = "groq"` for one-key Groq reranking
 
 The key stays in the mounted project folder. It is not returned in API responses.
 
-You can also set Gemini values before starting Compose:
+You can also set provider values before starting Compose:
 
 ```powershell
 $env:GEMINI_API_KEY="your-key"
+$env:GROQ_API_KEY="your-key"
 docker compose up --build repobrain-web
 ```
 
@@ -82,3 +85,5 @@ Environment knobs:
 - `REPOBRAIN_WEB_PORT`: default `8765`
 - `GEMINI_API_KEY`: optional Gemini key for remote providers
 - `GEMINI_MODELS`: optional comma-separated reranker fallback pool
+- `GROQ_API_KEY`: optional Groq key for remote reranking
+- `GROQ_MODELS`: optional comma-separated Groq reranker fallback pool

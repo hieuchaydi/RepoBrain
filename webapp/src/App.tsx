@@ -14,6 +14,7 @@ type ActionKind =
   | "provider-smoke"
   | "doctor"
   | "gemini-config"
+  | "groq-config"
   | "query"
   | "trace"
   | "impact"
@@ -295,6 +296,15 @@ const copy = {
     useGeminiEmbedding: "Use Gemini embedding",
     useGeminiReranker: "Use Gemini reranker",
     saveGeminiConfig: "Save Gemini config",
+    groqSetup: "Groq setup",
+    groqSetupHint:
+      "Save a Groq API key and reranker model pool while keeping embeddings local.",
+    groqApiKey: "Groq API key",
+    groqApiKeyPlaceholder: "gsk_...",
+    groqModelPool: "Groq model pool",
+    groqModelPoolPlaceholder: "llama-3.3-70b-versatile,openai/gpt-oss-20b",
+    useGroqReranker: "Use Groq reranker",
+    saveGroqConfig: "Save Groq config",
     doctor: "Doctor",
     openReport: "Open report",
     queryTitle: "Grounded question",
@@ -379,7 +389,7 @@ const copy = {
     chunks: "Chunks",
     embedding: "Embedding",
     reranker: "Reranker",
-    fallbackPool: "Gemini fallback pool",
+    fallbackPool: "Reranker model pool",
     singleModel: "Single-model mode",
     failover: "Last failover",
     remoteProviders: "Remote providers",
@@ -447,6 +457,15 @@ const copy = {
     useGeminiEmbedding: "Dung embedding Gemini",
     useGeminiReranker: "Dung reranker Gemini",
     saveGeminiConfig: "Luu cau hinh Gemini",
+    groqSetup: "Cau hinh Groq",
+    groqSetupHint:
+      "Luu Groq API key va pool model reranker, trong khi embedding van chay local.",
+    groqApiKey: "Groq API key",
+    groqApiKeyPlaceholder: "gsk_...",
+    groqModelPool: "Pool model Groq",
+    groqModelPoolPlaceholder: "llama-3.3-70b-versatile,openai/gpt-oss-20b",
+    useGroqReranker: "Dung reranker Groq",
+    saveGroqConfig: "Luu cau hinh Groq",
     doctor: "Doctor",
     openReport: "Mo report",
     queryTitle: "Cau hoi grounded",
@@ -531,7 +550,7 @@ const copy = {
     chunks: "Chunks",
     embedding: "Embedding",
     reranker: "Reranker",
-    fallbackPool: "Pool fallback Gemini",
+    fallbackPool: "Pool model reranker",
     singleModel: "Che do mot model",
     failover: "Failover gan nhat",
     remoteProviders: "Provider tu xa",
@@ -631,6 +650,8 @@ function labelForAction(locale: Locale, action: ActionKind): string {
       return t.doctor;
     case "gemini-config":
       return t.geminiSetup;
+    case "groq-config":
+      return t.groqSetup;
     case "workspace-use":
       return t.useRepo;
     case "remember":
@@ -732,6 +753,9 @@ export function App() {
   const [geminiModelPool, setGeminiModelPool] = useState("gemini-2.5-flash,gemini-2.5-flash-lite,gemini-3-flash-preview");
   const [geminiUseEmbedding, setGeminiUseEmbedding] = useState(true);
   const [geminiUseReranker, setGeminiUseReranker] = useState(true);
+  const [groqApiKey, setGroqApiKey] = useState("");
+  const [groqModelPool, setGroqModelPool] = useState("llama-3.3-70b-versatile,openai/gpt-oss-20b");
+  const [groqUseReranker, setGroqUseReranker] = useState(true);
   const [message, setMessage] = useState("");
   const [resultTitle, setResultTitle] = useState("");
   const [resultBody, setResultBody] = useState("");
@@ -859,6 +883,10 @@ export function App() {
     }
     if (action === "gemini-config") {
       setGeminiApiKey("");
+      void refreshDoctorSnapshot();
+    }
+    if (action === "groq-config") {
+      setGroqApiKey("");
       void refreshDoctorSnapshot();
     }
   }
@@ -1000,6 +1028,27 @@ export function App() {
         }),
       });
       applyPayload("gemini-config", payload);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function handleGroqConfig(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    try {
+      setBusy("groq-config");
+      const payload = await readJson<ActionPayload>("/api/providers/groq", {
+        method: "POST",
+        body: JSON.stringify({
+          api_key: groqApiKey,
+          model_pool: groqModelPool,
+          use_reranker: groqUseReranker,
+          rerank_model: groqModelPool.split(",").map((item) => item.trim()).filter(Boolean)[0] || "llama-3.3-70b-versatile",
+        }),
+      });
+      applyPayload("groq-config", payload);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : String(error));
     } finally {
@@ -1519,6 +1568,50 @@ export function App() {
               </div>
               <button className="primary-button" disabled={!hasActiveRepo || busy === "gemini-config"} type="submit">
                 {busy === "gemini-config" ? t.loading : t.saveGeminiConfig}
+              </button>
+            </div>
+          </form>
+
+          <form className="subpanel-card inset provider-config-form" onSubmit={handleGroqConfig}>
+            <div className="subpanel-head">
+              <div>
+                <h3>{t.groqSetup}</h3>
+                <p>{t.groqSetupHint}</p>
+              </div>
+              <span className="mini-pill">JSON</span>
+            </div>
+            <div className="panel-form">
+              <label htmlFor="groqApiKey">{t.groqApiKey}</label>
+              <input
+                id="groqApiKey"
+                type="password"
+                autoComplete="off"
+                placeholder={t.groqApiKeyPlaceholder}
+                value={groqApiKey}
+                onChange={(event) => setGroqApiKey(event.target.value)}
+                disabled={!hasActiveRepo}
+              />
+              <label htmlFor="groqModelPool">{t.groqModelPool}</label>
+              <input
+                id="groqModelPool"
+                placeholder={t.groqModelPoolPlaceholder}
+                value={groqModelPool}
+                onChange={(event) => setGroqModelPool(event.target.value)}
+                disabled={!hasActiveRepo}
+              />
+              <div className="toggle-row single">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={groqUseReranker}
+                    onChange={(event) => setGroqUseReranker(event.target.checked)}
+                    disabled={!hasActiveRepo}
+                  />
+                  <span>{t.useGroqReranker}</span>
+                </label>
+              </div>
+              <button className="primary-button" disabled={!hasActiveRepo || busy === "groq-config"} type="submit">
+                {busy === "groq-config" ? t.loading : t.saveGroqConfig}
               </button>
             </div>
           </form>

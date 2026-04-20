@@ -33,8 +33,10 @@
 - Added SDK-backed optional Cohere reranker provider
 - Added SDK-backed optional Gemini embedding and Gemini Flash reranker providers
 - Added ordered Gemini rerank model pools via `GEMINI_MODELS` / `gemini_models` with automatic failover on quota and rate-limit exhaustion
+- Added SDK-backed optional Groq reranker with JSON score parsing and ordered `GROQ_MODELS` failover
+- Split provider implementations into smaller modules while keeping `repobrain.engine.providers` imports compatible
 - Added repo-root `.env` loading without overriding existing shell environment variables
-- Added `.env.example` with cheap Gemini setup using `gemini-embedding-001` and `gemini-3-flash-preview`
+- Added `.env.example` with Gemini and Groq setup examples
 - Added provider model option wiring for `repobrain.toml` and environment overrides
 - Added test-surface ranking penalties so runtime queries prefer route/service/source files unless the query asks for tests
 - Added confidence downgrade and warnings when non-test queries only find test-file evidence
@@ -60,6 +62,7 @@
 - Added a light/dark theme toggle and structured diagnostics cards for `doctor` and `provider-smoke` in the React web UI
 - Added `--format text` for human-readable terminal output while keeping JSON as default
 - Added `repobrain provider-smoke` to validate configured embedding and reranker providers directly
+- Added `repobrain key groq` and `/key groq` for secure Groq setup without echoing API keys
 - Added `repobrain report` to generate a local static HTML dashboard
 - Added `repobrain report --open` for opening the generated dashboard in the default browser
 - Added `repobrain quickstart` for new-user onboarding
@@ -69,9 +72,10 @@
 - Updated `chat.cmd` to prefer `venv\Scripts\python.exe` or `.venv\Scripts\python.exe` before falling back to global Python
 - Added `repobrain chat` for a local interactive question loop
 - Added `chat.cmd` as a Windows-friendly one-click local chat launcher
-- Expanded `repobrain doctor` output with provider model details and Gemini fallback pool visibility
-- Updated the local HTML report to surface provider posture, active reranker model, Gemini fallback pool, and last failover event
+- Expanded `repobrain doctor` output with provider model details and reranker pool visibility
+- Updated the local HTML report to surface provider posture, active reranker model, reranker pool, and last failover event
 - Added a web action for provider smoke checks from the local browser UI
+- Added a Groq setup panel to the local browser UI
 
 ### Security
 

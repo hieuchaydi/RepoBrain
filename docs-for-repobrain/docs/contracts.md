@@ -154,7 +154,7 @@ Example shape:
 Notes:
 
 - `providers.reranker_model` is the currently active reranker model inside the current process.
-- `providers.reranker_models` is the ordered fallback pool when Gemini model failover is configured.
+- `providers.reranker_models` is the ordered fallback pool when Gemini or Groq model failover is configured.
 - `providers.reranker_last_failover_error` is process-local diagnostic state and may be `null` when no failover has happened yet.
 
 ### `repobrain provider-smoke`
@@ -203,7 +203,7 @@ Notes:
 
 - `embedding_smoke.status` and `reranker_smoke.status` are independent.
 - A provider-smoke call may pass for one provider and fail for the other.
-- For Gemini pools, `active_model_after` shows where the process ended after any failover attempt.
+- For model pools, `active_model_after` shows where the process ended after any failover attempt.
 
 ### `repobrain key gemini`
 
@@ -236,6 +236,34 @@ Example shape:
     "REPOBRAIN_GEMINI_OUTPUT_DIMENSIONALITY",
     "REPOBRAIN_GEMINI_RERANK_MODEL",
     "REPOBRAIN_GEMINI_TASK_TYPE"
+  ]
+}
+```
+
+### `repobrain key groq`
+
+Writes Groq reranker settings for the active repo or `--repo` target. The payload never includes the raw API key.
+
+Example shape:
+
+```json
+{
+  "kind": "groq_config",
+  "repo_root": "/abs/path/to/repo",
+  "config_path": "/abs/path/to/repo/repobrain.toml",
+  "env_path": "/abs/path/to/repo/.env",
+  "api_key_saved": true,
+  "embedding": "local",
+  "reranker": "groq",
+  "groq_rerank_model": "llama-3.3-70b-versatile",
+  "groq_models": [
+    "llama-3.3-70b-versatile",
+    "openai/gpt-oss-20b"
+  ],
+  "env_keys": [
+    "GROQ_API_KEY",
+    "GROQ_MODELS",
+    "REPOBRAIN_GROQ_RERANK_MODEL"
   ]
 }
 ```

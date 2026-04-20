@@ -2,9 +2,9 @@
 
 This note captures the next provider step after the Docker and Gemini setup work.
 
-## Next Target: Groq
+## Current Target: Groq
 
-The next provider expansion should add a Groq-backed model picker for fast hosted text models. The first UI list should mirror the current planning screenshot:
+Groq is now implemented first as a reranker/scoring provider with local embeddings. The first UI list should keep tracking these fast hosted text model families:
 
 - Groq Llama 3.1 8B Instant
 - Groq Llama 3.3 70B Versatile
@@ -12,19 +12,19 @@ The next provider expansion should add a Groq-backed model picker for fast hoste
 
 ## Intended UX
 
-- Add a provider setup panel similar to the Gemini panel.
-- Let the user choose provider, API key, and model from a clear list.
-- Keep local providers as the default.
-- Store provider keys in `.env`; do not echo keys back in web responses.
-- Store provider selection in `repobrain.toml`.
-- Show active model, fallback status, and provider readiness in Doctor.
+- Groq has a provider setup panel similar to the Gemini panel.
+- The user can set the API key and model pool from the browser or CLI.
+- Local providers remain the default.
+- Provider keys are stored in `.env`; responses do not echo keys back.
+- Provider selection is stored in `repobrain.toml`.
+- Doctor shows active model, fallback status, and provider readiness.
 
 ## Engineering Notes
 
-- Add provider abstractions without changing the existing `EmbeddingProvider` and `RerankerProvider` contracts unless required.
-- Groq is likely best introduced as a reranker or generation-backed scorer first, not as an embedding provider.
-- Add tests for missing API key, missing SDK, model selection persistence, and Docker environment wiring.
-- Keep Gemini fallback behavior unchanged while adding Groq.
+- Provider abstractions stay compatible with the existing `EmbeddingProvider` and `RerankerProvider` contracts.
+- Groq is introduced as a generation-backed reranker, not an embedding provider.
+- Test coverage includes missing API key, model selection persistence, CLI setup, web setup, JSON score parsing, and model-pool failover.
+- Gemini fallback behavior remains unchanged while Groq has its own `GROQ_MODELS` pool.
 
 ## Follow-Up Model Families
 

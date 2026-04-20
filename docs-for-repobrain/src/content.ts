@@ -1337,12 +1337,12 @@ export const docsLibrary: DocEntry[] = [
     eyebrow: t('Container workflow', 'Container workflow', 'Container workflow'),
     path: 'docs-for-repobrain/docs/docker.md',
     summary: t(
-      'How to run RepoBrain as a Docker web UI or interactive CLI, including Gemini setup from the browser.',
-      'Cach chay RepoBrain bang Docker web UI hoac CLI, kem cau hinh Gemini tu browser.',
-      'How to run RepoBrain with Docker web UI or CLI, including Gemini setup.',
+      'How to run RepoBrain as a Docker web UI or interactive CLI, including provider setup from the browser.',
+      'Cach chay RepoBrain bang Docker web UI hoac CLI, kem cau hinh provider tu browser.',
+      'How to run RepoBrain with Docker web UI or CLI, including provider setup.',
     ),
     audience: t('Operators and Docker users', 'Nguoi dung Docker', 'Docker users'),
-    tags: ['docker', 'setup', 'gemini'],
+    tags: ['docker', 'setup', 'providers'],
     content: repoDoc('docker.md'),
   },
   {

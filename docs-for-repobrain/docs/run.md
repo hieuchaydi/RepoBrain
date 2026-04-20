@@ -90,6 +90,7 @@ repobrain chat
 Useful chat commands:
 
 - `/key gemini`
+- `/key groq`
 - `/summary`
 - `/remember <note>`
 - `/projects`
@@ -264,6 +265,7 @@ Required keys by provider:
 - `OPENAI_API_KEY` for `embedding = "openai"`
 - `VOYAGE_API_KEY` for `embedding = "voyage"`
 - `COHERE_API_KEY` for `reranker = "cohere"`
+- `GROQ_API_KEY` for `reranker = "groq"`
 
 Use `repobrain doctor` to inspect provider readiness and security posture before indexing or querying with remote providers.
 
@@ -327,6 +329,28 @@ GEMINI_MODELS=gemini-2.5-flash,gemini-2.5-flash-lite,gemini-3.1-flash-lite-previ
 ```
 
 RepoBrain will retry with the next model only for Gemini quota or rate-limit exhaustion errors. Invalid model names, auth failures, or other request errors still fail fast so you can see the real problem.
+
+### Groq setup
+
+Use the Groq setup command when you want one remote reranker key while keeping embeddings local:
+
+```bash
+repobrain key groq --format text
+```
+
+Inside interactive chat, `/key groq` runs the same setup for the attached repo.
+
+Manual config:
+
+```toml
+[providers]
+embedding = "local"
+reranker = "groq"
+groq_rerank_model = "llama-3.3-70b-versatile"
+groq_models = ["llama-3.3-70b-versatile", "openai/gpt-oss-20b"]
+```
+
+Groq reranking uses Chat Completions JSON Object Mode and reads `choices[0].message.content` as a JSON object with a numeric `score`. If the active Groq model hits quota, rate limit, or temporary provider-capacity exhaustion, RepoBrain tries the next model in `GROQ_MODELS`.
 
 ### Parser depth looks shallow
 

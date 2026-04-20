@@ -309,6 +309,50 @@ def test_web_gemini_config_api_writes_env_and_provider_config(mixed_repo: Path, 
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
 
 
+def test_web_groq_config_api_writes_env_and_provider_config(mixed_repo: Path, monkeypatch) -> None:
+    _import_and_index(str(mixed_repo))
+    app = _application(default_repo=str(mixed_repo))
+    status_headers: dict[str, object] = {}
+
+    def start_response(status: str, headers: list[tuple[str, str]]) -> None:
+        status_headers["status"] = status
+        status_headers["headers"] = headers
+
+    request = json.dumps(
+        {
+            "api_key": "test-groq-key",
+            "model_pool": "llama-3.3-70b-versatile,openai/gpt-oss-20b",
+            "use_reranker": True,
+        }
+    ).encode("utf-8")
+    body = b"".join(
+        app(
+            {
+                "REQUEST_METHOD": "POST",
+                "PATH_INFO": "/api/providers/groq",
+                "CONTENT_TYPE": "application/json",
+                "wsgi.input": io.BytesIO(request),
+                "CONTENT_LENGTH": str(len(request)),
+            },
+            start_response,
+        )
+    ).decode("utf-8")
+
+    payload = json.loads(body)
+    config = RepoBrainConfig.load(mixed_repo)
+
+    assert status_headers["status"] == "200 OK"
+    assert payload["title"] == "Groq Config"
+    assert payload["data"]["kind"] == "groq_config"
+    assert payload["data"]["api_key_saved"] is True
+    assert "test-groq-key" not in payload["result"]
+    assert (mixed_repo / ".env").read_text(encoding="utf-8").splitlines()[0] == "GROQ_API_KEY=test-groq-key"
+    assert config.providers.embedding == "local"
+    assert config.providers.reranker == "groq"
+    assert config.providers.options["groq_models"] == ["llama-3.3-70b-versatile", "openai/gpt-oss-20b"]
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+
+
 def test_web_patch_review_api_supports_working_tree_and_files_mode(patch_review_repo: Path) -> None:
     _import_and_index(str(patch_review_repo))
     route_path = patch_review_repo / "backend" / "app" / "api" / "auth.py"
@@ -478,6 +522,6 @@ def test_report_html_renders_provider_pool_details() -> None:
     html = _report_html(doctor, review, ship)
 
     assert "Provider Posture" in html
-    assert "Gemini fallback pool:" in html
+    assert "Reranker model pool:" in html
     assert "gemini-2.5-flash, gemini-3-flash-preview" in html
     assert "429 Resource exhausted" in html

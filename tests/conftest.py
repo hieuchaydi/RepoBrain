@@ -123,5 +123,8 @@ def isolate_active_repo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None
         "REPOBRAIN_VOYAGE_INPUT_TYPE",
         "COHERE_API_KEY",
         "REPOBRAIN_COHERE_RERANK_MODEL",
+        "GROQ_API_KEY",
+        "REPOBRAIN_GROQ_RERANK_MODEL",
+        "GROQ_MODELS",
     ):
         monkeypatch.delenv(name, raising=False)

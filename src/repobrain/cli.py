@@ -12,7 +12,12 @@ from repobrain.engine.core import RepoBrainEngine
 from repobrain.file_context import attach_file_context, build_file_context, file_paths_from_context
 from repobrain.mcp_server import serve_mcp
 from repobrain.models import QueryResult, ReviewFocus
-from repobrain.provider_setup import DEFAULT_GEMINI_MODEL_POOL_TEXT, configure_gemini_provider
+from repobrain.provider_setup import (
+    DEFAULT_GEMINI_MODEL_POOL_TEXT,
+    DEFAULT_GROQ_MODEL_POOL_TEXT,
+    configure_gemini_provider,
+    configure_groq_provider,
+)
 from repobrain.release import inspect_release_artifacts
 from repobrain.web import serve_web
 from repobrain.ux import (
@@ -118,6 +123,13 @@ def _parser() -> argparse.ArgumentParser:
     gemini_key_parser.add_argument("--rerank-model", default="gemini-2.5-flash")
     gemini_key_parser.add_argument("--model-pool", default=DEFAULT_GEMINI_MODEL_POOL_TEXT)
     _add_format_argument(gemini_key_parser)
+    groq_key_parser = key_subparsers.add_parser("groq", help="Save a Groq API key and enable Groq reranking.")
+    groq_key_parser.add_argument("--repo", default=None)
+    groq_key_parser.add_argument("--api-key", default=None, help="Groq API key. Omit to prompt without echo.")
+    groq_key_parser.add_argument("--no-reranker", action="store_true", help="Keep reranker provider local.")
+    groq_key_parser.add_argument("--rerank-model", default="llama-3.3-70b-versatile")
+    groq_key_parser.add_argument("--model-pool", default=DEFAULT_GROQ_MODEL_POOL_TEXT)
+    _add_format_argument(groq_key_parser)
 
     chat_parser = subparsers.add_parser("chat", help="Start an interactive local RepoBrain question loop.")
     chat_parser.add_argument("--repo", default=None)
@@ -194,16 +206,24 @@ def _dump(payload: object, output_format: str = "json") -> None:
 
 
 def _resolve_gemini_api_key(api_key: str | None) -> str:
+    return _resolve_provider_api_key(api_key, provider_label="Gemini")
+
+
+def _resolve_groq_api_key(api_key: str | None) -> str:
+    return _resolve_provider_api_key(api_key, provider_label="Groq")
+
+
+def _resolve_provider_api_key(api_key: str | None, *, provider_label: str) -> str:
     if api_key is not None:
         resolved = api_key.strip()
     else:
         try:
-            resolved = getpass.getpass("Gemini API key: ").strip()
+            resolved = getpass.getpass(f"{provider_label} API key: ").strip()
         except (EOFError, KeyboardInterrupt) as exc:
             print()
-            raise ValueError("Gemini API key was not provided.") from exc
+            raise ValueError(f"{provider_label} API key was not provided.") from exc
     if not resolved:
-        raise ValueError("Gemini API key was empty.")
+        raise ValueError(f"{provider_label} API key was empty.")
     return resolved
 
 
@@ -232,15 +252,36 @@ def _configure_gemini_key(
     )
 
 
+def _configure_groq_key(
+    repo_root: str | Path,
+    *,
+    api_key: str | None,
+    use_reranker: bool = True,
+    rerank_model: str = "llama-3.3-70b-versatile",
+    model_pool: str = DEFAULT_GROQ_MODEL_POOL_TEXT,
+) -> dict[str, object]:
+    return configure_groq_provider(
+        repo_root,
+        api_key=_resolve_groq_api_key(api_key),
+        use_reranker=use_reranker,
+        rerank_model=rerank_model,
+        model_pool=model_pool,
+    )
+
+
 def _chat_key_payload(raw_query: str, repo_root: Path) -> dict[str, object]:
     command_tail = raw_query.removeprefix("/key").strip()
     api_key: str | None = None
+    provider = "gemini"
     if command_tail:
         provider, _, value = command_tail.partition(" ")
-        if provider.lower() != "gemini":
-            raise ValueError("Only `/key gemini` is supported right now.")
         api_key = value.strip() or None
-    return _configure_gemini_key(repo_root, api_key=api_key)
+    provider = provider.lower()
+    if provider == "gemini":
+        return _configure_gemini_key(repo_root, api_key=api_key)
+    if provider == "groq":
+        return _configure_groq_key(repo_root, api_key=api_key)
+    raise ValueError("Use `/key gemini` or `/key groq`.")
 
 
 def _build_and_remember_file_context(repo_root: Path, payload: object, *, action_label: str) -> dict[str, object] | None:
@@ -336,7 +377,7 @@ def _chat(engine: RepoBrainEngine) -> int:
                 current_engine = RepoBrainEngine(repo_root)
                 _dump(payload, output_format)
             except Exception as exc:
-                _dump({"error": str(exc), "hint": "Use `/key gemini` to add a Gemini API key."}, output_format)
+                _dump({"error": str(exc), "hint": "Use `/key gemini` or `/key groq` to add a provider API key."}, output_format)
             continue
         if lowered == "/projects":
             _dump(workspace_projects_payload(), output_format)
@@ -499,6 +540,20 @@ def main(argv: list[str] | None = None) -> int:
                     embedding_model=args.embedding_model,
                     output_dimensionality=args.output_dimensionality,
                     task_type=args.task_type,
+                    rerank_model=args.rerank_model,
+                    model_pool=args.model_pool,
+                )
+            except ValueError as exc:
+                parser.error(str(exc))
+                return 2
+            _dump(payload, getattr(args, "format", "json"))
+            return 0
+        if args.key_provider == "groq":
+            try:
+                payload = _configure_groq_key(
+                    repo_root,
+                    api_key=args.api_key,
+                    use_reranker=not args.no_reranker,
                     rerank_model=args.rerank_model,
                     model_pool=args.model_pool,
                 )

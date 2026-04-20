@@ -60,7 +60,7 @@ Goal:
 
 Includes:
 
-- stronger provider adapters for OpenAI, Voyage, and Cohere
+- stronger provider adapters for OpenAI, Voyage, Cohere, and Groq
 - richer MCP ergonomics and examples
 - better CLI polish, including the local `repobrain chat` loop
 - more realistic fixtures and demo assets

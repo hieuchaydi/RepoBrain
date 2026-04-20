@@ -19,6 +19,12 @@ DEFAULT_GEMINI_MODEL_POOL = (
     "gemini-3-flash-preview",
 )
 DEFAULT_GEMINI_MODEL_POOL_TEXT = ",".join(DEFAULT_GEMINI_MODEL_POOL)
+DEFAULT_GROQ_RERANK_MODEL = "llama-3.3-70b-versatile"
+DEFAULT_GROQ_MODEL_POOL = (
+    "llama-3.3-70b-versatile",
+    "openai/gpt-oss-20b",
+)
+DEFAULT_GROQ_MODEL_POOL_TEXT = ",".join(DEFAULT_GROQ_MODEL_POOL)
 
 GEMINI_ENV_KEYS = {
     "GEMINI_API_KEY",
@@ -27,6 +33,11 @@ GEMINI_ENV_KEYS = {
     "REPOBRAIN_GEMINI_TASK_TYPE",
     "REPOBRAIN_GEMINI_RERANK_MODEL",
     "GEMINI_MODELS",
+}
+GROQ_ENV_KEYS = {
+    "GROQ_API_KEY",
+    "REPOBRAIN_GROQ_RERANK_MODEL",
+    "GROQ_MODELS",
 }
 
 
@@ -158,6 +169,61 @@ def configure_gemini_provider(
     }
 
 
+def configure_groq_provider(
+    repo_root: str | Path,
+    *,
+    api_key: str = "",
+    use_reranker: bool = True,
+    rerank_model: str = DEFAULT_GROQ_RERANK_MODEL,
+    model_pool: str | Iterable[str] | None = None,
+) -> dict[str, object]:
+    root = Path(repo_root).expanduser().resolve()
+    if not root.exists() or not root.is_dir():
+        raise ValueError("Project path does not exist or is not a directory.")
+
+    normalized_rerank_model = str(rerank_model).strip() or DEFAULT_GROQ_RERANK_MODEL
+    normalized_model_pool = _normalize_model_pool(model_pool, normalized_rerank_model)
+
+    env_updates: dict[str, str] = {}
+    normalized_api_key = str(api_key).strip()
+    if normalized_api_key:
+        env_updates["GROQ_API_KEY"] = normalized_api_key
+    env_updates.update(
+        {
+            "REPOBRAIN_GROQ_RERANK_MODEL": normalized_rerank_model,
+            "GROQ_MODELS": ",".join(normalized_model_pool),
+        }
+    )
+    env_path = write_env_values(root, env_updates)
+
+    config = RepoBrainConfig.load(root)
+    # Groq currently backs reranking/scoring only. Keep embeddings local so a
+    # single Groq API key is enough for a working remote-rerank setup.
+    config.providers.embedding = "local"
+    config.providers.reranker = "groq" if use_reranker else "local"
+    config.providers.options.update(
+        {
+            "groq_rerank_model": normalized_rerank_model,
+            "groq_models": normalized_model_pool,
+        }
+    )
+    config_path = config.write_default(force=True)
+    write_active_repo(root)
+
+    return {
+        "kind": "groq_config",
+        "repo_root": str(root),
+        "config_path": str(config_path),
+        "env_path": str(env_path),
+        "api_key_saved": bool(normalized_api_key),
+        "embedding": config.providers.embedding,
+        "reranker": config.providers.reranker,
+        "groq_rerank_model": normalized_rerank_model,
+        "groq_models": normalized_model_pool,
+        "env_keys": sorted(key for key in env_updates if key in GROQ_ENV_KEYS),
+    }
+
+
 def gemini_config_result_to_text(payload: dict[str, object]) -> str:
     models = payload.get("gemini_models", [])
     model_text = ", ".join(str(item) for item in models) if isinstance(models, list) and models else "single model"
@@ -172,6 +238,27 @@ def gemini_config_result_to_text(payload: dict[str, object]) -> str:
             f"Embedding: {payload.get('embedding')}",
             f"Reranker: {payload.get('reranker')}",
             f"Rerank model: {payload.get('gemini_rerank_model')}",
+            f"Model pool: {model_text}",
+            "",
+            "Next: run Doctor or Provider Smoke to verify provider readiness.",
+        ]
+    )
+
+
+def groq_config_result_to_text(payload: dict[str, object]) -> str:
+    models = payload.get("groq_models", [])
+    model_text = ", ".join(str(item) for item in models) if isinstance(models, list) and models else "single model"
+    api_key_text = "saved" if payload.get("api_key_saved") else "unchanged"
+    return "\n".join(
+        [
+            "RepoBrain Groq Config",
+            f"Repo: {payload.get('repo_root')}",
+            f"Config: {payload.get('config_path')}",
+            f"Env: {payload.get('env_path')}",
+            f"API key: {api_key_text}",
+            f"Embedding: {payload.get('embedding')}",
+            f"Reranker: {payload.get('reranker')}",
+            f"Rerank model: {payload.get('groq_rerank_model')}",
             f"Model pool: {model_text}",
             "",
             "Next: run Doctor or Provider Smoke to verify provider readiness.",

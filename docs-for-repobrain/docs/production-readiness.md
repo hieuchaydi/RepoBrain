@@ -21,7 +21,7 @@ What is ready:
 - Tree-sitter optional parser path with heuristic fallback
 - Stable local vector hashing
 - Basic provider and security diagnostics
-- SDK-backed optional provider adapters for Gemini embeddings/reranking, OpenAI embeddings, Voyage embeddings, and Cohere reranking
+- SDK-backed optional provider adapters for Gemini embeddings/reranking, OpenAI embeddings, Voyage embeddings, Cohere reranking, and Groq reranking
 - Regression tests for parser fallback, retrieval warnings, MCP validation, index health, and launcher behavior
 - MIT license and package metadata
 - CI workflow for Python `3.12` and `3.13`
@@ -95,7 +95,7 @@ Minimum quality bar for a public release:
 
 ### `0.5.x`
 
-- Add live-key smoke tests and examples for Gemini, OpenAI, Voyage, and Cohere provider adapters.
+- Add live-key smoke tests and examples for Gemini, OpenAI, Voyage, Cohere, and Groq provider adapters.
 - Add richer MCP examples for Cursor, Codex, and Claude Code.
 - Validate the wheel/sdist contents after the frontend-aware release workflow build.
 

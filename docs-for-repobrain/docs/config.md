@@ -72,7 +72,7 @@ reranker = "local"
 Supported values today:
 
 - `embedding`: `local`, `gemini`, `openai`, `voyage`
-- `reranker`: `local`, `gemini`, `cohere`
+- `reranker`: `local`, `gemini`, `cohere`, `groq`
 
 Local is the default. Remote providers are optional, explicit, and require SDK extras plus credentials.
 
@@ -114,6 +114,24 @@ gemini_models = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-3-flash-pr
 
 If `gemini_models` or `GEMINI_MODELS` is configured, RepoBrain treats it as an ordered fallback pool for Gemini reranking. When the active Gemini model returns a quota or rate-limit exhaustion error, RepoBrain automatically retries with the next model in the pool. Non-quota failures still surface immediately so bad model names or auth/config issues do not get hidden.
 
+Groq setup:
+
+```bash
+repobrain key groq --repo /path/to/project --format text
+```
+
+The command prompts for the key without echoing it, keeps embeddings local, and enables Groq reranking so one Groq key is enough for a working remote-scoring setup.
+
+```toml
+[providers]
+embedding = "local"
+reranker = "groq"
+groq_rerank_model = "llama-3.3-70b-versatile"
+groq_models = ["llama-3.3-70b-versatile", "openai/gpt-oss-20b"]
+```
+
+Groq reranking uses Chat Completions JSON Object Mode and reads `choices[0].message.content` as a JSON object with a numeric `score`. If `groq_models` or `GROQ_MODELS` is configured, RepoBrain tries the next model when the active model hits quota, rate-limit, or temporary provider-capacity exhaustion.
+
 Voyage embedding plus Cohere reranking example:
 
 ```toml
@@ -136,10 +154,13 @@ Environment variables:
 - `OPENAI_API_KEY`: required when `embedding = "openai"`
 - `VOYAGE_API_KEY`: required when `embedding = "voyage"`
 - `COHERE_API_KEY`: required when `reranker = "cohere"`
+- `GROQ_API_KEY`: required when `reranker = "groq"`
 - `REPOBRAIN_OPENAI_EMBEDDING_MODEL`: optional override for OpenAI embedding model
 - `REPOBRAIN_VOYAGE_EMBEDDING_MODEL`: optional override for Voyage embedding model
 - `REPOBRAIN_VOYAGE_INPUT_TYPE`: optional override for Voyage input type
 - `REPOBRAIN_COHERE_RERANK_MODEL`: optional override for Cohere rerank model
+- `REPOBRAIN_GROQ_RERANK_MODEL`: optional override for Groq rerank model
+- `GROQ_MODELS`: optional comma-separated fallback pool for Groq rerank model failover
 
 Security rule: RepoBrain never sends code to a remote provider unless `repobrain.toml` explicitly selects a remote provider.
 

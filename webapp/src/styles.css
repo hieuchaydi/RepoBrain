@@ -696,6 +696,10 @@ h3 {
   gap: 10px;
 }
 
+.toggle-row.single {
+  grid-template-columns: 1fr;
+}
+
 .toggle-row label {
   display: flex;
   align-items: center;

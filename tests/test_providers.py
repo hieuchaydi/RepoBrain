@@ -9,6 +9,7 @@ from repobrain.engine.providers import (
     CohereReranker,
     GeminiEmbeddingProvider,
     GeminiReranker,
+    GroqReranker,
     LocalHashEmbeddingProvider,
     OpenAIEmbeddingProvider,
     RemoteProviderError,
@@ -81,6 +82,71 @@ def test_cohere_reranker_uses_sdk_client() -> None:
         "documents": ["retry handler"],
         "top_n": 1,
     }
+
+
+def test_groq_reranker_uses_chat_completion_json_response() -> None:
+    captured: dict[str, object] = {}
+
+    class FakeGroqCompletions:
+        def create(
+            self,
+            *,
+            model: str,
+            messages: list[dict[str, str]],
+            temperature: int,
+            response_format: dict[str, str],
+        ) -> SimpleNamespace:
+            captured["model"] = model
+            captured["messages"] = messages
+            captured["temperature"] = temperature
+            captured["response_format"] = response_format
+            return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content='{"score": 0.87654321}'))])
+
+    provider = GroqReranker(
+        model="test-groq-model",
+        client=SimpleNamespace(chat=SimpleNamespace(completions=FakeGroqCompletions())),
+    )
+
+    assert provider.score("payment retry", "retry handler") == 0.876543
+    assert captured["model"] == "test-groq-model"
+    assert captured["temperature"] == 0
+    assert captured["response_format"] == {"type": "json_object"}
+    assert "payment retry" in str(captured["messages"])
+
+
+def test_groq_reranker_fails_over_to_next_model_on_rate_limit() -> None:
+    captured: list[str] = []
+
+    class FakeGroqCompletions:
+        def create(self, *, model: str, messages: list[dict[str, str]], temperature: int, response_format: dict[str, str]) -> SimpleNamespace:
+            captured.append(model)
+            if model == "llama-3.3-70b-versatile":
+                raise RuntimeError("429 rate limit exceeded for this model")
+            return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content='{"score": 0.82}'))])
+
+    provider = GroqReranker(
+        models=["llama-3.3-70b-versatile", "openai/gpt-oss-20b"],
+        client=SimpleNamespace(chat=SimpleNamespace(completions=FakeGroqCompletions())),
+    )
+
+    assert provider.score("payment retry", "retry handler") == 0.82
+    assert captured == ["llama-3.3-70b-versatile", "openai/gpt-oss-20b"]
+    assert provider.model == "openai/gpt-oss-20b"
+    assert provider.last_failover_error is not None
+
+
+def test_groq_reranker_raises_after_all_models_hit_rate_limit() -> None:
+    class FakeGroqCompletions:
+        def create(self, *, model: str, messages: list[dict[str, str]], temperature: int, response_format: dict[str, str]) -> SimpleNamespace:
+            raise RuntimeError(f"429 too many requests for {model}")
+
+    provider = GroqReranker(
+        models=["llama-3.3-70b-versatile", "openai/gpt-oss-20b"],
+        client=SimpleNamespace(chat=SimpleNamespace(completions=FakeGroqCompletions())),
+    )
+
+    with pytest.raises(RemoteProviderError, match="configured model pool"):
+        provider.score("payment retry", "retry handler")
 
 
 def test_gemini_embedding_provider_uses_sdk_client() -> None:
@@ -242,6 +308,24 @@ def test_provider_bundle_uses_gemini_model_pool_from_env(monkeypatch: pytest.Mon
     assert bundle.reranker.model == "gemini-2.5-flash"
 
 
+def test_provider_bundle_uses_groq_model_pool_from_env(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
+    monkeypatch.setenv(
+        "GROQ_MODELS",
+        "llama-3.3-70b-versatile, openai/gpt-oss-20b",
+    )
+    config = RepoBrainConfig.default(tmp_path)
+    config.providers = ProviderConfig(embedding="local", reranker="groq")
+
+    bundle = build_provider_bundle(config)
+
+    assert isinstance(bundle.reranker, GroqReranker)
+    assert bundle.reranker.models == [
+        "llama-3.3-70b-versatile",
+        "openai/gpt-oss-20b",
+    ]
+    assert bundle.reranker.model == "llama-3.3-70b-versatile"
+
+
 def test_provider_bundle_keeps_primary_gemini_model_first_when_pool_differs(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
     monkeypatch.setenv(
         "GEMINI_MODELS",
@@ -287,3 +371,16 @@ def test_gemini_provider_status_explains_missing_requirements(monkeypatch: pytes
     assert "GEMINI_API_KEY" in status["embedding"]["missing"]
     assert status["reranker"]["ready"] is False
     assert "GEMINI_API_KEY" in status["reranker"]["missing"]
+
+
+def test_groq_provider_status_explains_missing_requirements(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    config = RepoBrainConfig.default(tmp_path)
+    config.providers = ProviderConfig(embedding="local", reranker="groq")
+
+    status = inspect_provider_status(config)
+
+    assert status["embedding"]["ready"] is True
+    assert status["reranker"]["ready"] is False
+    assert status["reranker"]["requires_network"] is True
+    assert "GROQ_API_KEY" in status["reranker"]["missing"]

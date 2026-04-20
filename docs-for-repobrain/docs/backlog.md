@@ -11,7 +11,7 @@
 
 - richer role detection for routes, callbacks, config, and background workers
 - more compact `build_change_context` payload for downstream agent prompts
-- expand provider smoke coverage and live-key examples for Gemini, OpenAI, Voyage, and Cohere adapters
+- expand provider smoke coverage and live-key examples for Gemini, OpenAI, Voyage, Cohere, and Groq adapters
 - benchmark runner that can target fixture repos independently
 - richer interactive chat summaries instead of raw JSON only
 - deepen `/map`, `/evidence`, `/focus`, `/summary`, and `/multi` into first-class answer modes instead of mostly retrieval wrappers
