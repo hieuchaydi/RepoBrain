@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import markUrl from "./assets/repobrain-mark.svg";
 
-type Locale = "en" | "vi";
+type Locale = "en" | "vi" | "zh";
 type Theme = "light" | "dark";
 type QueryMode = "query" | "trace" | "impact" | "targets" | "multi";
 type ActionKind =
@@ -257,7 +257,7 @@ type ActivityEntry = {
   timestamp: string;
 };
 
-const copy = {
+const baseCopy = {
   en: {
     brand: "RepoBrain",
     subtitle:
@@ -602,10 +602,311 @@ const copy = {
   },
 } as const;
 
+const viOverrides: Partial<typeof baseCopy.en> = {
+  subtitle:
+    "Bàn làm việc phân tích code chạy cục bộ để import repo, hỏi có bằng chứng, review patch và chuẩn bị release.",
+  language: "Ngôn ngữ",
+  theme: "Giao diện",
+  light: "Sáng",
+  dark: "Tối",
+  activeRepo: "Repo đang dùng",
+  none: "Chưa có",
+  noActiveRepo: "Chưa có repo đang dùng. Hãy import đường dẫn dự án trước.",
+  importTitle: "Thiết lập dự án",
+  projectPath: "Đường dẫn dự án",
+  chooseFolder: "Chọn thư mục",
+  importHint:
+    "Chọn thư mục local hoặc dán đường dẫn. Import sẽ khởi tạo trạng thái RepoBrain, thêm repo vào workspace và build local index trong một bước.",
+  actionsHint:
+    "Chạy các kiểm tra chính ở một nơi: index lại sau thay đổi, review rủi ro, chấm điểm ship readiness, lưu baseline và kiểm tra provider.",
+  index: "Index lại repo hiện tại",
+  patchReviewTitle: "Hàng rào an toàn cho patch",
+  patchReviewHint:
+    "Review patch hiện tại, so sánh với base ref hoặc kiểm tra danh sách file cụ thể ngay trên giao diện web.",
+  patchFiles: "Danh sách file",
+  patchReviewRun: "Chạy patch review",
+  baseline: "Lưu baseline",
+  providerSmoke: "Smoke provider",
+  geminiSetup: "Cấu hình Gemini",
+  geminiSetupHint:
+    "Lưu Gemini API key và model pool vào repo đang dùng để chạy Docker hoặc local.",
+  geminiModelPool: "Gemini model pool",
+  useGeminiEmbedding: "Dùng embedding Gemini",
+  useGeminiReranker: "Dùng reranker Gemini",
+  saveGeminiConfig: "Lưu cấu hình Gemini",
+  groqSetup: "Cấu hình Groq",
+  groqSetupHint:
+    "Lưu Groq API key và pool model reranker, đồng thời giữ embedding chạy local.",
+  groqModelPool: "Groq model pool",
+  useGroqReranker: "Dùng reranker Groq",
+  saveGroqConfig: "Lưu cấu hình Groq",
+  doctor: "Kiểm tra sức khỏe",
+  openReport: "Mở báo cáo",
+  mode: "Chế độ",
+  question: "Câu hỏi",
+  questionPlaceholder: "Logic payment retry nằm ở đâu?",
+  run: "Chạy",
+  resultTitle: "Kết quả có bằng chứng",
+  focusTitle: "Bắt đầu tại đây",
+  focusImportHint: "Dán đường dẫn hoặc chọn thư mục dự án, sau đó bấm Import + Index.",
+  focusQueryHint: "Đặt câu hỏi và đổi mode khi cần trace, impact hoặc targets.",
+  focusAdvancedLabel: "Công cụ nâng cao",
+  focusAdvancedHint: "Mở patch review, ship checks, cấu hình provider và panel repo memory.",
+  showAdvanced: "Hiện công cụ nâng cao",
+  hideAdvanced: "Ẩn công cụ nâng cao",
+  crossRepoOverview: "Tổng quan đa repo",
+  bestMatch: "Repo phù hợp nhất",
+  activeRank: "Thứ hạng repo hiện tại",
+  sharedHotspots: "Hotspot chung",
+  comparisonNotes: "Ghi chú so sánh",
+  evidenceLeaders: "Bằng chứng nổi bật",
+  citationScore: "Điểm trích dẫn",
+  globalRank: "Xếp hạng toàn workspace",
+  citations: "Trích dẫn",
+  autoFiles: "File tự đính kèm",
+  autoFilesHint:
+    "RepoBrain đã tìm thấy các file liên quan trong kết quả, thêm vào repo memory và xếp hạng thứ tự nên mở tiếp.",
+  improve: "Hướng cải thiện",
+  source: "Nguồn",
+  repoMemory: "Bộ nhớ repo",
+  rawTranscript: "Bản raw",
+  workspaceErrors: "Lỗi workspace",
+  emptyResult:
+    "Chưa có kết quả. Hãy import repo, rồi chạy review, doctor, provider smoke hoặc hỏi một câu grounded.",
+  loading: "Đang xử lý...",
+  multiMode: "Đa repo",
+  interfaceStatus: "Trạng thái giao diện",
+  localOnly: "Workbench local",
+  localOnlyHint:
+    "Ứng dụng web này chỉ gọi tới RepoBrain Python server chạy local trên máy bạn, không cần backend hosted.",
+  reportHint:
+    "Query một repo sẽ tự dùng lại repo memory đã lưu. Dùng Đa repo để so sánh evidence giữa các dự án đã track.",
+  diagnosticsTitle: "Sức khỏe và provider",
+  diagnosticsHint:
+    "Doctor posture và provider smoke luôn hiển thị tại đây để kiểm tra release không phụ thuộc vào đoạn text dài.",
+  activityTitle: "Hoạt động gần đây",
+  activityHint: "RepoBrain lưu timeline ngắn cho các tác vụ bạn vừa chạy trong tab này.",
+  workspaceHint:
+    "Các repo đã import sẽ được theo dõi tại đây. Bạn có thể đổi repo đang dùng ngay và hỏi tiếp mà không mất mạch.",
+  memoryHint:
+    "Lưu vài ghi chú quan trọng, rồi để RepoBrain giữ summary, hot files và câu hỏi kế tiếp cho lần truy vấn sau.",
+  rememberNote: "Ghi chú bộ nhớ",
+  saveNote: "Lưu ghi chú",
+  clearNotes: "Xóa ghi chú",
+  useRepo: "Dùng repo",
+  activeLabel: "Đang dùng",
+  noSummary: "Chưa có tóm tắt đã lưu.",
+  manualNotes: "Ghi chú thủ công",
+  recentAsks: "Câu hỏi gần đây",
+  nextThread: "Luồng tiếp theo",
+  updatedAt: "Cập nhật",
+  noWorkspace: "Chưa có repo nào được theo dõi. Hãy import dự án đầu tiên để bắt đầu workspace liên tục.",
+  noDiagnostics: "Hãy chạy Doctor sau khi import để có diagnostics có cấu trúc.",
+  noSmoke: "Hãy chạy Provider Smoke để xem model active, trạng thái failover và sức khỏe provider.",
+  noActivity: "Chưa có hoạt động nào trong phiên này.",
+  newcomerTitle: "Quy trình đề xuất",
+  newcomerHint:
+    "RepoBrain dễ dùng nhất khi đi theo một đường: import, hỏi, rồi review. Giao diện giữ file context cần mở tiếp thay vì ẩn trong raw text.",
+  newcomerAsk: "Hỏi hoặc trace",
+  newcomerAskHint:
+    "Dùng Query để tìm vị trí, Trace để theo luồng, Impact để xem blast radius và Targets để lập kế hoạch chỉnh sửa.",
+  newcomerReview: "Review có ngữ cảnh",
+  newcomerReviewHint: "File auto-attached cho biết nên mở file nào tiếp theo và cần cải thiện theo hướng nào.",
+  footerBody: "Mọi thứ ở đây chỉ giao tiếp với RepoBrain server local và giữ project memory trên máy này.",
+  footerPrimary: "Bắt đầu với Import + Index",
+  footerSecondary: "Sau đó chạy Patch Review",
+  indexed: "Đã index",
+  fallbackPool: "Pool model reranker",
+  singleModel: "Chế độ một model",
+  failover: "Failover gần nhất",
+  remoteProviders: "Provider từ xa",
+  networkRequired: "Cần mạng",
+  localStorageOnly: "Chỉ lưu local",
+  parserPosture: "Trạng thái parser",
+  providerPosture: "Trạng thái provider",
+  warnings: "Cảnh báo",
+  noWarnings: "Không có cảnh báo",
+  status: "Trạng thái",
+  dimensions: "Số chiều",
+  activeBefore: "Model trước",
+  activeAfter: "Model sau",
+  lastSync: "Lần đồng bộ",
+  unavailable: "Không khả dụng",
+  yes: "Có",
+  no: "Không",
+  ready: "Sẵn sàng",
+  notReady: "Chưa sẵn sàng",
+  disabledUntilImport: "Hãy import repo để mở khóa kiểm tra, bộ nhớ và grounded query.",
+};
+
+const zhOverrides: Partial<typeof baseCopy.en> = {
+  subtitle: "本地代码智能工作台，用于导入仓库、提出有依据的问题、审查补丁并准备发布。",
+  language: "语言",
+  theme: "主题",
+  light: "浅色",
+  dark: "深色",
+  activeRepo: "当前仓库",
+  none: "无",
+  noActiveRepo: "当前还没有激活仓库。请先导入项目路径。",
+  importTitle: "项目初始化",
+  projectPath: "项目路径",
+  chooseFolder: "选择文件夹",
+  importButton: "导入并建索引",
+  importHint: "选择本地文件夹或粘贴路径。导入会一次完成状态初始化、加入工作区以及本地索引构建。",
+  actionsTitle: "工作流操作",
+  actionsHint: "在一个地方完成核心检查：重建索引、审查风险、评估发布就绪度、保存基线和验证 provider。",
+  index: "重建当前仓库索引",
+  patchReview: "补丁审查",
+  patchReviewTitle: "补丁审查护栏",
+  patchReviewHint: "可直接在浏览器里审查当前补丁、对比基线分支，或指定文件列表检查。",
+  patchBase: "基线分支",
+  patchFiles: "文件列表",
+  patchReviewRun: "执行补丁审查",
+  review: "项目审查",
+  ship: "发布就绪度",
+  baseline: "保存基线",
+  providerSmoke: "Provider 冒烟测试",
+  geminiSetup: "Gemini 配置",
+  geminiSetupHint: "把 Gemini API key 和模型池保存到当前仓库，支持 Docker 或本地运行。",
+  geminiModelPool: "Gemini 模型池",
+  useGeminiEmbedding: "使用 Gemini Embedding",
+  useGeminiReranker: "使用 Gemini Reranker",
+  saveGeminiConfig: "保存 Gemini 配置",
+  groqSetup: "Groq 配置",
+  groqSetupHint: "保存 Groq API key 与 reranker 模型池，同时保持 embedding 本地运行。",
+  groqModelPool: "Groq 模型池",
+  useGroqReranker: "使用 Groq Reranker",
+  saveGroqConfig: "保存 Groq 配置",
+  doctor: "健康检查",
+  openReport: "打开报告",
+  queryTitle: "问答查询",
+  mode: "模式",
+  question: "问题",
+  questionPlaceholder: "支付重试逻辑在哪里实现？",
+  run: "运行",
+  resultTitle: "证据结果",
+  focusTitle: "从这里开始",
+  focusImportLabel: "导入项目",
+  focusImportHint: "先粘贴或选择项目目录，再执行“导入并建索引”。",
+  focusQueryLabel: "问答查询",
+  focusQueryHint: "先提问；需要时再切换到 trace、impact 或 targets。",
+  focusAdvancedLabel: "高级工具",
+  focusAdvancedHint: "展开补丁审查、发布检查、provider 配置和仓库记忆面板。",
+  showAdvanced: "显示高级工具",
+  hideAdvanced: "隐藏高级工具",
+  crossRepoOverview: "跨仓库总览",
+  bestMatch: "最佳匹配",
+  activeRank: "当前仓库排名",
+  sharedHotspots: "共享热点",
+  comparisonNotes: "对比说明",
+  evidenceLeaders: "证据领先项",
+  citationScore: "引用分数",
+  globalRank: "全局排名",
+  citations: "引用",
+  autoFiles: "自动附加文件",
+  autoFilesHint: "RepoBrain 已识别相关文件并写入仓库记忆，同时给出优先查看顺序。",
+  improve: "改进建议",
+  source: "来源",
+  repoMemory: "仓库记忆",
+  rawTranscript: "原始输出",
+  workspaceErrors: "工作区错误",
+  emptyResult: "暂无结果。请先导入仓库，然后执行 review、doctor、provider smoke 或发起 grounded 问题。",
+  loading: "处理中...",
+  queryMode: "查询",
+  traceMode: "追踪",
+  impactMode: "影响",
+  targetsMode: "目标",
+  multiMode: "跨仓库",
+  interfaceStatus: "界面状态",
+  localOnly: "本地工作台",
+  localOnlyHint: "此浏览器应用只连接你本机的 RepoBrain Python 服务，不依赖托管后端。",
+  reportHint: "单仓库查询会自动复用仓库记忆。使用跨仓库模式可比较所有已跟踪项目的证据。",
+  diagnosticsTitle: "健康与 Provider",
+  diagnosticsHint: "Doctor 与 Provider smoke 保持可见，发布检查无需反复翻找原始文本。",
+  activityTitle: "最近活动",
+  activityHint: "RepoBrain 会在当前浏览器标签页保留一条简短的本地操作时间线。",
+  workspaceTitle: "工作区",
+  workspaceHint: "已导入仓库会持续跟踪，可快速切换当前仓库并保持查询上下文。",
+  memoryTitle: "仓库记忆",
+  memoryHint: "保存少量关键备注，让 RepoBrain 在下一次提问时继续带上摘要、热点文件和后续问题。",
+  rememberNote: "记忆备注",
+  notePlaceholder: "Auth callback 是关键集成链路。",
+  saveNote: "保存备注",
+  clearNotes: "清空备注",
+  useRepo: "使用仓库",
+  activeLabel: "当前",
+  noSummary: "暂无已保存摘要。",
+  manualNotes: "手动备注",
+  recentAsks: "最近提问",
+  hotFiles: "热点文件",
+  nextThread: "下一步问题",
+  updatedAt: "更新时间",
+  noWorkspace: "还没有跟踪仓库。请先导入第一个项目。",
+  noDiagnostics: "导入后运行 Doctor 以生成结构化诊断信息。",
+  noSmoke: "运行 Provider Smoke 查看当前模型、故障切换状态和 provider 健康情况。",
+  noActivity: "本次会话暂无活动。",
+  newcomerTitle: "推荐流程",
+  newcomerHint: "首次使用按一条路径最稳：导入、提问、再审查。界面会把下一步文件上下文直接展示出来。",
+  newcomerImport: "导入并建索引",
+  newcomerImportHint: "先建立本地代码地图，后续结果才能引用真实文件。",
+  newcomerAsk: "提问或追踪",
+  newcomerAskHint: "Query 用于定位；Trace 看流程；Impact 看影响范围；Targets 做修改规划。",
+  newcomerReview: "结合上下文审查",
+  newcomerReviewHint: "自动附加文件会告诉你下一步该打开什么，以及如何改进补丁。",
+  footerTitle: "RepoBrain 工作台",
+  footerBody: "这里的所有操作都连接本地 RepoBrain 服务，项目记忆保存在你的机器上。",
+  footerPrimary: "先执行导入并建索引",
+  footerSecondary: "然后执行补丁审查",
+  indexed: "已索引",
+  files: "文件",
+  chunks: "分块",
+  embedding: "Embedding",
+  reranker: "Reranker",
+  fallbackPool: "Reranker 模型池",
+  singleModel: "单模型模式",
+  failover: "最近故障切换",
+  remoteProviders: "远程 Provider",
+  networkRequired: "需要网络",
+  localStorageOnly: "仅本地存储",
+  parserPosture: "解析器状态",
+  providerPosture: "Provider 状态",
+  warnings: "警告",
+  noWarnings: "无警告",
+  status: "状态",
+  score: "分数",
+  vectors: "向量数",
+  dimensions: "维度",
+  activeBefore: "切换前",
+  activeAfter: "切换后",
+  lastSync: "最近同步",
+  unavailable: "不可用",
+  yes: "是",
+  no: "否",
+  ready: "就绪",
+  notReady: "未就绪",
+  disabledUntilImport: "请先导入仓库，再解锁检查、记忆和 grounded 查询。",
+};
+
+const copy: Record<Locale, typeof baseCopy.en> = {
+  en: baseCopy.en,
+  vi: { ...baseCopy.en, ...baseCopy.vi, ...viOverrides },
+  zh: { ...baseCopy.en, ...zhOverrides },
+};
+
 function useLocale(): [Locale, (next: Locale) => void] {
   const [locale, setLocale] = useState<Locale>(() => {
     const saved = window.localStorage.getItem("repobrain-web-locale");
-    return saved === "vi" ? "vi" : "en";
+    if (saved === "en" || saved === "vi" || saved === "zh") {
+      return saved;
+    }
+    const browserLocale = window.navigator.language.toLowerCase();
+    if (browserLocale.startsWith("vi")) {
+      return "vi";
+    }
+    if (browserLocale.startsWith("zh")) {
+      return "zh";
+    }
+    return "en";
   });
 
   useEffect(() => {
@@ -722,7 +1023,8 @@ function formatTimestamp(locale: Locale, value: string | null): string {
   if (Number.isNaN(date.getTime())) {
     return copy[locale].unavailable;
   }
-  return date.toLocaleTimeString(locale === "vi" ? "vi-VN" : "en-US", {
+  const languageTag = locale === "vi" ? "vi-VN" : locale === "zh" ? "zh-CN" : "en-US";
+  return date.toLocaleTimeString(languageTag, {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
@@ -850,7 +1152,7 @@ export function App() {
       active_repo: payload.active_repo,
       repo_input: payload.repo_input,
       report_url: payload.report_url || current?.report_url || "/report",
-      locales: current?.locales || ["en", "vi"],
+      locales: current?.locales || ["en", "vi", "zh"],
       default_mode: current?.default_mode || mode,
       workspace: payload.workspace || current?.workspace || workspace || { kind: "workspace_projects", message: "", current_repo: payload.active_repo, project_count: 0, projects: [] },
       summary:
@@ -1174,6 +1476,13 @@ export function App() {
                 >
                   VI
                 </button>
+                <button
+                  className={locale === "zh" ? "chip-button active" : "chip-button"}
+                  onClick={() => setLocale("zh")}
+                  type="button"
+                >
+                  中文
+                </button>
               </div>
               <div className="chip-switcher" aria-label={t.theme}>
                 <button
@@ -1196,7 +1505,7 @@ export function App() {
           <div className="brand-lockup">
             <img className="brand-mark" src={markUrl} alt="RepoBrain mark" />
             <div className="brand-copy">
-              <span className="brand-kicker">local code intelligence</span>
+              <span className="brand-kicker">{t.localOnly}</span>
               <h1 className="brand-wordmark" aria-label={t.brand}>
                 <span className="brand-word brand-word-repo">Repo</span>
                 <span className="brand-word brand-word-brain">Brain</span>

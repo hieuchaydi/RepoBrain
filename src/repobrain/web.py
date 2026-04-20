@@ -420,7 +420,7 @@ def _bootstrap_payload(default_repo: str = "") -> dict[str, object]:
         "active_repo": active_repo_text,
         "repo_input": active_repo_text,
         "report_url": "/report",
-        "locales": ["en", "vi"],
+        "locales": ["en", "vi", "zh"],
         "default_mode": "query",
         "workspace": workspace,
         "summary": summary,
