@@ -314,12 +314,21 @@ const copy = {
     saveGroqConfig: "Save Groq config",
     doctor: "Health check",
     openReport: "Open report",
-    queryTitle: "Ask with evidence",
+    queryTitle: "Chat Query",
     mode: "Mode",
     question: "Question",
     questionPlaceholder: "Where is payment retry logic implemented?",
     run: "Run",
     resultTitle: "Evidence result",
+    focusTitle: "Start here",
+    focusImportLabel: "Import project",
+    focusImportHint: "Paste or choose your project folder, then run Import + Index.",
+    focusQueryLabel: "Chat query",
+    focusQueryHint: "Ask a question and switch mode when you need trace, impact, or targets.",
+    focusAdvancedLabel: "Advanced tools",
+    focusAdvancedHint: "Open patch review, ship checks, provider config, and repo memory panels.",
+    showAdvanced: "Show advanced tools",
+    hideAdvanced: "Hide advanced tools",
     crossRepoOverview: "Cross-repo overview",
     bestMatch: "Best match",
     activeRank: "Active rank",
@@ -476,12 +485,21 @@ const copy = {
     saveGroqConfig: "Luu cau hinh Groq",
     doctor: "Health check",
     openReport: "Mo report",
-    queryTitle: "Hoi co evidence",
+    queryTitle: "Chat Query",
     mode: "Che do",
     question: "Cau hoi",
     questionPlaceholder: "Logic payment retry nam o dau?",
     run: "Chay",
     resultTitle: "Ket qua evidence",
+    focusTitle: "Bat dau tai day",
+    focusImportLabel: "Import project",
+    focusImportHint: "Dan duong dan hoac chon folder project, sau do bam Import + Index.",
+    focusQueryLabel: "Chat query",
+    focusQueryHint: "Dat cau hoi va doi mode khi can trace, impact, hoac targets.",
+    focusAdvancedLabel: "Cong cu nang cao",
+    focusAdvancedHint: "Mo patch review, ship checks, cau hinh provider, va panel repo memory.",
+    showAdvanced: "Mo cong cu nang cao",
+    hideAdvanced: "An cong cu nang cao",
     crossRepoOverview: "Tong quan da repo",
     bestMatch: "Repo dan dau",
     activeRank: "Hang repo active",
@@ -771,6 +789,7 @@ export function App() {
   const [resultData, setResultData] = useState<ActionPayload["data"] | null>(null);
   const [fileContext, setFileContext] = useState<FileContext | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [doctorData, setDoctorData] = useState<DoctorData | null>(null);
   const [smokeData, setSmokeData] = useState<ProviderSmokeData | null>(null);
   const [doctorSyncAt, setDoctorSyncAt] = useState<string | null>(null);
@@ -871,6 +890,22 @@ export function App() {
     setResultData(payload.data ?? null);
     setFileContext(payload.file_context ?? null);
     appendActivity(action, payload.message);
+    if (
+      action === "index" ||
+      action === "patch-review" ||
+      action === "review" ||
+      action === "ship" ||
+      action === "baseline" ||
+      action === "provider-smoke" ||
+      action === "doctor" ||
+      action === "gemini-config" ||
+      action === "groq-config" ||
+      action === "workspace-use" ||
+      action === "remember" ||
+      action === "clear-notes"
+    ) {
+      setShowAdvanced(true);
+    }
 
     if (action === "doctor" && payload.data) {
       setDoctorData(payload.data as DoctorData);
@@ -1195,7 +1230,7 @@ export function App() {
 
         <article className="hero-card import-card">
           <div className="card-title-row">
-            <span className="card-step-badge">01</span>
+            <span className="card-step-badge">1</span>
             <h2>{t.importTitle}</h2>
           </div>
           <form className="panel-form" onSubmit={handleImport}>
@@ -1225,60 +1260,10 @@ export function App() {
         </article>
       </section>
 
-      <section className="newcomer-strip" aria-label={t.newcomerTitle}>
-        <article className="newcomer-lead-card">
-          <span className="eyebrow">{t.interfaceStatus}</span>
-          <h2>{t.newcomerTitle}</h2>
-          <p>{t.newcomerHint}</p>
-        </article>
-        <article className="newcomer-step-card">
-          <span>01</span>
-          <strong>{t.newcomerImport}</strong>
-          <p>{t.newcomerImportHint}</p>
-        </article>
-        <article className="newcomer-step-card">
-          <span>02</span>
-          <strong>{t.newcomerAsk}</strong>
-          <p>{t.newcomerAskHint}</p>
-        </article>
-        <article className="newcomer-step-card">
-          <span>03</span>
-          <strong>{t.newcomerReview}</strong>
-          <p>{t.newcomerReviewHint}</p>
-        </article>
-      </section>
-
-      <section className="workspace-grid">
-        <article className="panel-card maintenance-card">
-          <h2>{t.actionsTitle}</h2>
-          <div className="button-grid">
-            {actionButtons.map((item) => (
-              <button
-                key={item.key}
-                className={item.tone}
-                disabled={!hasActiveRepo || busy === item.key}
-                onClick={() => void runAction(item.key)}
-                type="button"
-              >
-                {busy === item.key ? t.loading : item.label}
-              </button>
-            ))}
-            <button
-              className="outline-button"
-              disabled={!hasActiveRepo}
-              onClick={() => window.open(reportUrl, "_blank", "noopener")}
-              type="button"
-            >
-              {t.openReport}
-            </button>
-          </div>
-          <p className="muted-copy">{t.actionsHint}</p>
-          {message ? <div className="notice-box">{message}</div> : null}
-        </article>
-
+      <section className="primary-flow-grid">
         <article className="panel-card query-card">
           <div className="card-title-row">
-            <span className="card-step-badge">02</span>
+            <span className="card-step-badge">2</span>
             <h2>{t.queryTitle}</h2>
           </div>
           <form className="panel-form" onSubmit={handleQuery}>
@@ -1304,36 +1289,104 @@ export function App() {
           <p className="muted-copy">{t.reportHint}</p>
         </article>
 
-        <article className="panel-card patch-card">
-          <div className="card-title-row">
-            <span className="card-step-badge">03</span>
-            <h2>{t.patchReviewTitle}</h2>
-          </div>
-          <form className="panel-form" onSubmit={handlePatchReview}>
-            <label htmlFor="patchBase">{t.patchBase}</label>
-            <input
-              id="patchBase"
-              placeholder={t.patchBasePlaceholder}
-              value={patchBase}
-              onChange={(event) => setPatchBase(event.target.value)}
-              disabled={!hasActiveRepo || patchFiles.trim().length > 0}
-            />
-            <label htmlFor="patchFiles">{t.patchFiles}</label>
-            <textarea
-              id="patchFiles"
-              placeholder={t.patchFilesPlaceholder}
-              value={patchFiles}
-              onChange={(event) => setPatchFiles(event.target.value)}
-              disabled={!hasActiveRepo}
-            />
-            <button className="primary-button" disabled={!hasActiveRepo || busy === "patch-review"} type="submit">
-              {busy === "patch-review" ? t.loading : t.patchReviewRun}
+        <article className="panel-card focus-card">
+          <div className="section-heading">
+            <div>
+              <h2>{t.focusTitle}</h2>
+              <p className="section-copy">{t.focusAdvancedHint}</p>
+            </div>
+            <button className="ghost-button" onClick={() => setShowAdvanced((current) => !current)} type="button">
+              {showAdvanced ? t.hideAdvanced : t.showAdvanced}
             </button>
-          </form>
-          <p className="muted-copy">{t.patchReviewHint}</p>
+          </div>
+          <div className="focus-list">
+            <article className="focus-item">
+              <span className="focus-circle">1</span>
+              <div>
+                <strong>{t.focusImportLabel}</strong>
+                <p>{t.focusImportHint}</p>
+              </div>
+            </article>
+            <article className="focus-item">
+              <span className="focus-circle">2</span>
+              <div>
+                <strong>{t.focusQueryLabel}</strong>
+                <p>{t.focusQueryHint}</p>
+              </div>
+            </article>
+            <article className="focus-item">
+              <span className="focus-circle">3</span>
+              <div>
+                <strong>{t.focusAdvancedLabel}</strong>
+                <p>{t.focusAdvancedHint}</p>
+              </div>
+            </article>
+          </div>
+          {message ? <div className="notice-box">{message}</div> : null}
         </article>
       </section>
 
+      {showAdvanced ? (
+        <section className="workspace-grid">
+          <article className="panel-card maintenance-card">
+            <h2>{t.actionsTitle}</h2>
+            <div className="button-grid">
+              {actionButtons.map((item) => (
+                <button
+                  key={item.key}
+                  className={item.tone}
+                  disabled={!hasActiveRepo || busy === item.key}
+                  onClick={() => void runAction(item.key)}
+                  type="button"
+                >
+                  {busy === item.key ? t.loading : item.label}
+                </button>
+              ))}
+              <button
+                className="outline-button"
+                disabled={!hasActiveRepo}
+                onClick={() => window.open(reportUrl, "_blank", "noopener")}
+                type="button"
+              >
+                {t.openReport}
+              </button>
+            </div>
+            <p className="muted-copy">{t.actionsHint}</p>
+          </article>
+
+          <article className="panel-card patch-card">
+            <div className="card-title-row">
+              <span className="card-step-badge">3</span>
+              <h2>{t.patchReviewTitle}</h2>
+            </div>
+            <form className="panel-form" onSubmit={handlePatchReview}>
+              <label htmlFor="patchBase">{t.patchBase}</label>
+              <input
+                id="patchBase"
+                placeholder={t.patchBasePlaceholder}
+                value={patchBase}
+                onChange={(event) => setPatchBase(event.target.value)}
+                disabled={!hasActiveRepo || patchFiles.trim().length > 0}
+              />
+              <label htmlFor="patchFiles">{t.patchFiles}</label>
+              <textarea
+                id="patchFiles"
+                placeholder={t.patchFilesPlaceholder}
+                value={patchFiles}
+                onChange={(event) => setPatchFiles(event.target.value)}
+                disabled={!hasActiveRepo}
+              />
+              <button className="primary-button" disabled={!hasActiveRepo || busy === "patch-review"} type="submit">
+                {busy === "patch-review" ? t.loading : t.patchReviewRun}
+              </button>
+            </form>
+            <p className="muted-copy">{t.patchReviewHint}</p>
+          </article>
+        </section>
+      ) : null}
+
+      {showAdvanced ? (
+        <>
       <section className="memory-grid">
         <article className="panel-card">
           <div className="section-heading">
@@ -1711,6 +1764,8 @@ export function App() {
           </div>
         </article>
       </section>
+        </>
+      ) : null}
 
       <section className="result-card">
         <div className="result-header">

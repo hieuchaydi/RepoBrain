@@ -145,6 +145,7 @@ textarea {
 }
 
 .hero-grid,
+.primary-flow-grid,
 .workspace-grid,
 .memory-grid,
 .status-grid {
@@ -156,9 +157,15 @@ textarea {
   grid-template-columns: minmax(0, 1.08fr) minmax(340px, 0.92fr);
 }
 
+.primary-flow-grid {
+  margin-top: 18px;
+  grid-template-columns: minmax(360px, 1.15fr) minmax(280px, 0.85fr);
+  align-items: start;
+}
+
 .workspace-grid {
   margin-top: 18px;
-  grid-template-columns: minmax(250px, 0.82fr) minmax(300px, 1.09fr) minmax(300px, 1.09fr);
+  grid-template-columns: minmax(300px, 1fr) minmax(320px, 1fr);
   align-items: start;
 }
 
@@ -276,17 +283,18 @@ textarea {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 42px;
-  height: 32px;
-  padding: 0 10px;
-  border-radius: 999px;
-  background: var(--ink);
-  color: var(--bg-strong);
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--panel-strong) 82%, transparent);
+  color: var(--accent);
+  border: 2px solid color-mix(in srgb, var(--accent) 52%, transparent);
   font-family: var(--font-mono);
-  font-size: 0.82rem;
+  font-size: 0.86rem;
   font-weight: 800;
   letter-spacing: 0;
-  box-shadow: 0 10px 22px color-mix(in srgb, var(--ink) 15%, transparent);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
 .control-cluster {
@@ -656,6 +664,47 @@ h3 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 14px;
+}
+
+.focus-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.focus-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--panel-muted);
+}
+
+.focus-item strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.focus-item p {
+  margin: 0;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+
+.focus-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--accent) 58%, transparent);
+  color: var(--accent);
+  font-weight: 800;
+  font-family: var(--font-mono);
 }
 
 .form-button-row {
@@ -1213,6 +1262,7 @@ h3 {
 
 @media (max-width: 920px) {
   .hero-grid,
+  .primary-flow-grid,
   .workspace-grid,
   .memory-grid,
   .status-grid,
