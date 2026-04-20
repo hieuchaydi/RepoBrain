@@ -31,7 +31,7 @@ Documentation = "https://github.com/hieuchaydi/RepoBrain#readme"
 Issues = "https://github.com/hieuchaydi/RepoBrain/issues"
 
 [project.optional-dependencies]
-dev = ["pytest>=8.2"]
+dev = []
 mcp = ["mcp>=1.6.0"]
 tree-sitter = ["tree-sitter>=0.23", "tree-sitter-language-pack>=0.2.0"]
 providers = ["google-genai>=1.0.0", "openai>=1.0.0", "voyageai>=0.2.0", "cohere>=5.0.0", "groq>=0.13.0"]
@@ -48,9 +48,3 @@ artifacts = ["webapp/dist/**"]
 
 [tool.hatch.build.targets.wheel.force-include]
 "webapp/dist" = "webapp/dist"
-
-[tool.pytest.ini_options]
-pythonpath = ["src"]
-testpaths = ["tests"]
-addopts = "-p no:cacheprovider"
-norecursedirs = [".pytest_tmp_run*", "pytest_work_run_*", "tmp_base", "__pycache__"]

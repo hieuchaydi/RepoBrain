@@ -1,2 +1,0 @@
-def shown():
-    return True

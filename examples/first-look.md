@@ -6,6 +6,13 @@ This is the local demo path to show GitHub visitors. It does not require a VPS, 
 repobrain first-look --repo /path/to/your-project --format text
 ```
 
+New-user follow-up (2 minutes):
+
+```bash
+repobrain chat
+repobrain serve-web --open
+```
+
 Representative output:
 
 ```text

@@ -1,1 +1,0 @@
-C:\Users\ASUS\Desktop\new-AI\smoke_workspace\pytest_base_full\test_cli_text_output_and_quick1\sample_repo

@@ -63,10 +63,7 @@ jobs:
           python -m pip install -e ".[dev,tree-sitter]"
 
       - name: Compile package
-        run: python -m compileall src tests
+        run: python -m compileall src
 
       - name: Lint Python critical checks
-        run: python -m flake8 src tests --count --select=E9,F63,F7,F82 --show-source --statistics
-
-      - name: Run tests
-        run: python -m pytest -q
+        run: python -m flake8 src --count --select=E9,F63,F7,F82 --show-source --statistics

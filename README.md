@@ -8,13 +8,22 @@ RepoBrain is a local-first AI codebase analyst. Point it at any repo, build a lo
 
 ![RepoBrain local browser UI](image.png)
 
-## 60-Second Local Demo
+## Start Here (New Users)
 
-No VPS, hosted backend, or API key is required for the first run:
+If you only run one command, run this:
+
+```bash
+repobrain first-look --repo /path/to/your-project --format text
+```
+
+`first-look` initializes local state, indexes the repo, runs starter questions, and writes `.repobrain/report.html`.
+
+2-minute path from a clean clone:
 
 ```bash
 python -m pip install -e ".[dev,tree-sitter,mcp]"
 repobrain first-look --repo /path/to/your-project --format text
+repobrain chat
 ```
 
 Windows PowerShell:
@@ -22,23 +31,17 @@ Windows PowerShell:
 ```powershell
 python -m pip install -e ".[dev,tree-sitter,mcp]"
 repobrain first-look --repo "C:\path\to\your-project" --format text
+repobrain chat
 ```
 
-`first-look` initializes RepoBrain state, indexes the repo, runs starter questions, writes a local HTML report, and prints the files worth opening first. The same flow is also available as:
-
-```bash
-repobrain demo --format text
-```
-
-Then open the local browser UI:
+Then open the browser UI (optional):
 
 ```bash
 repobrain serve-web --open
 ```
 
 In the web UI you can click `Choose folder` or paste a path, then run `Import + Index`.
-
-Example output lives in [examples/first-look.md](examples/first-look.md).
+Example output: [examples/first-look.md](examples/first-look.md).
 
 
 ## Overview
@@ -121,25 +124,27 @@ This unreleased track now maps most closely to the `0.5.x` integration line: it 
 
 Full installation instructions are available in [docs-for-repobrain/docs/install.md](docs-for-repobrain/docs/install.md).
 
-Fast path for end users:
+Fast path for most users:
 
 ```bash
 python -m venv .venv
 . .venv/bin/activate
 python -m pip install -e ".[dev,tree-sitter,mcp]"
 repobrain first-look --format text
-repobrain init
-repobrain review --format text
-repobrain baseline --format text
-repobrain index
 repobrain query "Where is payment retry logic implemented?"
 repobrain trace "Trace login with Google from route to service"
 repobrain targets "Which files should I edit to add GitHub login?"
-repobrain patch-review --format text
-repobrain ship --format text
 repobrain chat
 repobrain report --format text
 repobrain serve-web --open
+```
+
+Pre-merge checks:
+
+```bash
+repobrain review --format text
+repobrain ship --format text
+repobrain patch-review --format text
 ```
 
 From outside the target repo, initialize it once and then keep commands short:

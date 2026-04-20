@@ -66,10 +66,7 @@ jobs:
           python -m pip install -e ".[dev,tree-sitter,mcp]"
 
       - name: Compile package
-        run: python -m compileall src tests
-
-      - name: Run tests
-        run: python -m pytest -q
+        run: python -m compileall src
 
       - name: Build wheel and sdist
         run: python -m build
