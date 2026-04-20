@@ -6,7 +6,19 @@
 
 RepoBrain is a local-first AI codebase analyst. Point it at any repo, build a local index, then ask where logic lives, how flows connect, what files are risky, and which files an agent should inspect before editing.
 
+**In one run, RepoBrain gives you grounded files, trace paths, and edit targets without requiring a hosted backend or API key.**
+
+What you get in the first session:
+
+- local index + evidence-backed retrieval
+- route/service/job flow hints for faster codebase orientation
+- ranked edit targets with confidence and warnings
+
 ![RepoBrain local browser UI](image.png)
+
+## 30-Second Demo
+
+![RepoBrain terminal and web demo](assets/repobrain-demo.gif)
 
 ## Start Here (New Users)
 
@@ -42,6 +54,29 @@ repobrain serve-web --open
 
 In the web UI you can click `Choose folder` or paste a path, then run `Import + Index`.
 Example output: [examples/first-look.md](examples/first-look.md).
+
+## Benchmark Snapshot (Local Run)
+
+Snapshot date: **2026-04-20**
+
+| Scenario | Command | Files | Chunks | Symbols | Edges | Parser | Time |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| First-look on RepoBrain repo | `python -m repobrain.cli first-look --repo . --format text` | 26 | 88 | 76 | 295 | tree-sitter | 11.62s |
+
+Confidence from the same run:
+
+- `query`: `0.914` (strong)
+- `trace`: `0.936` (strong)
+- `targets`: `0.866` (strong)
+
+PowerShell repro (keeps state files local to repo):
+
+```powershell
+$env:PYTHONPATH = "src"
+$env:REPOBRAIN_ACTIVE_REPO_FILE = ".repobrain\\active_repo.txt"
+$env:REPOBRAIN_WORKSPACE_STATE_FILE = ".repobrain\\workspace.json"
+python -m repobrain.cli first-look --repo . --format text
+```
 
 
 ## Overview
@@ -443,6 +478,7 @@ Start from `.env.example` and fill the key for the provider you enable.
 - [Contracts](docs-for-repobrain/docs/contracts.md)
 - [Evaluation](docs-for-repobrain/docs/evaluation.md)
 - [Demo Script](docs-for-repobrain/docs/demo-script.md)
+- [Growth Content Kit](docs-for-repobrain/docs/github-growth-content-kit.md)
 - [Releases](docs-for-repobrain/docs/releases.md)
 - [Implementation Plan](docs-for-repobrain/docs/implementation-plan.md)
 - [Decision Log](docs-for-repobrain/docs/decision-log.md)
