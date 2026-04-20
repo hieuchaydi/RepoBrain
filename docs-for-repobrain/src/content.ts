@@ -1458,6 +1458,20 @@ export const docsLibrary: DocEntry[] = [
     content: repoDoc('release-checklist.md'),
   },
   {
+    id: 'release-prep',
+    title: t('Release Prep Notes', 'Ghi chú chuẩn bị release', '发布准备记录'),
+    eyebrow: t('Current readiness snapshot', 'Ảnh chụp readiness hiện tại', '当前就绪快照'),
+    path: 'docs-for-repobrain/docs/release-prep-2026-04-20.md',
+    summary: t(
+      'A dated project health review with strengths, weaknesses, verification results, and release-note direction.',
+      'Bản đánh giá sức khỏe dự án theo ngày, gồm điểm mạnh, điểm yếu, kết quả kiểm tra và hướng viết release note.',
+      '按日期记录的项目健康评估，包含优势、短板、验证结果和发布说明方向。',
+    ),
+    audience: t('Release owners and maintainers', 'Chủ release và maintainer', '发布负责人和维护者'),
+    tags: ['release', 'readiness', 'notes'],
+    content: repoDoc('release-prep-2026-04-20.md'),
+  },
+  {
     id: 'demo-script',
     title: t('Demo Script', 'Kịch bản demo', '演示脚本'),
     eyebrow: t('Show the product well', 'Demo sản phẩm cho đẹp', '把产品讲清楚'),

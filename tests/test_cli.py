@@ -51,8 +51,11 @@ def test_cli_remembers_active_repo_after_init(mixed_repo: Path, capsys) -> None:
     assert str(mixed_repo) in init_output
 
     assert main(["index", "--format", "text"]) == 0
-    index_output = capsys.readouterr().out
+    index_capture = capsys.readouterr()
+    index_output = index_capture.out
     assert "RepoBrain Index Complete" in index_output
+    assert "using the saved active repo" in index_capture.err
+    assert "Pass `--repo .` to use the current directory" in index_capture.err
 
     assert main(["query", "Where is payment retry logic implemented?", "--format", "text"]) == 0
     query_output = capsys.readouterr().out

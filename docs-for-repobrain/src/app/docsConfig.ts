@@ -91,7 +91,7 @@ export const docsNavItems: DocsNavItem[] = [
   {
     id: 'release',
     label: t('Release', 'Phát hành', '发布'),
-    docIds: ['production-readiness', 'release-checklist', 'releases', 'roadmap', 'backlog'],
+    docIds: ['production-readiness', 'release-checklist', 'release-prep', 'releases', 'roadmap', 'backlog'],
   },
 ]
 
@@ -109,7 +109,7 @@ export const docsSidebarGroups: DocsSidebarGroup[] = [
   {
     id: 'ship-and-release',
     label: t('Ship and release', 'Phát hành', '发布与交付'),
-    docIds: ['production-readiness', 'release-checklist', 'releases', 'roadmap', 'meeting-status'],
+    docIds: ['production-readiness', 'release-checklist', 'release-prep', 'releases', 'roadmap', 'meeting-status'],
   },
   {
     id: 'project-notes',

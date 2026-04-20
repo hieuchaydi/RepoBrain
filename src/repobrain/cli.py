@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import getpass
+import sys
 import webbrowser
 from dataclasses import dataclass
 from pathlib import Path
@@ -243,6 +244,21 @@ def _resolve_provider_api_key(api_key: str | None, *, provider_label: str) -> st
     if not resolved:
         raise ValueError(f"{provider_label} API key was empty.")
     return resolved
+
+
+def _warn_if_using_active_repo(args: argparse.Namespace, repo_root: Path) -> None:
+    if getattr(args, "repo", None) or getattr(args, "command", "") == "init":
+        return
+
+    cwd = Path.cwd().resolve()
+    if repo_root == cwd:
+        return
+
+    sys.stderr.write(
+        "RepoBrain notice: using the saved active repo "
+        f"`{repo_root}` instead of the current directory `{cwd}`. "
+        "Pass `--repo .` to use the current directory or run `repobrain workspace use <repo>` to switch.\n"
+    )
 
 
 def _configure_gemini_key(
@@ -531,6 +547,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     repo_root = resolve_repo_root(getattr(args, "repo", None), prefer_active=args.command != "init")
+    _warn_if_using_active_repo(args, repo_root)
     if args.command == "patch-review" and args.base and args.files:
         parser.error("`patch-review` accepts either `--base` or `--files`, not both.")
         return 2
