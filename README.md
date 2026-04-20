@@ -43,14 +43,6 @@ Example output lives in [examples/first-look.md](examples/first-look.md).
 
 ## Overview
 
-<p>
-  <a href="#overview-english"><strong>Read in English</strong></a> |
-  <a href="#overview-tieng-viet"><strong>Doc bang Tieng Viet</strong></a>
-</p>
-
-<details open>
-<summary id="overview-english"><strong>English</strong></summary>
-
 RepoBrain exists to make coding agents less reckless.
 
 Most AI coding failures do not start at code generation. They start earlier, when the agent reads the wrong files, misses a route-to-service or job-to-handler flow, or sounds confident without enough evidence.
@@ -65,27 +57,6 @@ RepoBrain focuses on that pre-generation step:
 - lower confidence and emit warnings when evidence is weak or contradictory
 
 The product is intentionally local-first and conservative. It ships as a CLI, a browser-based local UI, a local report/dashboard, and a stdio MCP-style adapter for tools such as Cursor, Codex, and Claude Code.
-
-</details>
-
-<details>
-<summary id="overview-tieng-viet"><strong>Tieng Viet</strong></summary>
-
-RepoBrain duoc tao ra de giup AI coding assistant bot "doan mo" hon.
-
-Phan lon loi cua AI khong bat dau o buoc sinh code, ma bat dau som hon: doc sai file, bo sot luong route -> service -> job, hoac tra loi rat tu tin du bang chung con mong.
-
-RepoBrain tap trung vao dung buoc truoc khi generate:
-
-- index repo thanh metadata local, chunks, symbols va dependency edges
-- truy xuat bang chung co grounding bang BM25, embedding va reranking
-- trace luong kha di giua route, service, background job va config
-- xep hang file nen inspect hoac edit voi ly do ro rang
-- tu ha confidence va canh bao khi bang chung yeu hoac mau thuan
-
-San pham duoc thiet ke theo huong local-first va than trong. RepoBrain hien co CLI, giao dien web local, report/dashboard local, va adapter stdio MCP de gan vao Cursor, Codex, Claude Code hoac workflow agent tuong tu.
-
-</details>
 
 ## Why RepoBrain
 
@@ -137,7 +108,7 @@ This unreleased track now maps most closely to the `0.5.x` integration line: it 
 - Live provider access checks through `repobrain provider-smoke`
 - Active repo memory: run `repobrain init --repo <path>` once, then omit `--repo`
 - Local browser UI through `repobrain serve-web --open`
-- React TSX local browser UI with English/Vietnamese interface toggle, light/dark theme, structured diagnostics cards, tracked workspace switching, repo memory notes, and cross-repo query mode with workspace-wide evidence leaders, shared hotspots, and citation previews
+- React TSX local browser UI with interface language controls, light/dark theme, structured diagnostics cards, tracked workspace switching, repo memory notes, and cross-repo query mode with workspace-wide evidence leaders, shared hotspots, and citation previews
 - Persisted workspace memory shared across CLI chat, browser UI, and MCP tools
 - Concise repo scan through `repobrain review --format text`
 - Optional SDK-backed Gemini/OpenAI/Voyage/Cohere/Groq provider adapters
@@ -148,7 +119,7 @@ This unreleased track now maps most closely to the `0.5.x` integration line: it 
 
 ## How To Run
 
-Full bilingual installation instructions are available in [docs-for-repobrain/docs/install.md](docs-for-repobrain/docs/install.md).
+Full installation instructions are available in [docs-for-repobrain/docs/install.md](docs-for-repobrain/docs/install.md).
 
 Fast path for end users:
 
@@ -194,7 +165,7 @@ repobrain serve-web --open
 Then paste the project path and click `Import + Index`.
 On desktop runs, you can also click `Choose folder` to open the native OS folder picker through the local Python server.
 For the one-page audit flow, click `Scan Project Review`.
-The browser UI now ships as a React TSX frontend with English/Vietnamese interface labels, a light/dark theme toggle, and structured `doctor` / `provider-smoke` diagnostics cards.
+The browser UI now ships as a React TSX frontend with interface language controls, a light/dark theme toggle, and structured `doctor` / `provider-smoke` diagnostics cards.
 You can also switch tracked repos, save repo memory notes, run cross-repo query mode, and trigger `Patch Review` with either a base ref or an explicit file list from the same page.
 
 Windows PowerShell:
@@ -462,7 +433,6 @@ Start from `.env.example` and fill the key for the provider you enable.
 - [Decision Log](docs-for-repobrain/docs/decision-log.md)
 - [Backlog](docs-for-repobrain/docs/backlog.md)
 - [Self Review](docs-for-repobrain/docs/self-review.md)
-- [Vietnamese Review](docs-for-repobrain/docs/review-vi.md)
 - [Roadmap](docs-for-repobrain/docs/roadmap.md)
 - [Model Provider Roadmap](docs-for-repobrain/docs/model-provider-roadmap.md)
 - [Feature Direction](feat.md)
