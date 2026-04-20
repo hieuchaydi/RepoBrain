@@ -257,6 +257,13 @@ type ActivityEntry = {
   timestamp: string;
 };
 
+type QueryPreset = {
+  id: number;
+  label: string;
+  query: string;
+  mode: QueryMode;
+};
+
 const baseCopy = {
   en: {
     brand: "RepoBrain",
@@ -320,6 +327,13 @@ const baseCopy = {
     question: "Question",
     questionPlaceholder: "Where is payment retry logic implemented?",
     run: "Run",
+    presetsTitle: "Saved query presets",
+    presetsHint: "Keep reusable prompts with mode attached, then load them in one click.",
+    presetName: "Preset name",
+    presetNamePlaceholder: "Auth callback trace",
+    savePreset: "Save preset",
+    noPresets: "No saved presets yet.",
+    removePreset: "Remove",
     resultTitle: "Evidence result",
     focusTitle: "Start here",
     focusImportLabel: "Import project",
@@ -1089,6 +1103,47 @@ function sanitizeFilename(input: string): string {
   return cleaned || "report";
 }
 
+const QUERY_PRESET_STORAGE_KEY = "repobrain-web-query-presets";
+const MAX_QUERY_PRESETS = 8;
+
+function loadQueryPresets(): QueryPreset[] {
+  try {
+    const raw = window.localStorage.getItem(QUERY_PRESET_STORAGE_KEY);
+    if (!raw) {
+      return [];
+    }
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    return parsed
+      .map((item) => {
+        if (!item || typeof item !== "object") {
+          return null;
+        }
+        const mode = item.mode;
+        if (mode !== "query" && mode !== "trace" && mode !== "impact" && mode !== "targets" && mode !== "multi") {
+          return null;
+        }
+        const label = String(item.label || "").trim();
+        const query = String(item.query || "").trim();
+        if (!label || !query) {
+          return null;
+        }
+        return {
+          id: Number(item.id) || Date.now(),
+          label: label.slice(0, 64),
+          query: query.slice(0, 400),
+          mode,
+        } as QueryPreset;
+      })
+      .filter((item): item is QueryPreset => item !== null)
+      .slice(0, MAX_QUERY_PRESETS);
+  } catch {
+    return [];
+  }
+}
+
 function hasSummaryField(payload: ActionPayload): payload is ActionPayload & { summary: WorkspaceSummary | null } {
   return Object.prototype.hasOwnProperty.call(payload, "summary");
 }
@@ -1129,6 +1184,8 @@ export function App() {
   const [doctorSyncAt, setDoctorSyncAt] = useState<string | null>(null);
   const [smokeSyncAt, setSmokeSyncAt] = useState<string | null>(null);
   const [activity, setActivity] = useState<ActivityEntry[]>([]);
+  const [queryPresetName, setQueryPresetName] = useState("");
+  const [queryPresets, setQueryPresets] = useState<QueryPreset[]>(() => loadQueryPresets());
 
   const t = copy[locale];
   const activeRepo = workspace?.current_repo || boot?.active_repo || "";
@@ -1147,6 +1204,14 @@ export function App() {
       setMessage(error.message);
     });
   }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(QUERY_PRESET_STORAGE_KEY, JSON.stringify(queryPresets.slice(0, MAX_QUERY_PRESETS)));
+    } catch {
+      // Keep the UI responsive even if storage is blocked.
+    }
+  }, [queryPresets]);
 
   async function refreshDoctorSnapshot() {
     try {
@@ -1334,6 +1399,35 @@ export function App() {
     } finally {
       setBusy(null);
     }
+  }
+
+  function handleSavePreset() {
+    const cleanedQuery = query.trim();
+    if (!cleanedQuery) {
+      return;
+    }
+    const inferredName = cleanedQuery.slice(0, 56);
+    const cleanedName = (queryPresetName.trim() || inferredName).slice(0, 64);
+    setQueryPresets((current) => {
+      const deduped = current.filter((item) => !(item.mode === mode && item.query === cleanedQuery));
+      const next: QueryPreset = {
+        id: Date.now(),
+        label: cleanedName,
+        query: cleanedQuery,
+        mode,
+      };
+      return [next, ...deduped].slice(0, MAX_QUERY_PRESETS);
+    });
+    setQueryPresetName("");
+  }
+
+  function handleApplyPreset(preset: QueryPreset) {
+    setMode(preset.mode);
+    setQuery(preset.query);
+  }
+
+  function handleRemovePreset(id: number) {
+    setQueryPresets((current) => current.filter((item) => item.id !== id));
   }
 
   async function handlePatchReview(event: React.FormEvent<HTMLFormElement>) {
@@ -1697,6 +1791,42 @@ export function App() {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />
+            <div className="preset-panel">
+              <div className="preset-panel-head">
+                <strong>{t.presetsTitle}</strong>
+                <span>{queryPresets.length}</span>
+              </div>
+              <p className="preset-help">{t.presetsHint}</p>
+              <label htmlFor="queryPresetName">{t.presetName}</label>
+              <div className="preset-save-row">
+                <input
+                  id="queryPresetName"
+                  placeholder={t.presetNamePlaceholder}
+                  value={queryPresetName}
+                  onChange={(event) => setQueryPresetName(event.target.value)}
+                />
+                <button className="ghost-button small-button" disabled={!query.trim()} onClick={handleSavePreset} type="button">
+                  {t.savePreset}
+                </button>
+              </div>
+              {queryPresets.length > 0 ? (
+                <div className="preset-chip-list">
+                  {queryPresets.map((preset) => (
+                    <article key={preset.id} className="preset-chip-item">
+                      <button className="chip-button active" onClick={() => handleApplyPreset(preset)} type="button">
+                        {preset.label}
+                      </button>
+                      <small>{labelForAction(locale, preset.mode)}</small>
+                      <button className="ghost-button small-button" onClick={() => handleRemovePreset(preset.id)} type="button">
+                        {t.removePreset}
+                      </button>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-state compact-empty">{t.noPresets}</div>
+              )}
+            </div>
             <button className="primary-button" disabled={!hasActiveRepo || busy === "query"} type="submit">
               {busy === "query" ? t.loading : t.run}
             </button>
