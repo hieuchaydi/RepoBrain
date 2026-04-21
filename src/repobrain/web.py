@@ -347,6 +347,8 @@ def _text_field(fields: dict[str, object], name: str, default: str = "") -> str:
         if not value:
             return default
         value = value[0]
+    if value is None:
+        return default
     return str(value).strip()
 
 
