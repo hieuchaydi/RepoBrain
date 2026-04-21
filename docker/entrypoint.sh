@@ -3,7 +3,7 @@ set -eu
 
 mode="${1:-web}"
 repo="${REPOBRAIN_REPO:-/workspace}"
-host="${REPOBRAIN_WEB_HOST:-0.0.0.0}"
+host="${REPOBRAIN_WEB_HOST:-127.0.0.1}"
 port="${REPOBRAIN_WEB_PORT:-8765}"
 
 case "$mode" in

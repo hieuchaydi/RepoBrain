@@ -32,6 +32,11 @@ from repobrain.workspace import (
 
 
 _MISSING = object()
+_MAX_REQUEST_BODY_BYTES = 262_144
+
+
+class RequestTooLargeError(ValueError):
+    """Raised when a request body exceeds the configured safety limit."""
 
 
 def _frontend_dir_candidates() -> tuple[Path, ...]:
@@ -252,6 +257,8 @@ def _prompt_pack_payload(fields: dict[str, object]) -> tuple[str, dict[str, obje
     focus = _review_focus(_text_field(fields, "focus", "full") or "full")
     baseline_label = _text_field(fields, "baseline_label", "baseline") or "baseline"
     max_prompts = _int_field(fields, "max_prompts", 6)
+    flow_query = _text_field(fields, "flow_query", "login flow") or "login flow"
+    score_threshold = _float_field(fields, "score_threshold", 0.7)
     base = _text_field(fields, "base") or None
     files = _files_field(fields, "files")
     if source == "patch-review" and base and files:
@@ -265,6 +272,8 @@ def _prompt_pack_payload(fields: dict[str, object]) -> tuple[str, dict[str, obje
         baseline_label=baseline_label,
         base=base,
         files=files,
+        flow_query=flow_query,
+        score_threshold=score_threshold,
         style=style,
         max_prompts=max_prompts,
     )
@@ -303,19 +312,33 @@ def _text_response(start_response, status: str, text: str, content_type: str = "
 
 
 def _read_request_fields(environ) -> dict[str, object]:
-    size = int(environ.get("CONTENT_LENGTH") or 0)
+    try:
+        size = int(environ.get("CONTENT_LENGTH") or 0)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Invalid request content length.") from exc
     if size <= 0:
         return {}
+    if size > _MAX_REQUEST_BODY_BYTES:
+        raise RequestTooLargeError(f"Request body too large (max {_MAX_REQUEST_BODY_BYTES} bytes).")
     raw_body = environ["wsgi.input"].read(size)
     if not raw_body:
         return {}
+    if len(raw_body) > _MAX_REQUEST_BODY_BYTES:
+        raise RequestTooLargeError(f"Request body too large (max {_MAX_REQUEST_BODY_BYTES} bytes).")
     content_type = str(environ.get("CONTENT_TYPE", "")).lower()
     if "application/json" in content_type:
-        payload = json.loads(raw_body.decode("utf-8"))
+        try:
+            payload = json.loads(raw_body.decode("utf-8"))
+        except UnicodeDecodeError as exc:
+            raise ValueError("Request body must be valid UTF-8.") from exc
         if not isinstance(payload, dict):
             return {}
         return {str(key): value for key, value in payload.items()}
-    return {key: values[0] for key, values in parse_qs(raw_body.decode("utf-8")).items()}
+    try:
+        parsed = parse_qs(raw_body.decode("utf-8"))
+    except UnicodeDecodeError as exc:
+        raise ValueError("Request body must be valid UTF-8.") from exc
+    return {key: values[0] for key, values in parsed.items()}
 
 
 def _text_field(fields: dict[str, object], name: str, default: str = "") -> str:
@@ -354,6 +377,14 @@ def _int_field(fields: dict[str, object], name: str, default: int) -> int:
         return int(value)
     except ValueError as exc:
         raise ValueError(f"`{name}` must be an integer.") from exc
+
+
+def _float_field(fields: dict[str, object], name: str, default: float) -> float:
+    value = _text_field(fields, name, str(default))
+    try:
+        return float(value)
+    except ValueError as exc:
+        raise ValueError(f"`{name}` must be a number.") from exc
 
 
 def _review_focus(value: str) -> ReviewFocus:
@@ -536,8 +567,8 @@ def _application(default_repo: str = ""):
                 return _json_response(start_response, "400 Bad Request", {"ok": False, "error": str(exc)})
 
         if method == "POST":
-            fields = _read_request_fields(environ)
             try:
+                fields = _read_request_fields(environ)
                 if path == "/api/select-folder":
                     selected = _select_local_directory(_text_field(fields, "initial_dir"))
                     return _json_response(
@@ -702,6 +733,8 @@ def _application(default_repo: str = ""):
                 else:
                     return _text_response(start_response, "404 Not Found", "Not Found")
                 return _json_response(start_response, "200 OK", payload)
+            except RequestTooLargeError as exc:
+                return _json_response(start_response, "413 Payload Too Large", {"ok": False, "error": str(exc)})
             except Exception as exc:
                 return _json_response(start_response, "400 Bad Request", {"ok": False, "error": str(exc)})
 

@@ -117,6 +117,16 @@ def save_workspace_state(state: dict[str, Any]) -> Path:
     return path
 
 
+def _safe_save_workspace_state(state: dict[str, Any]) -> bool:
+    try:
+        save_workspace_state(state)
+        return True
+    except OSError:
+        # Fall back to in-memory behavior when workspace storage is read-only
+        # or temporarily unavailable.
+        return False
+
+
 def _resolve_repo_root(repo_root: str | Path) -> Path:
     return Path(repo_root).expanduser().resolve()
 
@@ -291,10 +301,12 @@ def add_workspace_project(repo_root: str | Path, *, make_current: bool = True) -
     project["last_used_at"] = _now_iso()
     if make_current:
         state["current_repo"] = str(resolved)
-    save_workspace_state(state)
+    persisted = _safe_save_workspace_state(state)
     message = f"Tracked repo: {resolved}"
     if make_current:
         message = f"Tracked repo and set active: {resolved}"
+    if not persisted:
+        message += " (workspace state not persisted: write access unavailable)"
     return _workspace_projects_payload(state, message=message)
 
 
@@ -309,8 +321,11 @@ def set_current_workspace_project(project_ref: str | Path) -> dict[str, Any]:
         raise ValueError("Tracked repo not found. Add it first with `repobrain workspace add <path>`.")
     project["last_used_at"] = _now_iso()
     state["current_repo"] = str(project.get("repo_root", "")).strip()
-    save_workspace_state(state)
-    return _workspace_projects_payload(state, message=f"Active repo switched to: {state['current_repo']}")
+    persisted = _safe_save_workspace_state(state)
+    message = f"Active repo switched to: {state['current_repo']}"
+    if not persisted:
+        message += " (workspace state not persisted: write access unavailable)"
+    return _workspace_projects_payload(state, message=message)
 
 
 def workspace_summary_payload(project_ref: str | Path | None = None, *, message: str = "") -> dict[str, Any]:
@@ -340,8 +355,14 @@ def remember_workspace_note(note: str, project_ref: str | Path | None = None) ->
     memory["summary"] = _compose_summary(memory)
     project["memory"] = memory
     project["last_used_at"] = _now_iso()
-    save_workspace_state(state)
-    return workspace_summary_payload(project.get("repo_root"), message="Stored repo memory note.")
+    persisted = _safe_save_workspace_state(state)
+    message = "Stored repo memory note."
+    if not persisted:
+        message = "Stored repo memory note in-session only (workspace state not persisted)."
+    payload = _project_payload(project, str(state.get("current_repo", "")).strip())
+    payload["kind"] = "workspace_summary"
+    payload["message"] = message
+    return payload
 
 
 def clear_workspace_notes(project_ref: str | Path | None = None) -> dict[str, Any]:
@@ -356,8 +377,14 @@ def clear_workspace_notes(project_ref: str | Path | None = None) -> dict[str, An
     memory["summary"] = _compose_summary(memory)
     project["memory"] = memory
     project["last_used_at"] = _now_iso()
-    save_workspace_state(state)
-    return workspace_summary_payload(project.get("repo_root"), message="Cleared repo memory notes.")
+    persisted = _safe_save_workspace_state(state)
+    message = "Cleared repo memory notes."
+    if not persisted:
+        message = "Cleared repo memory notes in-session only (workspace state not persisted)."
+    payload = _project_payload(project, str(state.get("current_repo", "")).strip())
+    payload["kind"] = "workspace_summary"
+    payload["message"] = message
+    return payload
 
 
 def remember_query_result(repo_root: str | Path, *, query: str, result: QueryResult) -> dict[str, Any]:
@@ -378,7 +405,7 @@ def remember_query_result(repo_root: str | Path, *, query: str, result: QueryRes
     project["memory"] = memory
     project["last_used_at"] = _now_iso()
     state["current_repo"] = str(resolved)
-    save_workspace_state(state)
+    _safe_save_workspace_state(state)
     return _project_payload(project, state["current_repo"])
 
 
@@ -409,7 +436,7 @@ def remember_file_context(
     project["memory"] = memory
     project["last_used_at"] = _now_iso()
     state["current_repo"] = str(resolved)
-    save_workspace_state(state)
+    _safe_save_workspace_state(state)
     return _project_payload(project, state["current_repo"])
 
 

@@ -8,10 +8,10 @@ services:
     image: repobrain:local
     command: web
     ports:
-      - "${REPOBRAIN_WEB_PORT:-8765}:8765"
+      - "127.0.0.1:${REPOBRAIN_WEB_PORT:-8765}:8765"
     environment:
       REPOBRAIN_REPO: /workspace
-      REPOBRAIN_WEB_HOST: 0.0.0.0
+      REPOBRAIN_WEB_HOST: 127.0.0.1
       REPOBRAIN_WEB_PORT: 8765
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       REPOBRAIN_GEMINI_EMBEDDING_MODEL: ${REPOBRAIN_GEMINI_EMBEDDING_MODEL:-gemini-embedding-001}
