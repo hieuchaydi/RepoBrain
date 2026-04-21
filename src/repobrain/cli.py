@@ -8,6 +8,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+# Allow direct script execution from a source checkout:
+# `python src/repobrain/cli.py ...`
+if __name__ == "__main__" and (__package__ is None or __package__ == ""):
+    src_root = Path(__file__).resolve().parents[1]
+    if str(src_root) not in sys.path:
+        sys.path.insert(0, str(src_root))
+
 from repobrain.active_repo import read_active_repo, resolve_repo_root, write_active_repo
 from repobrain.cleanup import cleanup_demo_artifacts
 from repobrain.file_context import attach_file_context, build_file_context, file_paths_from_context
