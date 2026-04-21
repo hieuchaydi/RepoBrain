@@ -14,7 +14,8 @@ For the full bilingual installation guide, see [install.md](install.md).
 ```bash
 python -m venv .venv
 . .venv/bin/activate
-python -m pip install -e ".[dev,tree-sitter,mcp]"
+python -m pip install --upgrade pip setuptools wheel
+python -m pip install --cache-dir .pip-cache -e .
 ```
 
 ### Windows PowerShell
@@ -22,7 +23,17 @@ python -m pip install -e ".[dev,tree-sitter,mcp]"
 ```powershell
 python -m venv venv
 .\venv\Scripts\Activate.ps1
-python -m pip install -e ".[dev,tree-sitter,mcp]"
+python -m pip install --upgrade pip setuptools wheel
+python -m pip install --cache-dir .pip-cache -e .
+```
+
+Optional extras (install only what you need):
+
+```bash
+python -m pip install --cache-dir .pip-cache -e ".[dev]"
+python -m pip install --cache-dir .pip-cache -e ".[providers]"
+python -m pip install --cache-dir .pip-cache -e ".[tree-sitter]"
+python -m pip install --cache-dir .pip-cache -e ".[mcp]"
 ```
 
 ## First Run
@@ -210,7 +221,7 @@ Security note:
 If you are working on RepoBrain itself:
 
 ```bash
-python -m pip install -e ".[dev,tree-sitter,mcp]"
+python -m pip install --cache-dir .pip-cache -e ".[dev]"
 python -m compileall src
 python -m pytest -q
 repobrain release-check --format text
@@ -264,7 +275,7 @@ repobrain index
 If you switch away from `local` providers in `repobrain.toml`, install the optional provider SDKs and configure the required API keys:
 
 ```bash
-python -m pip install -e ".[providers]"
+python -m pip install --cache-dir .pip-cache -e ".[providers]"
 ```
 
 Required keys by provider:
@@ -319,7 +330,7 @@ gemini_models = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-3-flash-pr
 Run:
 
 ```bash
-python -m pip install -e ".[providers]"
+python -m pip install --cache-dir .pip-cache -e ".[providers]"
 repobrain doctor --format text
 repobrain index --format text
 ```
@@ -365,7 +376,7 @@ Groq reranking uses Chat Completions JSON Object Mode and reads `choices[0].mess
 RepoBrain always keeps the built-in heuristic parser available. For deeper symbol boundaries, install optional parser packages:
 
 ```bash
-python -m pip install -e ".[tree-sitter]"
+python -m pip install --cache-dir .pip-cache -e ".[tree-sitter]"
 ```
 
 Then run:

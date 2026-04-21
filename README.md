@@ -18,7 +18,7 @@ What you get in the first session:
 
 ## 30-Second Demo
 
-![RepoBrain terminal and web demo](assets/repobrain-demo.gif)
+![RepoBrain terminal and web demo](assets/Code_mEez5x5WU7.gif)
 
 ## Start Here (New Users)
 
@@ -33,7 +33,8 @@ repobrain first-look --repo /path/to/your-project --format text
 2-minute path from a clean clone:
 
 ```bash
-python -m pip install -e ".[dev,tree-sitter,mcp]"
+python -m pip install --upgrade pip setuptools wheel
+python -m pip install --cache-dir .pip-cache -e .
 repobrain first-look --repo /path/to/your-project --format text
 repobrain chat
 ```
@@ -41,7 +42,8 @@ repobrain chat
 Windows PowerShell:
 
 ```powershell
-python -m pip install -e ".[dev,tree-sitter,mcp]"
+python -m pip install --upgrade pip setuptools wheel
+python -m pip install --cache-dir .pip-cache -e .
 repobrain first-look --repo "C:\path\to\your-project" --format text
 repobrain chat
 ```
@@ -164,7 +166,8 @@ Fast path for most users:
 ```bash
 python -m venv .venv
 . .venv/bin/activate
-python -m pip install -e ".[dev,tree-sitter,mcp]"
+python -m pip install --upgrade pip setuptools wheel
+python -m pip install --cache-dir .pip-cache -e .
 repobrain first-look --format text
 repobrain query "Where is payment retry logic implemented?"
 repobrain trace "Trace login with Google from route to service"
@@ -213,7 +216,8 @@ Windows PowerShell:
 ```powershell
 python -m venv venv
 .\venv\Scripts\Activate.ps1
-python -m pip install -e ".[dev,tree-sitter,mcp]"
+python -m pip install --upgrade pip setuptools wheel
+python -m pip install --cache-dir .pip-cache -e .
 repobrain init
 repobrain review --format text
 repobrain baseline --format text
@@ -222,6 +226,15 @@ repobrain doctor
 repobrain query "Where is payment retry logic implemented?" --format text
 repobrain ship --format text
 repobrain report --format text
+```
+
+Optional extras (install only what you need):
+
+```bash
+python -m pip install --cache-dir .pip-cache -e ".[dev]"
+python -m pip install --cache-dir .pip-cache -e ".[providers]"
+python -m pip install --cache-dir .pip-cache -e ".[tree-sitter]"
+python -m pip install --cache-dir .pip-cache -e ".[mcp]"
 ```
 
 Run the MCP-style transport:
@@ -238,10 +251,22 @@ Frontend source for the browser UI lives in `webapp/`. The built local assets ar
 
 ### Docker
 
-Build the local image:
+Build the local image (fast default: core package + prebuilt frontend assets):
 
 ```powershell
 docker build -t repobrain:local .
+```
+
+Build with optional extras:
+
+```powershell
+docker build -t repobrain:local --build-arg REPOBRAIN_PIP_EXTRAS=providers,tree-sitter,mcp .
+```
+
+Rebuild frontend inside Docker (slower):
+
+```powershell
+docker build -t repobrain:local --target runtime-webbuild .
 ```
 
 Run the web UI:
@@ -261,6 +286,13 @@ Docker Compose shortcuts:
 ```powershell
 docker compose up --build repobrain-web
 docker compose --profile cli run --rm repobrain-cli
+```
+
+Compose with optional extras:
+
+```powershell
+$env:REPOBRAIN_DOCKER_EXTRAS="providers,tree-sitter,mcp"
+docker compose up --build repobrain-web
 ```
 
 The web UI includes Gemini and Groq setup panels. After importing a project, paste the provider API key, keep or edit the model pool, and save. RepoBrain writes `.env` and `repobrain.toml` inside the mounted project so Docker and local runs share the same provider setup.

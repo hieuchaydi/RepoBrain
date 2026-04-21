@@ -2,6 +2,9 @@ services:
   repobrain-web:
     build:
       context: .
+      target: ${REPOBRAIN_DOCKER_TARGET:-runtime}
+      args:
+        REPOBRAIN_PIP_EXTRAS: ${REPOBRAIN_DOCKER_EXTRAS:-}
     image: repobrain:local
     command: web
     ports:
@@ -26,6 +29,9 @@ services:
       - cli
     build:
       context: .
+      target: ${REPOBRAIN_DOCKER_TARGET:-runtime}
+      args:
+        REPOBRAIN_PIP_EXTRAS: ${REPOBRAIN_DOCKER_EXTRAS:-}
     image: repobrain:local
     command: cli
     environment:

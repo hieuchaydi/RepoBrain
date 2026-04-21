@@ -1,11 +1,31 @@
 # Docker Setup
 
-RepoBrain can run as a local browser UI or as an interactive CLI from one image. The image includes the Python package, provider SDK extras, tree-sitter extras, MCP extras, and the built React web UI.
+RepoBrain can run as a local browser UI or as an interactive CLI from one image.
+
+The Docker setup now defaults to a fast build:
+
+- uses prebuilt `webapp/dist` from the repository
+- installs core Python package only (`pip install .`)
+- allows optional extras through build args when needed
 
 ## Build
 
+Fastest default build:
+
 ```powershell
 docker build -t repobrain:local .
+```
+
+Build with optional Python extras:
+
+```powershell
+docker build -t repobrain:local --build-arg REPOBRAIN_PIP_EXTRAS=providers,tree-sitter,mcp .
+```
+
+Rebuild frontend inside Docker (slower, but fully fresh UI assets):
+
+```powershell
+docker build -t repobrain:local --target runtime-webbuild .
 ```
 
 ## Run The Web UI
@@ -50,6 +70,20 @@ CLI:
 
 ```powershell
 docker compose --profile cli run --rm repobrain-cli
+```
+
+Compose with optional extras:
+
+```powershell
+$env:REPOBRAIN_DOCKER_EXTRAS="providers,tree-sitter,mcp"
+docker compose up --build repobrain-web
+```
+
+Compose with frontend rebuild target:
+
+```powershell
+$env:REPOBRAIN_DOCKER_TARGET="runtime-webbuild"
+docker compose up --build repobrain-web
 ```
 
 ## Provider Setup In Docker
