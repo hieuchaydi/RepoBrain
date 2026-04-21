@@ -4,6 +4,7 @@ import importlib.util
 import math
 import os
 import re
+from collections.abc import Iterable
 from typing import Protocol
 
 
@@ -55,7 +56,13 @@ def _coerce_embedding(item: object) -> list[float]:
         embedding = _read_value(item, "values")
     if embedding is None:
         raise RemoteProviderError("Remote embedding response did not include an embedding vector.")
-    return [float(value) for value in embedding]  # type: ignore[union-attr]
+    if isinstance(embedding, (str, bytes, bytearray)) or not isinstance(embedding, Iterable):
+        raise RemoteProviderError("Remote embedding response included a non-iterable embedding vector.")
+
+    try:
+        return [float(value) for value in embedding]
+    except (TypeError, ValueError) as exc:
+        raise RemoteProviderError("Remote embedding response included non-numeric embedding values.") from exc
 
 
 def _env_or_option(options: dict[str, object], key: str, env_name: str, default: str) -> str:
@@ -96,7 +103,9 @@ def _merge_primary_model(primary_model: str, models: list[str]) -> list[str]:
 
 def _env_or_option_int(options: dict[str, object], key: str, env_name: str, default: int) -> int:
     value = options.get(key) or os.getenv(env_name) or default
-    return int(value)
+    if isinstance(value, int):
+        return value
+    return int(str(value).strip())
 
 
 def _clamp_score(value: float) -> float:
