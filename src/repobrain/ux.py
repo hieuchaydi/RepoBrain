@@ -7,11 +7,13 @@ import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from repobrain.engine.core import RepoBrainEngine
 from repobrain.models import FileEvidence, PatchReviewChange, PatchReviewReport, QueryResult, ReviewReport, ShipReport
 from repobrain.provider_setup import gemini_config_result_to_text, groq_config_result_to_text
+
+if TYPE_CHECKING:
+    from repobrain.engine.core import RepoBrainEngine
 
 
 def payload_to_json(payload: object) -> str:

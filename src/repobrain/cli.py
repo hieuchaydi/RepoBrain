@@ -6,32 +6,11 @@ import sys
 import webbrowser
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from repobrain.active_repo import read_active_repo, resolve_repo_root, write_active_repo
 from repobrain.cleanup import cleanup_demo_artifacts
-from repobrain.engine.core import RepoBrainEngine
 from repobrain.file_context import attach_file_context, build_file_context, file_paths_from_context
-from repobrain.first_look import run_first_look
-from repobrain.mcp_server import serve_mcp
-from repobrain.models import QueryResult, ReviewFocus
-from repobrain.provider_setup import (
-    DEFAULT_GEMINI_MODEL_POOL_TEXT,
-    DEFAULT_GROQ_MODEL_POOL_TEXT,
-    configure_gemini_provider,
-    configure_groq_provider,
-)
-from repobrain.release import inspect_release_artifacts
-from repobrain.web import serve_web
-from repobrain.ux import (
-    build_report,
-    chat_help_text,
-    chat_intro,
-    chat_prompt,
-    payload_to_json,
-    payload_to_text,
-    quickstart_text,
-    render_cli_wordmark,
-)
 from repobrain.workspace import (
     add_workspace_project,
     clear_workspace_notes,
@@ -44,6 +23,17 @@ from repobrain.workspace import (
     workspace_query_payload,
     workspace_summary_payload,
 )
+
+
+if TYPE_CHECKING:
+    from repobrain.engine.core import RepoBrainEngine
+    from repobrain.models import QueryResult, ReviewFocus
+
+
+REVIEW_FOCUS_CHOICES = ("full", "security", "production", "quality")
+# Keep these defaults in sync with repobrain.provider_setup.
+DEFAULT_GEMINI_MODEL_POOL_TEXT = "gemini-2.5-flash,gemini-2.5-flash-lite,gemini-3-flash-preview"
+DEFAULT_GROQ_MODEL_POOL_TEXT = "llama-3.3-70b-versatile,openai/gpt-oss-20b"
 
 
 @dataclass
@@ -77,13 +67,13 @@ def _parser() -> argparse.ArgumentParser:
 
     review_parser = subparsers.add_parser("review", help="Scan the repo and summarize the biggest security, production, and code-quality gaps.")
     review_parser.add_argument("--repo", default=None)
-    review_parser.add_argument("--focus", choices=tuple(item.value for item in ReviewFocus), default=ReviewFocus.FULL.value)
+    review_parser.add_argument("--focus", choices=REVIEW_FOCUS_CHOICES, default=REVIEW_FOCUS_CHOICES[0])
     _add_format_argument(review_parser)
 
     baseline_parser = subparsers.add_parser("baseline", help="Save the current project review as a named baseline snapshot.")
     baseline_parser.add_argument("--repo", default=None)
     baseline_parser.add_argument("--label", default="baseline")
-    baseline_parser.add_argument("--focus", choices=tuple(item.value for item in ReviewFocus), default=ReviewFocus.FULL.value)
+    baseline_parser.add_argument("--focus", choices=REVIEW_FOCUS_CHOICES, default=REVIEW_FOCUS_CHOICES[0])
     _add_format_argument(baseline_parser)
 
     benchmark_parser = subparsers.add_parser("benchmark", help="Run the built-in benchmark cases against the current index.")
@@ -240,6 +230,8 @@ def _canonical_command(command: str) -> str:
 
 
 def _dump(payload: object, output_format: str = "json") -> None:
+    from repobrain.ux import payload_to_json, payload_to_text
+
     if output_format == "text":
         print(payload_to_text(payload, styled=True))
         return
@@ -295,6 +287,8 @@ def _configure_gemini_key(
     rerank_model: str = "gemini-2.5-flash",
     model_pool: str = DEFAULT_GEMINI_MODEL_POOL_TEXT,
 ) -> dict[str, object]:
+    from repobrain.provider_setup import configure_gemini_provider
+
     return configure_gemini_provider(
         repo_root,
         api_key=_resolve_gemini_api_key(api_key),
@@ -316,6 +310,8 @@ def _configure_groq_key(
     rerank_model: str = "llama-3.3-70b-versatile",
     model_pool: str = DEFAULT_GROQ_MODEL_POOL_TEXT,
 ) -> dict[str, object]:
+    from repobrain.provider_setup import configure_groq_provider
+
     return configure_groq_provider(
         repo_root,
         api_key=_resolve_groq_api_key(api_key),
@@ -386,7 +382,13 @@ def _handle_focus_command(raw_query: str, state: ChatSessionState) -> str:
     return _chat_focus_status(state)
 
 
-def _run_chat_query(engine: RepoBrainEngine, query: str, *, state: ChatSessionState, mode: str = "query") -> QueryResult:
+def _review_focus(value: str) -> "ReviewFocus":
+    from repobrain.models import ReviewFocus
+
+    return ReviewFocus(value)
+
+
+def _run_chat_query(engine: "RepoBrainEngine", query: str, *, state: ChatSessionState, mode: str = "query") -> "QueryResult":
     context = _chat_context(engine.config.resolved_repo_root, state)
     if mode == "trace":
         result = engine.trace(query, context=context)
@@ -400,7 +402,10 @@ def _run_chat_query(engine: RepoBrainEngine, query: str, *, state: ChatSessionSt
     return result
 
 
-def _chat(engine: RepoBrainEngine) -> int:
+def _chat(engine: "RepoBrainEngine") -> int:
+    from repobrain.engine.core import RepoBrainEngine
+    from repobrain.ux import build_report, chat_help_text, chat_intro, chat_prompt, render_cli_wordmark
+
     output_format = "text"
     current_engine = engine
     repo_root = current_engine.config.resolved_repo_root
@@ -525,6 +530,8 @@ def main(argv: list[str] | None = None) -> int:
     args.command = _canonical_command(args.command)
 
     if args.command == "quickstart":
+        from repobrain.ux import quickstart_text
+
         print(quickstart_text(styled=True))
         return 0
     if args.command == "workspace":
@@ -556,6 +563,8 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     if args.command == "release-check":
+        from repobrain.release import inspect_release_artifacts
+
         project_root = Path(args.repo).expanduser().resolve() if args.repo else Path.cwd()
         payload = inspect_release_artifacts(project_root, require_dist=args.require_dist)
         _dump(payload, getattr(args, "format", "json"))
@@ -578,8 +587,12 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     if args.command == "serve-mcp":
+        from repobrain.mcp_server import serve_mcp
+
         return serve_mcp(str(repo_root))
     if args.command == "serve-web":
+        from repobrain.web import serve_web
+
         explicit_repo = getattr(args, "repo", None)
         initial_repo = ""
         if explicit_repo:
@@ -625,10 +638,14 @@ def main(argv: list[str] | None = None) -> int:
         parser.error(f"Unsupported key provider: {args.key_provider}")
         return 2
 
+    from repobrain.engine.core import RepoBrainEngine
+
     engine = RepoBrainEngine(repo_root)
     output_format = getattr(args, "format", "json")
 
     if args.command in {"first-look", "demo"}:
+        from repobrain.first_look import run_first_look
+
         if args.open_report and args.no_report:
             parser.error("`--open-report` cannot be used with `--no-report`.")
             return 2
@@ -687,18 +704,20 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "review":
         _dump_with_file_context(
             repo_root,
-            engine.review(focus=ReviewFocus(args.focus)),
+            engine.review(focus=_review_focus(args.focus)),
             output_format,
             action_label="review",
         )
         return 0
     if args.command == "baseline":
-        report = engine.review(focus=ReviewFocus(args.focus), compare_baseline=False)
+        report = engine.review(focus=_review_focus(args.focus), compare_baseline=False)
         _dump(engine.save_review_baseline(report, label=args.label), output_format)
         return 0
     if args.command == "chat":
         return _chat(engine)
     if args.command == "report":
+        from repobrain.ux import build_report
+
         report_path = build_report(engine, args.output, baseline_label=args.baseline_label)
         if args.open_report:
             webbrowser.open(report_path.resolve().as_uri())
