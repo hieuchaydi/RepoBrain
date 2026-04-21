@@ -63,6 +63,8 @@ def _payload_to_text_plain(payload: object) -> str:
             return workspace_query_to_text(payload)
         if payload.get("kind") == "import_assessment":
             return import_assessment_to_text(payload)
+        if payload.get("kind") == "prompt_pack":
+            return prompt_pack_to_text(payload)
         if payload.get("kind") == "patch_review":
             return patch_review_to_text(
                 PatchReviewReport(
@@ -446,6 +448,43 @@ def patch_review_to_text(report: PatchReviewReport) -> str:
         lines.extend(f"- {step}" for step in report.next_steps[:4])
 
     lines.extend(["", "Tip: use `repobrain patch-review --format json` for machine-readable output."])
+    return "\n".join(lines)
+
+
+def prompt_pack_to_text(payload: dict[str, Any]) -> str:
+    source = str(payload.get("source", "unknown")).strip() or "unknown"
+    style = str(payload.get("style", "generic")).strip() or "generic"
+    summary = str(payload.get("summary", "")).strip()
+    prompt_items = [item for item in payload.get("prompts", []) if isinstance(item, dict)]
+    lines = [
+        "RepoBrain Prompt Pack",
+        f"Source: {source}",
+        f"Style: {style}",
+        f"Count: {len(prompt_items)}",
+    ]
+    if summary:
+        lines.extend(["", summary])
+
+    if not prompt_items:
+        lines.extend(["", "No prompts were generated."])
+        return "\n".join(lines)
+
+    lines.extend(["", "Prompts:"])
+    for index, item in enumerate(prompt_items, start=1):
+        title = str(item.get("title", f"Prompt {index}")).strip() or f"Prompt {index}"
+        objective = str(item.get("objective", "")).strip()
+        files = [str(path).strip() for path in item.get("files_to_open", []) if str(path).strip()]
+        prompt_text = str(item.get("prompt_text", "")).strip()
+        lines.append(f"{index}. {title}")
+        if objective:
+            lines.append(f"   objective: {objective}")
+        if files:
+            lines.append(f"   files: {', '.join(files[:6])}")
+        if prompt_text:
+            lines.append("")
+            lines.append(prompt_text)
+            lines.append("")
+    lines.append("Tip: use `repobrain prompt --format json` for machine-readable prompt payloads.")
     return "\n".join(lines)
 
 

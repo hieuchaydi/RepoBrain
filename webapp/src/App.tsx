@@ -7,6 +7,7 @@ type QueryMode = "query" | "trace" | "impact" | "targets" | "multi";
 type ActionKind =
   | "import"
   | "index"
+  | "prompt-pack"
   | "patch-review"
   | "review"
   | "ship"
@@ -980,6 +981,8 @@ function labelForAction(locale: Locale, action: ActionKind): string {
       return t.multiMode;
     case "index":
       return t.index;
+    case "prompt-pack":
+      return "Prompt Pack";
     case "review":
       return t.review;
     case "patch-review":
@@ -1291,6 +1294,7 @@ export function App() {
     appendActivity(action, payload.message);
     if (
       action === "index" ||
+      action === "prompt-pack" ||
       action === "patch-review" ||
       action === "review" ||
       action === "ship" ||
@@ -1333,7 +1337,7 @@ export function App() {
     }
   }
 
-  async function runAction(action: "index" | "review" | "ship" | "baseline" | "provider-smoke" | "doctor") {
+  async function runAction(action: "index" | "prompt-pack" | "review" | "ship" | "baseline" | "provider-smoke" | "doctor") {
     try {
       setBusy(action);
       const payload =
@@ -1590,6 +1594,7 @@ export function App() {
   const actionButtons = useMemo(
     () => [
       { key: "index", label: t.index, tone: "ghost-button" },
+      { key: "prompt-pack", label: "Prompt Pack", tone: "ghost-button" },
       { key: "review", label: t.review, tone: "ghost-button" },
       { key: "ship", label: t.ship, tone: "secondary-button" },
       { key: "baseline", label: t.baseline, tone: "ghost-button" },

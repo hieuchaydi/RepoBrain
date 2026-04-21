@@ -18,6 +18,8 @@ if __name__ == "__main__" and (__package__ is None or __package__ == ""):
 from repobrain.active_repo import read_active_repo, resolve_repo_root, write_active_repo
 from repobrain.cleanup import cleanup_demo_artifacts
 from repobrain.file_context import attach_file_context, build_file_context, file_paths_from_context
+from repobrain.prompt_pack import SOURCE_CHOICES as PROMPT_SOURCE_CHOICES
+from repobrain.prompt_pack import STYLE_CHOICES as PROMPT_STYLE_CHOICES
 from repobrain.workspace import (
     add_workspace_project,
     clear_workspace_notes,
@@ -100,6 +102,20 @@ def _parser() -> argparse.ArgumentParser:
     ship_parser.add_argument("--repo", default=None)
     ship_parser.add_argument("--baseline-label", default="baseline")
     _add_format_argument(ship_parser)
+
+    prompt_parser = subparsers.add_parser(
+        "prompt",
+        help="Generate focused fix prompts from review, ship, patch-review, or import evidence.",
+    )
+    prompt_parser.add_argument("--repo", default=None)
+    prompt_parser.add_argument("--source", choices=PROMPT_SOURCE_CHOICES, default="review")
+    prompt_parser.add_argument("--style", choices=PROMPT_STYLE_CHOICES, default="generic")
+    prompt_parser.add_argument("--max-prompts", type=int, default=6)
+    prompt_parser.add_argument("--focus", choices=REVIEW_FOCUS_CHOICES, default=REVIEW_FOCUS_CHOICES[0])
+    prompt_parser.add_argument("--baseline-label", default="baseline")
+    prompt_parser.add_argument("--base", default=None)
+    prompt_parser.add_argument("--files", nargs="+", default=None)
+    _add_format_argument(prompt_parser)
 
     doctor_parser = subparsers.add_parser("doctor", aliases=["check"], help="Inspect local RepoBrain configuration and index health.")
     doctor_parser.add_argument("--repo", default=None)
@@ -592,6 +608,13 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "patch-review" and args.base and args.files:
         parser.error("`patch-review` accepts either `--base` or `--files`, not both.")
         return 2
+    if args.command == "prompt":
+        if args.source == "patch-review" and args.base and args.files:
+            parser.error("`prompt --source patch-review` accepts either `--base` or `--files`, not both.")
+            return 2
+        if args.source != "patch-review" and (args.base or args.files):
+            parser.error("`--base` and `--files` are only supported with `prompt --source patch-review`.")
+            return 2
 
     if args.command == "serve-mcp":
         from repobrain.mcp_server import serve_mcp
@@ -697,6 +720,20 @@ def main(argv: list[str] | None = None) -> int:
             engine.patch_review(base=args.base, files=args.files),
             output_format,
             action_label="patch-review",
+        )
+        return 0
+    if args.command == "prompt":
+        _dump(
+            engine.prompt_pack(
+                source=args.source,
+                focus=_review_focus(args.focus),
+                baseline_label=args.baseline_label,
+                base=args.base,
+                files=args.files,
+                style=args.style,
+                max_prompts=args.max_prompts,
+            ),
+            output_format,
         )
         return 0
     if args.command == "ship":

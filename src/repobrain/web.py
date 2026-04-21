@@ -11,6 +11,7 @@ from wsgiref.simple_server import make_server
 from repobrain.active_repo import read_active_repo, write_active_repo
 from repobrain.engine.core import RepoBrainEngine
 from repobrain.file_context import attach_file_context, build_file_context, file_paths_from_context
+from repobrain.models import ReviewFocus
 from repobrain.provider_setup import (
     configure_gemini_provider,
     configure_groq_provider,
@@ -244,6 +245,32 @@ def _patch_review_payload(*, base: str | None = None, files: list[str] | None = 
     return str(repo_root), report.to_dict()
 
 
+def _prompt_pack_payload(fields: dict[str, object]) -> tuple[str, dict[str, object]]:
+    repo_root, engine = _active_engine()
+    source = _text_field(fields, "source", "review") or "review"
+    style = _text_field(fields, "style", "generic") or "generic"
+    focus = _review_focus(_text_field(fields, "focus", "full") or "full")
+    baseline_label = _text_field(fields, "baseline_label", "baseline") or "baseline"
+    max_prompts = _int_field(fields, "max_prompts", 6)
+    base = _text_field(fields, "base") or None
+    files = _files_field(fields, "files")
+    if source == "patch-review" and base and files:
+        raise ValueError("`prompt-pack` accepts either `base` or `files`, not both.")
+    if source != "patch-review" and (base or files):
+        raise ValueError("`base` and `files` are only supported when `source=patch-review`.")
+
+    report = engine.prompt_pack(
+        source=source,
+        focus=focus,
+        baseline_label=baseline_label,
+        base=base,
+        files=files,
+        style=style,
+        max_prompts=max_prompts,
+    )
+    return str(repo_root), report
+
+
 def _with_file_context(repo_root: str | Path, title: str, payload: object) -> tuple[object, dict[str, object] | None, str]:
     data_payload: object = payload.to_dict() if hasattr(payload, "to_dict") else payload
     file_context = build_file_context(payload, action_label=title)
@@ -319,6 +346,18 @@ def _bool_field(fields: dict[str, object], name: str, default: bool = False) -> 
     if isinstance(value, bool):
         return value
     return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _int_field(fields: dict[str, object], name: str, default: int) -> int:
+    value = _text_field(fields, name, str(default))
+    try:
+        return int(value)
+    except ValueError as exc:
+        raise ValueError(f"`{name}` must be an integer.") from exc
+
+
+def _review_focus(value: str) -> ReviewFocus:
+    return ReviewFocus(value)
 
 
 def _configure_gemini_payload(fields: dict[str, object]) -> tuple[str, dict[str, object], str]:
@@ -586,6 +625,17 @@ def _application(default_repo: str = ""):
                         title="Patch Review",
                         result=result,
                         message="Patch review completed.",
+                        data=data,
+                        file_context=file_context,
+                    )
+                elif path == "/api/prompt-pack":
+                    repo_text, data = _prompt_pack_payload(fields)
+                    data, file_context, result = _with_file_context(repo_text, "Prompt Pack", data)
+                    payload = _web_action_payload(
+                        repo_text=repo_text,
+                        title="Prompt Pack",
+                        result=result,
+                        message="Prompt pack generated.",
                         data=data,
                         file_context=file_context,
                     )

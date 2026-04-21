@@ -23,6 +23,7 @@ from repobrain.models import (
     SearchHit,
     ShipReport,
 )
+from repobrain.prompt_pack import build_prompt_pack
 from repobrain.review import ProjectReviewer
 from repobrain.review_store import ReviewArtifactsStore
 
@@ -199,6 +200,40 @@ class RepoBrainEngine:
 
     def patch_review(self, base: str | None = None, files: list[str] | None = None) -> PatchReviewReport:
         return self.patch_reviewer.review(base=base, files=files)
+
+    def prompt_pack(
+        self,
+        *,
+        source: str = "review",
+        focus: ReviewFocus = ReviewFocus.FULL,
+        baseline_label: str = "baseline",
+        base: str | None = None,
+        files: list[str] | None = None,
+        style: str = "generic",
+        max_prompts: int = 6,
+    ) -> dict[str, object]:
+        normalized_source = source.strip().lower()
+        repo_root = str(self.config.resolved_repo_root)
+        if normalized_source == "review":
+            payload = self.review(focus=focus).to_dict()
+        elif normalized_source == "ship":
+            payload = self.ship(baseline_label=baseline_label).to_dict()
+        elif normalized_source == "patch-review":
+            payload = self.patch_review(base=base, files=files).to_dict()
+        elif normalized_source == "import":
+            review = self.review(focus=focus, compare_baseline=False)
+            stats = self.store.stats() if self.store.indexed() else {"files": 0, "chunks": 0, "symbols": 0, "edges": 0}
+            payload = self._import_assessment(stats, review)
+        else:
+            raise ValueError("`source` must be one of: review, ship, patch-review, import.")
+
+        return build_prompt_pack(
+            source=normalized_source,
+            repo_root=repo_root,
+            payload=payload,
+            style=style,
+            max_prompts=max_prompts,
+        )
 
     def doctor(self) -> dict[str, object]:
         provider_status = inspect_provider_status(self.config)
