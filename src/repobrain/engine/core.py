@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
@@ -209,6 +210,8 @@ class RepoBrainEngine:
         baseline_label: str = "baseline",
         base: str | None = None,
         files: list[str] | None = None,
+        flow_query: str | None = None,
+        score_threshold: float = 0.7,
         style: str = "generic",
         max_prompts: int = 6,
     ) -> dict[str, object]:
@@ -224,8 +227,10 @@ class RepoBrainEngine:
             review = self.review(focus=focus, compare_baseline=False)
             stats = self.store.stats() if self.store.indexed() else {"files": 0, "chunks": 0, "symbols": 0, "edges": 0}
             payload = self._import_assessment(stats, review)
+        elif normalized_source == "flow":
+            payload = self._flow_assessment(flow_query or "login flow", score_threshold=score_threshold)
         else:
-            raise ValueError("`source` must be one of: review, ship, patch-review, import.")
+            raise ValueError("`source` must be one of: review, ship, patch-review, import, flow.")
 
         return build_prompt_pack(
             source=normalized_source,
@@ -368,6 +373,296 @@ class RepoBrainEngine:
                 "edges": int(stats.get("edges", 0) or 0),
             },
         }
+
+    def _flow_assessment(self, flow_query: str, *, score_threshold: float) -> dict[str, object]:
+        normalized_query = flow_query.strip() or "login flow"
+        threshold = max(0.0, min(float(score_threshold), 1.0))
+        trace_result = self.trace(normalized_query)
+        impact_result = self.impact(f"What breaks if {normalized_query} changes?")
+        targets_result = self.targets(f"Where should we patch {normalized_query}?")
+
+        entry_files = self._unique_nonempty(
+            [item.file_path for item in trace_result.top_files[:4]]
+            + [item.file_path for item in impact_result.top_files[:3]],
+            limit=10,
+        )
+        edit_targets = self._unique_nonempty([item.file_path for item in targets_result.edit_targets[:5]], limit=8)
+        flow_edges = self._unique_nonempty(
+            [self._format_flow_edge(edge) for edge in trace_result.dependency_edges[:10]],
+            limit=10,
+        )
+        combined_hits = [*trace_result.snippets[:4], *impact_result.snippets[:4], *targets_result.snippets[:4]]
+        input_contracts = self._flow_contract_clues(combined_hits, direction="input")
+        output_contracts = self._flow_contract_clues(combined_hits, direction="output")
+        type_risks = self._flow_type_risks(combined_hits)
+        warnings = self._unique_nonempty(
+            [*trace_result.warnings, *impact_result.warnings, *targets_result.warnings],
+            limit=10,
+        )
+        bottlenecks = self._flow_bottlenecks(
+            trace_result=trace_result,
+            flow_edges=flow_edges,
+            input_contracts=input_contracts,
+            output_contracts=output_contracts,
+            type_risks=type_risks,
+            warnings=warnings,
+        )
+        next_steps = self._flow_next_steps(
+            bottlenecks=bottlenecks,
+            type_risks=type_risks,
+            input_contracts=input_contracts,
+            output_contracts=output_contracts,
+            targets_result=targets_result,
+        )
+        file_scores = self._flow_file_scores(
+            trace_result=trace_result,
+            impact_result=impact_result,
+            targets_result=targets_result,
+        )
+        low_score_files = [item for item in file_scores if float(item.get("score", 0.0) or 0.0) < threshold]
+        summary = (
+            f"Flow audit for `{normalized_query}` found {len(bottlenecks)} bottleneck(s), "
+            f"{len(type_risks)} type-risk signal(s), and {len(flow_edges)} structural edge hint(s). "
+            f"{len(low_score_files)} file(s) scored below {threshold:.2f} and need fix prompts."
+        )
+        return {
+            "kind": "flow_assessment",
+            "flow_query": normalized_query,
+            "summary": summary,
+            "score_threshold": round(threshold, 2),
+            "entry_files": entry_files,
+            "edit_targets": edit_targets,
+            "file_scores": file_scores,
+            "flow_edges": flow_edges,
+            "input_contracts": input_contracts,
+            "output_contracts": output_contracts,
+            "type_risks": type_risks,
+            "bottlenecks": bottlenecks,
+            "warnings": warnings,
+            "next_steps": next_steps,
+            "confidence": {
+                "trace": trace_result.confidence_label or f"{trace_result.confidence:.3f}",
+                "impact": impact_result.confidence_label or f"{impact_result.confidence:.3f}",
+                "targets": targets_result.confidence_label or f"{targets_result.confidence:.3f}",
+            },
+        }
+
+    def _flow_file_scores(
+        self,
+        *,
+        trace_result: QueryResult,
+        impact_result: QueryResult,
+        targets_result: QueryResult,
+    ) -> list[dict[str, object]]:
+        trace_norm = self._normalized_file_scores([(item.file_path, item.score) for item in trace_result.top_files[:6]])
+        impact_norm = self._normalized_file_scores([(item.file_path, item.score) for item in impact_result.top_files[:6]])
+        target_norm = self._normalized_file_scores([(item.file_path, item.score) for item in targets_result.edit_targets[:6]])
+        role_map = {
+            item.file_path: item.role
+            for item in [*trace_result.top_files[:6], *impact_result.top_files[:6]]
+        }
+        reason_map = {
+            item.file_path: item.reasons[:3]
+            for item in [*trace_result.top_files[:6], *impact_result.top_files[:6]]
+        }
+        target_reason_map = {
+            item.file_path: item.rationale
+            for item in targets_result.edit_targets[:6]
+        }
+        trace_conf = trace_result.confidence
+        impact_conf = impact_result.confidence
+        target_conf = targets_result.confidence
+
+        file_paths = set(trace_norm) | set(impact_norm) | set(target_norm)
+        scored: list[dict[str, object]] = []
+        for file_path in sorted(file_paths):
+            source_scores: list[float] = []
+            source_labels: list[str] = []
+            confidence_scores: list[float] = []
+            if file_path in trace_norm:
+                source_scores.append(trace_norm[file_path])
+                source_labels.append("trace")
+                confidence_scores.append(trace_conf)
+            if file_path in impact_norm:
+                source_scores.append(impact_norm[file_path])
+                source_labels.append("impact")
+                confidence_scores.append(impact_conf)
+            if file_path in target_norm:
+                source_scores.append(target_norm[file_path])
+                source_labels.append("targets")
+                confidence_scores.append(target_conf)
+            if not source_scores:
+                continue
+            mean_signal = sum(source_scores) / len(source_scores)
+            source_coverage = len(source_scores) / 3.0
+            confidence_signal = sum(confidence_scores) / len(confidence_scores)
+            support_score = min(
+                1.0,
+                (mean_signal * 0.58) + (source_coverage * 0.24) + (confidence_signal * 0.18),
+            )
+            reasons = reason_map.get(file_path, [])
+            target_rationale = target_reason_map.get(file_path)
+            if target_rationale:
+                reasons = [*reasons, target_rationale]
+            scored.append(
+                {
+                    "file_path": file_path,
+                    "score": round(support_score, 3),
+                    "role": role_map.get(file_path, "module"),
+                    "sources": source_labels,
+                    "reasons": reasons[:4],
+                }
+            )
+        return sorted(scored, key=lambda item: float(item.get("score", 0.0) or 0.0), reverse=True)[:10]
+
+    def _normalized_file_scores(self, values: list[tuple[str, float]]) -> dict[str, float]:
+        cleaned = [(path, float(score)) for path, score in values if str(path).strip()]
+        if not cleaned:
+            return {}
+        max_score = max(score for _, score in cleaned)
+        if max_score <= 0:
+            return {path: 0.0 for path, _ in cleaned}
+        return {path: min(float(score) / max_score, 1.0) for path, score in cleaned}
+
+    def _flow_contract_clues(self, hits: list[SearchHit], *, direction: str) -> list[str]:
+        if direction == "input":
+            terms = (
+                "request",
+                "req",
+                "params",
+                "payload",
+                "body",
+                "query",
+                "headers",
+                "token",
+                "validate",
+            )
+        else:
+            terms = (
+                "return",
+                "response",
+                "respond",
+                "json(",
+                "status",
+                "result",
+                "error",
+                "raise",
+            )
+        clues: list[str] = []
+        for hit in hits[:10]:
+            for raw_line in hit.content.splitlines():
+                line = " ".join(raw_line.strip().split())
+                if not line:
+                    continue
+                lower = line.lower()
+                if not any(term in lower for term in terms):
+                    continue
+                clue = f"{hit.file_path}:{hit.start_line}-{hit.end_line} -> {line[:140]}"
+                if clue not in clues:
+                    clues.append(clue)
+                break
+            if len(clues) >= 8:
+                break
+        return clues
+
+    def _flow_type_risks(self, hits: list[SearchHit]) -> list[str]:
+        patterns: list[tuple[re.Pattern[str], str]] = [
+            (re.compile(r"\bas any\b"), "Type assertion uses `any`; enforce explicit contract."),
+            (re.compile(r"\bany\b"), "Dynamic `any` typing found on a flow boundary."),
+            (re.compile(r"\bunknown\b"), "`unknown` value should be narrowed before use."),
+            (re.compile(r"dict\s*\[\s*str\s*,\s*any\s*\]"), "Weak dict typing with `Any` detected."),
+            (re.compile(r"\bjson\.loads\("), "Parsed JSON should be validated before downstream use."),
+            (re.compile(r"\bparseint\("), "Numeric parsing requires explicit NaN/failure handling."),
+            (re.compile(r"\.get\("), "Dictionary `.get` can hide missing required fields."),
+        ]
+        findings: list[str] = []
+        for hit in hits[:10]:
+            content = hit.content.lower()
+            for pattern, message in patterns:
+                if not pattern.search(content):
+                    continue
+                finding = f"{hit.file_path}:{hit.start_line}-{hit.end_line} -> {message}"
+                if finding not in findings:
+                    findings.append(finding)
+                break
+            if len(findings) >= 8:
+                break
+        return findings
+
+    def _flow_bottlenecks(
+        self,
+        *,
+        trace_result: QueryResult,
+        flow_edges: list[str],
+        input_contracts: list[str],
+        output_contracts: list[str],
+        type_risks: list[str],
+        warnings: list[str],
+    ) -> list[str]:
+        bottlenecks: list[str] = []
+        if trace_result.confidence_label in {"exploratory", "weak"}:
+            bottlenecks.append(
+                f"Trace confidence is {trace_result.confidence_label}; flow grounding is still weak."
+            )
+        if not flow_edges:
+            bottlenecks.append("No dependency edge hints were found for this flow; manual hop tracing is required.")
+        if not input_contracts:
+            bottlenecks.append("Input contract clues are missing near entry boundaries.")
+        if not output_contracts:
+            bottlenecks.append("Output contract clues are missing near response boundaries.")
+        if type_risks:
+            bottlenecks.append(f"Detected {len(type_risks)} potential type-risk surface(s) in this flow.")
+        for warning in warnings[:4]:
+            bottlenecks.append(f"Warning: {warning}")
+        return self._unique_nonempty(bottlenecks, limit=8)
+
+    def _flow_next_steps(
+        self,
+        *,
+        bottlenecks: list[str],
+        type_risks: list[str],
+        input_contracts: list[str],
+        output_contracts: list[str],
+        targets_result: QueryResult,
+    ) -> list[str]:
+        steps: list[str] = []
+        if not input_contracts:
+            steps.append("Define and enforce request/input schema at the first flow boundary.")
+        if not output_contracts:
+            steps.append("Define explicit output contract (success + error) for downstream consumers.")
+        if type_risks:
+            steps.append("Replace weakly-typed payload handling with explicit contract checks.")
+        if bottlenecks:
+            steps.append("Patch the smallest bottleneck first and re-run trace/impact to confirm flow continuity.")
+        steps.extend(targets_result.next_questions[:2])
+        if not steps:
+            steps.append("Use top edit targets to add regression tests for happy path and failure path.")
+        return self._unique_nonempty(steps, limit=6)
+
+    def _format_flow_edge(self, edge: dict[str, str | None]) -> str:
+        source_file = str(edge.get("source_file", "") or "").strip()
+        source_symbol = str(edge.get("source_symbol", "") or "").strip()
+        target = str(edge.get("target", "") or "").strip()
+        edge_type = str(edge.get("edge_type", "") or "calls").strip() or "calls"
+        target_file = str(edge.get("target_file", "") or "").strip()
+        if not source_file and not target:
+            return ""
+        left = f"{source_file}::{source_symbol}" if source_symbol else (source_file or "unknown_source")
+        right = target_file or target or "unknown_target"
+        return f"{left} --{edge_type}--> {right}"
+
+    def _unique_nonempty(self, values: list[str], *, limit: int) -> list[str]:
+        deduped: list[str] = []
+        seen: set[str] = set()
+        for value in values:
+            text = str(value).strip()
+            if not text or text in seen:
+                continue
+            deduped.append(text)
+            seen.add(text)
+            if len(deduped) >= limit:
+                break
+        return deduped
 
     def save_review_baseline(self, report: ReviewReport, label: str = "baseline") -> dict[str, str]:
         saved = self.review_artifacts.save_baseline(report, label=label)

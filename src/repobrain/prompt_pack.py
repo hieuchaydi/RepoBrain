@@ -4,7 +4,7 @@ from collections.abc import Iterable
 from typing import Any
 
 
-SOURCE_CHOICES = ("review", "ship", "patch-review", "import")
+SOURCE_CHOICES = ("review", "ship", "patch-review", "import", "flow")
 STYLE_CHOICES = ("generic", "codex", "cursor", "claude")
 
 _SEVERITY_RANK = {
@@ -67,6 +67,8 @@ def build_prompt_pack(
         prompts = _prompts_from_ship(payload, style=normalized_style, max_prompts=prompt_limit)
     elif normalized_source == "patch-review":
         prompts = _prompts_from_patch_review(payload, style=normalized_style, max_prompts=prompt_limit)
+    elif normalized_source == "flow":
+        prompts = _prompts_from_flow(payload, style=normalized_style, max_prompts=prompt_limit)
     else:
         prompts = _prompts_from_import(payload, style=normalized_style, max_prompts=prompt_limit)
 
@@ -375,6 +377,181 @@ def _prompts_from_import(payload: dict[str, Any], *, style: str, max_prompts: in
     return prompts[:max_prompts]
 
 
+def _prompts_from_flow(payload: dict[str, Any], *, style: str, max_prompts: int) -> list[dict[str, Any]]:
+    flow_query = str(payload.get("flow_query", "runtime flow")).strip() or "runtime flow"
+    summary = str(payload.get("summary", "")).strip()
+    threshold = _float_between(payload.get("score_threshold", 0.7), default=0.7)
+    entry_files = _string_list(payload.get("entry_files", []))
+    edit_targets = _string_list(payload.get("edit_targets", []))
+    file_scores = [item for item in payload.get("file_scores", []) if isinstance(item, dict)]
+    flow_edges = _string_list(payload.get("flow_edges", []))
+    input_contracts = _string_list(payload.get("input_contracts", []))
+    output_contracts = _string_list(payload.get("output_contracts", []))
+    type_risks = _string_list(payload.get("type_risks", []))
+    bottlenecks = _string_list(payload.get("bottlenecks", []))
+    warnings = _string_list(payload.get("warnings", []))
+    next_steps = _string_list(payload.get("next_steps", []))
+
+    files_to_open = _ordered_unique([*entry_files, *edit_targets])[:10]
+    prompts: list[dict[str, Any]] = []
+
+    if file_scores:
+        low_conf_files: list[dict[str, Any]] = []
+        for item in file_scores:
+            file_path = str(item.get("file_path", "")).strip()
+            score = _float_between(item.get("score", 0.0), default=0.0)
+            if not file_path or score >= threshold:
+                continue
+            low_conf_files.append(item)
+        low_conf_files.sort(key=lambda item: _float_between(item.get("score", 0.0), default=0.0))
+
+        for item in low_conf_files[:max_prompts]:
+            file_path = str(item.get("file_path", "")).strip()
+            score = _float_between(item.get("score", 0.0), default=0.0)
+            role = str(item.get("role", "module")).strip() or "module"
+            sources = _string_list(item.get("sources", []))
+            reasons = _string_list(item.get("reasons", []))
+            prompts.append(
+                _build_prompt_payload(
+                    title=f"Flow fix required: {file_path}",
+                    category="flow",
+                    objective=(
+                        f"Repair flow reliability in `{file_path}`. "
+                        f"File score={score:.3f}, below threshold={threshold:.2f}."
+                    ),
+                    files_to_open=_ordered_unique([file_path, *files_to_open])[:10],
+                    evidence=_compact_lines(
+                        [
+                            summary,
+                            f"Flow query: {flow_query}",
+                            f"Role: {role}",
+                            f"Confidence score: {score:.3f} (threshold={threshold:.2f})",
+                            f"Signal sources: {', '.join(sources) if sources else 'trace/impact/targets'}",
+                            *reasons[:3],
+                            *type_risks[:2],
+                            *bottlenecks[:2],
+                        ]
+                    ),
+                    tasks=[
+                        "Trace input -> processing -> output boundaries in this file and make the contract explicit.",
+                        "Add strict validation for inbound payload and branch-critical fields.",
+                        "Harden output/error shape so downstream callers receive deterministic schema.",
+                    ],
+                    acceptance_checks=[
+                        "Flow path in this file passes happy-path and malformed-input checks.",
+                        "I/O schema is explicit and consistent with adjacent call sites.",
+                        "No unrelated behavior changes outside the scoped flow fix.",
+                    ],
+                    risk_notes=[
+                        "Keep patch narrow to this file and its nearest call-site contract.",
+                        "Do not hide failures with broad catch-all fallback behavior.",
+                    ],
+                    style=style,
+                )
+            )
+        return prompts[:max_prompts]
+
+    prompts.append(
+        _build_prompt_payload(
+            title=f"Flow contract audit: {flow_query}",
+            category="flow",
+            objective=f"Stabilize `{flow_query}` with explicit input/output contracts and deterministic flow behavior.",
+            files_to_open=files_to_open,
+            evidence=_compact_lines(
+                [
+                    summary,
+                    f"Flow edges detected: {len(flow_edges)}",
+                    f"Input boundary clues: {len(input_contracts)}",
+                    f"Output boundary clues: {len(output_contracts)}",
+                    *flow_edges[:3],
+                    *bottlenecks[:2],
+                ]
+            ),
+            tasks=[
+                "Map the flow stage-by-stage and document contract at each boundary.",
+                "Normalize input validation at the earliest route/controller boundary.",
+                "Make outputs explicit (status, payload shape, error schema) across the flow.",
+            ],
+            acceptance_checks=[
+                "Every stage in scope declares expected input and output shape.",
+                "Invalid input is rejected with actionable error messages.",
+                "Flow still works for valid happy-path requests end to end.",
+            ],
+            risk_notes=[
+                "Do not introduce broad refactors while stabilizing contracts.",
+                "Preserve external API behavior unless fixing a confirmed bug.",
+            ],
+            style=style,
+        )
+    )
+    if len(prompts) >= max_prompts:
+        return prompts[:max_prompts]
+
+    if type_risks:
+        prompts.append(
+            _build_prompt_payload(
+                title=f"Resolve type mismatches in `{flow_query}`",
+                category="flow",
+                objective="Remove weak typing and ambiguous data transformations in the flow path.",
+                files_to_open=files_to_open,
+                evidence=_compact_lines(
+                    [
+                        "Type mismatch signals were detected in the flow path.",
+                        *type_risks[:5],
+                    ]
+                ),
+                tasks=[
+                    "Replace ambiguous `any`/unknown-style shapes with explicit typed contracts.",
+                    "Enforce conversion and validation when crossing trust boundaries.",
+                    "Add narrow checks for nullable/optional values before business logic branches.",
+                ],
+                acceptance_checks=[
+                    "Type boundaries are explicit at API/service handoff points.",
+                    "No silent coercion in high-impact branches.",
+                    "Tests cover both valid and malformed payload cases.",
+                ],
+                risk_notes=[
+                    "Type hardening can break loose callers; keep backward compatibility where required.",
+                ],
+                style=style,
+            )
+        )
+        if len(prompts) >= max_prompts:
+            return prompts[:max_prompts]
+
+    if bottlenecks or warnings or next_steps:
+        prompts.append(
+            _build_prompt_payload(
+                title=f"Unblock critical breakpoints in `{flow_query}`",
+                category="flow",
+                objective="Remove flow bottlenecks and add targeted regression coverage.",
+                files_to_open=files_to_open,
+                evidence=_compact_lines(
+                    [
+                        *bottlenecks[:4],
+                        *warnings[:3],
+                        *next_steps[:3],
+                    ]
+                ),
+                tasks=[
+                    "Fix the smallest set of blocking points that prevent deterministic flow execution.",
+                    "Add focused regression tests around entrypoint, branch, and failure paths.",
+                    "Document unresolved dependencies or follow-up patches if any remain.",
+                ],
+                acceptance_checks=[
+                    "Known flow bottlenecks are removed or downgraded with clear rationale.",
+                    "Regression tests cover at least one happy path and one failure path.",
+                    "Residual risk is documented with explicit follow-up actions.",
+                ],
+                risk_notes=[
+                    "Avoid masking flow failures with generic catch-all handling.",
+                ],
+                style=style,
+            )
+        )
+    return prompts[:max_prompts]
+
+
 def _build_prompt_payload(
     *,
     title: str,
@@ -534,3 +711,10 @@ def _string_list(values: Any) -> list[str]:
 def _compact_lines(values: Iterable[str]) -> list[str]:
     return [item.strip() for item in values if str(item).strip()]
 
+
+def _float_between(value: Any, *, default: float) -> float:
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        parsed = default
+    return max(0.0, min(parsed, 1.0))

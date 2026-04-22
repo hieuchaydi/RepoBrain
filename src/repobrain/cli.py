@@ -105,7 +105,7 @@ def _parser() -> argparse.ArgumentParser:
 
     prompt_parser = subparsers.add_parser(
         "prompt",
-        help="Generate focused fix prompts from review, ship, patch-review, or import evidence.",
+        help="Generate focused fix prompts from review, ship, patch-review, import, or flow evidence.",
     )
     prompt_parser.add_argument("--repo", default=None)
     prompt_parser.add_argument("--source", choices=PROMPT_SOURCE_CHOICES, default="review")
@@ -115,6 +115,8 @@ def _parser() -> argparse.ArgumentParser:
     prompt_parser.add_argument("--baseline-label", default="baseline")
     prompt_parser.add_argument("--base", default=None)
     prompt_parser.add_argument("--files", nargs="+", default=None)
+    prompt_parser.add_argument("--flow-query", default="login flow")
+    prompt_parser.add_argument("--score-threshold", type=float, default=0.7)
     _add_format_argument(prompt_parser)
 
     doctor_parser = subparsers.add_parser("doctor", aliases=["check"], help="Inspect local RepoBrain configuration and index health.")
@@ -541,6 +543,17 @@ def _chat(engine: "RepoBrainEngine") -> int:
                 _dump(_run_chat_query(current_engine, raw_query.removeprefix("/impact ").strip(), state=session_state, mode="impact"), output_format)
             elif raw_query.startswith("/targets "):
                 _dump(_run_chat_query(current_engine, raw_query.removeprefix("/targets ").strip(), state=session_state, mode="targets"), output_format)
+            elif lowered == "/prompt":
+                _dump(
+                    current_engine.prompt_pack(source="flow", flow_query="login flow", score_threshold=0.7),
+                    output_format,
+                )
+            elif raw_query.startswith("/prompt "):
+                flow_query = raw_query.removeprefix("/prompt ").strip()
+                _dump(
+                    current_engine.prompt_pack(source="flow", flow_query=flow_query or "login flow", score_threshold=0.7),
+                    output_format,
+                )
             else:
                 _dump(_run_chat_query(current_engine, raw_query, state=session_state), output_format)
         except Exception as exc:
@@ -730,6 +743,8 @@ def main(argv: list[str] | None = None) -> int:
                 baseline_label=args.baseline_label,
                 base=args.base,
                 files=args.files,
+                flow_query=args.flow_query,
+                score_threshold=args.score_threshold,
                 style=args.style,
                 max_prompts=args.max_prompts,
             ),

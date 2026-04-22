@@ -4,6 +4,9 @@ import markUrl from "./assets/repobrain-mark.svg";
 type Locale = "en" | "vi" | "zh";
 type Theme = "light" | "dark";
 type QueryMode = "query" | "trace" | "impact" | "targets" | "multi";
+type PromptSource = "review" | "ship" | "patch-review" | "import" | "flow";
+type PromptStyle = "generic" | "codex" | "cursor" | "claude";
+type ReviewFocus = "full" | "security" | "production" | "quality";
 type ActionKind =
   | "import"
   | "index"
@@ -297,6 +300,18 @@ const baseCopy = {
     patchFiles: "Files",
     patchFilesPlaceholder: "backend/app/api/auth.py\nbackend/app/services/auth_service.py",
     patchReviewRun: "Run patch review",
+    promptPackTitle: "Prompt Pack",
+    promptPackHint:
+      "Generate fix prompts from review, ship, patch review, import, or flow evidence with explicit source controls.",
+    promptSource: "Prompt source",
+    promptStyle: "Prompt style",
+    promptMaxPrompts: "Max prompts",
+    promptScoreThreshold: "Score threshold",
+    promptFocus: "Focus",
+    promptBaselineLabel: "Baseline label",
+    promptFlowQuery: "Flow query",
+    promptFlowQueryPlaceholder: "login callback",
+    promptRun: "Generate prompt pack",
     review: "Project review",
     ship: "Ship readiness",
     baseline: "Save baseline",
@@ -1166,6 +1181,15 @@ export function App() {
   const [mode, setMode] = useState<QueryMode>("query");
   const [patchBase, setPatchBase] = useState("");
   const [patchFiles, setPatchFiles] = useState("");
+  const [promptSource, setPromptSource] = useState<PromptSource>("review");
+  const [promptStyle, setPromptStyle] = useState<PromptStyle>("generic");
+  const [promptMaxPrompts, setPromptMaxPrompts] = useState("6");
+  const [promptScoreThreshold, setPromptScoreThreshold] = useState("0.7");
+  const [promptFocus, setPromptFocus] = useState<ReviewFocus>("full");
+  const [promptBaselineLabel, setPromptBaselineLabel] = useState("baseline");
+  const [promptFlowQuery, setPromptFlowQuery] = useState("login flow");
+  const [promptBase, setPromptBase] = useState("");
+  const [promptFiles, setPromptFiles] = useState("");
   const [note, setNote] = useState("");
   const [geminiApiKey, setGeminiApiKey] = useState("");
   const [geminiModelPool, setGeminiModelPool] = useState("gemini-2.5-flash,gemini-2.5-flash-lite,gemini-3-flash-preview");
@@ -1338,6 +1362,31 @@ export function App() {
   }
 
   async function runAction(action: "index" | "prompt-pack" | "review" | "ship" | "baseline" | "provider-smoke" | "doctor") {
+    const buildPromptPackBody = (): Record<string, unknown> => {
+      const parsedMax = Number.parseInt(promptMaxPrompts, 10);
+      const maxPrompts = Number.isFinite(parsedMax) ? parsedMax : 6;
+      const parsedThreshold = Number.parseFloat(promptScoreThreshold);
+      const scoreThreshold = Number.isFinite(parsedThreshold) ? parsedThreshold : 0.7;
+      const files = promptFiles
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+      const payload: Record<string, unknown> = {
+        source: promptSource,
+        style: promptStyle,
+        max_prompts: maxPrompts,
+        focus: promptFocus,
+        baseline_label: promptBaselineLabel.trim() || "baseline",
+        flow_query: promptFlowQuery.trim() || "login flow",
+        score_threshold: scoreThreshold,
+      };
+      if (promptSource === "patch-review") {
+        payload.base = files.length > 0 ? null : promptBase.trim() || null;
+        payload.files = files.length > 0 ? files : null;
+      }
+      return payload;
+    };
+
     try {
       setBusy(action);
       const payload =
@@ -1345,7 +1394,7 @@ export function App() {
           ? await readJson<ActionPayload>("/api/doctor")
           : await readJson<ActionPayload>(`/api/${action}`, {
               method: "POST",
-              body: JSON.stringify({}),
+              body: JSON.stringify(action === "prompt-pack" ? buildPromptPackBody() : {}),
             });
       applyPayload(action, payload);
     } catch (error) {
@@ -1353,6 +1402,11 @@ export function App() {
     } finally {
       setBusy(null);
     }
+  }
+
+  async function handlePromptPack(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await runAction("prompt-pack");
   }
 
   async function handleChooseFolder() {
@@ -1904,6 +1958,121 @@ export function App() {
               </button>
             </div>
             <p className="muted-copy">{t.actionsHint}</p>
+            <form className="panel-form" onSubmit={handlePromptPack}>
+              <div className="subpanel-head">
+                <h3>{t.promptPackTitle}</h3>
+                <span className="mini-pill">POST /api/prompt-pack</span>
+              </div>
+              <label htmlFor="promptSource">{t.promptSource}</label>
+              <select
+                id="promptSource"
+                value={promptSource}
+                onChange={(event) => setPromptSource(event.target.value as PromptSource)}
+                disabled={!hasActiveRepo}
+              >
+                <option value="review">review</option>
+                <option value="ship">ship</option>
+                <option value="patch-review">patch-review</option>
+                <option value="import">import</option>
+                <option value="flow">flow</option>
+              </select>
+
+              <label htmlFor="promptStyle">{t.promptStyle}</label>
+              <select
+                id="promptStyle"
+                value={promptStyle}
+                onChange={(event) => setPromptStyle(event.target.value as PromptStyle)}
+                disabled={!hasActiveRepo}
+              >
+                <option value="generic">generic</option>
+                <option value="codex">codex</option>
+                <option value="cursor">cursor</option>
+                <option value="claude">claude</option>
+              </select>
+
+              <label htmlFor="promptMaxPrompts">{t.promptMaxPrompts}</label>
+              <input
+                id="promptMaxPrompts"
+                type="number"
+                min={1}
+                max={12}
+                value={promptMaxPrompts}
+                onChange={(event) => setPromptMaxPrompts(event.target.value)}
+                disabled={!hasActiveRepo}
+              />
+
+              <label htmlFor="promptScoreThreshold">{t.promptScoreThreshold}</label>
+              <input
+                id="promptScoreThreshold"
+                type="number"
+                min={0}
+                max={1}
+                step="0.05"
+                value={promptScoreThreshold}
+                onChange={(event) => setPromptScoreThreshold(event.target.value)}
+                disabled={!hasActiveRepo}
+              />
+
+              <label htmlFor="promptFocus">{t.promptFocus}</label>
+              <select
+                id="promptFocus"
+                value={promptFocus}
+                onChange={(event) => setPromptFocus(event.target.value as ReviewFocus)}
+                disabled={!hasActiveRepo}
+              >
+                <option value="full">full</option>
+                <option value="security">security</option>
+                <option value="production">production</option>
+                <option value="quality">quality</option>
+              </select>
+
+              <label htmlFor="promptBaselineLabel">{t.promptBaselineLabel}</label>
+              <input
+                id="promptBaselineLabel"
+                value={promptBaselineLabel}
+                onChange={(event) => setPromptBaselineLabel(event.target.value)}
+                disabled={!hasActiveRepo}
+              />
+
+              {promptSource === "flow" ? (
+                <>
+                  <label htmlFor="promptFlowQuery">{t.promptFlowQuery}</label>
+                  <input
+                    id="promptFlowQuery"
+                    placeholder={t.promptFlowQueryPlaceholder}
+                    value={promptFlowQuery}
+                    onChange={(event) => setPromptFlowQuery(event.target.value)}
+                    disabled={!hasActiveRepo}
+                  />
+                </>
+              ) : null}
+
+              {promptSource === "patch-review" ? (
+                <>
+                  <label htmlFor="promptBase">{t.patchBase}</label>
+                  <input
+                    id="promptBase"
+                    placeholder={t.patchBasePlaceholder}
+                    value={promptBase}
+                    onChange={(event) => setPromptBase(event.target.value)}
+                    disabled={!hasActiveRepo || promptFiles.trim().length > 0}
+                  />
+                  <label htmlFor="promptFiles">{t.patchFiles}</label>
+                  <textarea
+                    id="promptFiles"
+                    placeholder={t.patchFilesPlaceholder}
+                    value={promptFiles}
+                    onChange={(event) => setPromptFiles(event.target.value)}
+                    disabled={!hasActiveRepo}
+                  />
+                </>
+              ) : null}
+
+              <button className="primary-button" disabled={!hasActiveRepo || busy === "prompt-pack"} type="submit">
+                {busy === "prompt-pack" ? t.loading : t.promptRun}
+              </button>
+              <p className="muted-copy">{t.promptPackHint}</p>
+            </form>
           </article>
 
           <article className="panel-card patch-card">
