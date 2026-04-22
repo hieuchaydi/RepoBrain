@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://repobrain.local/agoragentic/v1/response.schema.json",
+  "title": "RepoBrain Agoragentic Retrieval Response",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["results", "metadata"],
+  "properties": {
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "score", "source", "confidence"],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number"
+          },
+          "source": {
+            "type": "string"
+          },
+          "confidence": {
+            "type": "number"
+          },
+          "snippet": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "mode", "repo_root"],
+      "properties": {
+        "provider": {
+          "type": "string"
+        },
+        "mode": {
+          "type": "string"
+        },
+        "repo_root": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
+

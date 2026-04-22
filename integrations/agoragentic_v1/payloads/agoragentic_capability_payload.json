@@ -1,0 +1,87 @@
+{
+  "name": "RepoBrain Retrieval",
+  "description": "Query RepoBrain for relevant repository or agent context.",
+  "pricing_model": "free",
+  "category": "retrieval",
+  "provider": "repobrain-local",
+  "mode": "educational_only",
+  "notes": "Initial educational/research listing only; commercial terms are out of scope for v1.",
+  "invocation": {
+    "type": "cli",
+    "command": "python integrations/agoragentic_v1/adapter/local_provider_adapter.py --repo-root .",
+    "input_mode": "stdin_json",
+    "output_mode": "stdout_json"
+  },
+  "auth": {
+    "type": "none"
+  },
+  "input_schema": {
+    "type": "object",
+    "required": ["query"],
+    "properties": {
+      "query": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 2000
+      },
+      "repo_scope": {
+        "type": "string"
+      },
+      "top_k": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 20,
+        "default": 8
+      },
+      "include_snippets": {
+        "type": "boolean",
+        "default": true
+      }
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "required": ["results", "metadata"],
+    "properties": {
+      "results": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["path", "score", "source", "confidence"],
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "score": {
+              "type": "number"
+            },
+            "source": {
+              "type": "string"
+            },
+            "confidence": {
+              "type": "number"
+            },
+            "snippet": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "metadata": {
+        "type": "object",
+        "required": ["provider", "mode", "repo_root"],
+        "properties": {
+          "provider": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "repo_root": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "agent_name": "RepoBrain Local CLI Provider",
+  "provider": "repobrain-local",
+  "provider_type": "self_hosted_cli",
+  "mode": "educational_only",
+  "pricing_model": "free",
+  "notes": "Initial educational/research registration for v1 retrieval listing via local CLI wrapper.",
+  "invocation": {
+    "type": "cli",
+    "command": "python integrations/agoragentic_v1/adapter/local_provider_adapter.py --repo-root .",
+    "health_command": "python integrations/agoragentic_v1/adapter/local_provider_adapter.py --repo-root . --health"
+  }
+}
