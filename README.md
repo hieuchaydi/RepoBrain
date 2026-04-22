@@ -25,27 +25,32 @@ What you get in the first session:
 If you only run one command, run this:
 
 ```bash
-repobrain first-look --repo /path/to/your-project --format text
+repobrain first-look --repo /path/to/your-project --no-report --format text
 ```
 
-`first-look` initializes local state, indexes the repo, runs starter questions, and writes `.repobrain/report.html`.
+`first-look` initializes local state, indexes the repo, and runs starter questions.
+Use `--no-report` for a faster first run. Remove that flag when you want `.repobrain/report.html`.
 
-2-minute path from a clean clone:
+Fast path from a clean clone:
 
 ```bash
-python -m pip install --upgrade pip setuptools wheel
 python -m pip install --cache-dir .pip-cache -e .
-repobrain first-look --repo /path/to/your-project --format text
+repobrain first-look --repo /path/to/your-project --no-report --format text
 repobrain chat
 ```
 
 Windows PowerShell:
 
 ```powershell
-python -m pip install --upgrade pip setuptools wheel
 python -m pip install --cache-dir .pip-cache -e .
-repobrain first-look --repo "C:\path\to\your-project" --format text
+repobrain first-look --repo "C:\path\to\your-project" --no-report --format text
 repobrain chat
+```
+
+Optional one-time bootstrap for a brand-new virtualenv:
+
+```bash
+python -m pip install --upgrade pip setuptools wheel
 ```
 
 Then open the browser UI (optional):
@@ -166,9 +171,8 @@ Fast path for most users:
 ```bash
 python -m venv .venv
 . .venv/bin/activate
-python -m pip install --upgrade pip setuptools wheel
 python -m pip install --cache-dir .pip-cache -e .
-repobrain first-look --format text
+repobrain first-look --no-report --format text
 repobrain query "Where is payment retry logic implemented?"
 repobrain trace "Trace login with Google from route to service"
 repobrain targets "Which files should I edit to add GitHub login?"
@@ -188,7 +192,7 @@ repobrain patch-review --format text
 From outside the target repo, initialize it once and then keep commands short:
 
 ```powershell
-repobrain first-look --repo "C:\path\to\your-project" --format text
+repobrain first-look --repo "C:\path\to\your-project" --no-report --format text
 repobrain init --repo "C:\path\to\your-project" --format text
 repobrain review --format text
 repobrain baseline --format text
@@ -216,7 +220,6 @@ Windows PowerShell:
 ```powershell
 python -m venv venv
 .\venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip setuptools wheel
 python -m pip install --cache-dir .pip-cache -e .
 repobrain init
 repobrain review --format text
@@ -226,6 +229,12 @@ repobrain doctor
 repobrain query "Where is payment retry logic implemented?" --format text
 repobrain ship --format text
 repobrain report --format text
+```
+
+Optional one-time bootstrap for a brand-new virtualenv:
+
+```powershell
+python -m pip install --upgrade pip setuptools wheel
 ```
 
 Optional extras (install only what you need):

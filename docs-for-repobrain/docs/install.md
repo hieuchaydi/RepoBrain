@@ -21,6 +21,18 @@ python -m pip install --upgrade pip setuptools wheel
 python -m pip install --cache-dir .pip-cache -e .
 ```
 
+`python -m pip install --upgrade pip setuptools wheel` is an optional one-time bootstrap for a fresh virtualenv. You do not need to run it every time.
+
+## Fast Quickstart (Recommended)
+
+```bash
+python -m pip install --cache-dir .pip-cache -e .
+repobrain first-look --repo /path/to/your-project --no-report --format text
+repobrain chat
+```
+
+Use `--no-report` for the fastest first run. Remove that flag if you want `.repobrain/report.html`.
+
 ## Optional Extras (Install Only What You Need)
 
 ```bash

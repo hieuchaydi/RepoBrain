@@ -28,7 +28,7 @@ It performs the day-one flow in one command:
 Examples:
 
 ```bash
-repobrain first-look --format text
+repobrain first-look --no-report --format text
 repobrain start --repo /path/to/project --format text
 repobrain first-look --repo /path/to/project --format text
 repobrain first-look --repo /path/to/project --open-report --format text
@@ -288,7 +288,7 @@ Use `--open` when you want RepoBrain to generate the report and ask the operatin
 
 ### `repobrain quickstart`
 
-Prints the shortest install -> index -> query path for new users.
+Prints the fastest install -> first-look -> chat path for new users, including the `--no-report` quickstart variant.
 
 ### `repobrain release-check`
 

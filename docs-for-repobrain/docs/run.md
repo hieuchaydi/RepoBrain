@@ -27,6 +27,8 @@ python -m pip install --upgrade pip setuptools wheel
 python -m pip install --cache-dir .pip-cache -e .
 ```
 
+`python -m pip install --upgrade pip setuptools wheel` is a one-time bootstrap for a fresh virtualenv. Skip it on repeated runs.
+
 Optional extras (install only what you need):
 
 ```bash
@@ -41,10 +43,11 @@ python -m pip install --cache-dir .pip-cache -e ".[mcp]"
 From the root of the repo you want to analyze:
 
 ```bash
-repobrain first-look --format text
+repobrain first-look --no-report --format text
 ```
 
-That one command initializes local state, indexes the repo, runs starter questions, and writes `.repobrain/report.html`. It is the recommended no-VPS/no-API-key demo path.
+That one command initializes local state, indexes the repo, and runs starter questions. It is the recommended no-VPS/no-API-key demo path.
+Use `--no-report` for a faster first run. Remove that flag if you want `.repobrain/report.html`.
 
 For the manual sequence:
 
