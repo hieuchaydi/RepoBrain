@@ -13,10 +13,8 @@ This folder contains a local-first, self-hosted, educational-only v1 package for
 ## Folder Layout
 
 - `adapter/local_provider_adapter.py`: local CLI adapter.
-- `schemas/request.schema.json`: JSON Schema for input contract.
-- `schemas/response.schema.json`: JSON Schema for output contract.
 - `payloads/agoragentic_quickstart_payload.json`: scaffold for provider registration.
-- `payloads/agoragentic_capability_payload.json`: scaffold for first capability listing.
+- `payloads/agoragentic_capability_payload.json`: single tightened manifest (`name`, `description`, `input_schema`, `output_schema`) for the first capability listing.
 
 ## Run Adapter Locally
 

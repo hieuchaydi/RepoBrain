@@ -1,23 +1,8 @@
 {
   "name": "repobrain.retrieve_context",
   "description": "Retrieve ranked repository or workspace context from a local RepoBrain runtime.",
-  "pricing_model": "free",
-  "category": "retrieval",
-  "provider": "repobrain-local",
-  "mode": "educational_only",
-  "notes": "Initial educational/research listing only; commercial terms are out of scope for v1.",
-  "invocation": {
-    "type": "cli",
-    "command": "python integrations/agoragentic_v1/adapter/local_provider_adapter.py --repo-root .",
-    "input_mode": "stdin_json",
-    "output_mode": "stdout_json"
-  },
-  "auth": {
-    "type": "none"
-  },
   "input_schema": {
     "type": "object",
-    "required": ["query"],
     "properties": {
       "query": {
         "type": "string"
@@ -34,11 +19,11 @@
         "type": "boolean",
         "default": true
       }
-    }
+    },
+    "required": ["query"]
   },
   "output_schema": {
     "type": "object",
-    "required": ["results", "metadata"],
     "properties": {
       "results": {
         "type": "array",
@@ -66,7 +51,6 @@
       },
       "metadata": {
         "type": "object",
-        "required": ["provider", "mode"],
         "properties": {
           "provider": {
             "type": "string"
@@ -75,8 +59,10 @@
             "type": "string",
             "enum": ["educational_only"]
           }
-        }
+        },
+        "required": ["provider", "mode"]
       }
-    }
+    },
+    "required": ["results", "metadata"]
   }
 }
