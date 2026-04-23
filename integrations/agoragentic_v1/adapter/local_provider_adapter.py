@@ -110,7 +110,7 @@ class EngineRegistry:
         return engine, repo_root
 
 
-def _normalize_response(result: Any, *, include_snippets: bool, top_k: int, repo_root: Path) -> dict[str, Any]:
+def _normalize_response(result: Any, *, include_snippets: bool, top_k: int) -> dict[str, Any]:
     snippets_by_file: dict[str, str] = {}
     for hit in result.snippets:
         if hit.file_path not in snippets_by_file:
@@ -133,7 +133,6 @@ def _normalize_response(result: Any, *, include_snippets: bool, top_k: int, repo
         "metadata": {
             "provider": "repobrain-local",
             "mode": "educational_only",
-            "repo_root": str(repo_root),
         },
     }
 
@@ -229,14 +228,13 @@ def main() -> int:
         query, repo_scope, top_k, include_snippets = _parse_request(payload)
 
         registry = EngineRegistry(default_repo_root)
-        engine, resolved_repo = registry.get_engine(repo_scope)
+        engine, _ = registry.get_engine(repo_scope)
         result = engine.query(query, limit=top_k)
 
         response = _normalize_response(
             result,
             include_snippets=include_snippets,
             top_k=top_k,
-            repo_root=resolved_repo,
         )
         _emit(response, pretty=args.pretty)
         return 0

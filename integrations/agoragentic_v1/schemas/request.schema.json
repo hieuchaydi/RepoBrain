@@ -3,31 +3,22 @@
   "$id": "https://repobrain.local/agoragentic/v1/request.schema.json",
   "title": "RepoBrain Agoragentic Retrieval Request",
   "type": "object",
-  "additionalProperties": false,
   "required": ["query"],
   "properties": {
     "query": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 2000,
-      "description": "Natural-language retrieval query."
+      "type": "string"
     },
     "repo_scope": {
-      "type": "string",
-      "minLength": 1,
-      "description": "Optional repo/workspace identifier or absolute path."
+      "type": "string"
     },
     "top_k": {
       "type": "integer",
       "minimum": 1,
-      "maximum": 20,
-      "default": 8,
-      "description": "Maximum number of ranked results."
+      "default": 8
     },
     "include_snippets": {
       "type": "boolean",
-      "default": true,
-      "description": "Include matched excerpts in each result."
+      "default": true
     }
   }
 }

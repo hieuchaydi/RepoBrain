@@ -3,15 +3,13 @@
   "$id": "https://repobrain.local/agoragentic/v1/response.schema.json",
   "title": "RepoBrain Agoragentic Retrieval Response",
   "type": "object",
-  "additionalProperties": false,
   "required": ["results", "metadata"],
   "properties": {
     "results": {
       "type": "array",
       "items": {
         "type": "object",
-        "additionalProperties": false,
-        "required": ["path", "score", "source", "confidence"],
+        "required": ["path", "score", "source"],
         "properties": {
           "path": {
             "type": "string"
@@ -33,17 +31,14 @@
     },
     "metadata": {
       "type": "object",
-      "additionalProperties": false,
-      "required": ["provider", "mode", "repo_root"],
+      "required": ["provider", "mode"],
       "properties": {
         "provider": {
           "type": "string"
         },
         "mode": {
-          "type": "string"
-        },
-        "repo_root": {
-          "type": "string"
+          "type": "string",
+          "enum": ["educational_only"]
         }
       }
     }
