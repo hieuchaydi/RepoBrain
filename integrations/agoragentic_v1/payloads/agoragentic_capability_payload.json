@@ -1,6 +1,11 @@
 {
   "name": "repobrain.retrieve_context",
   "description": "Retrieve ranked repository or workspace context from a local RepoBrain runtime.",
+  "pricing_model": "free",
+  "category": "retrieval",
+  "delivery_method": "api_endpoint",
+  "runtime": "api",
+  "tags": ["retrieval", "repository-context", "local-first", "developer-tools"],
   "input_schema": {
     "type": "object",
     "properties": {
@@ -44,7 +49,9 @@
               "type": "number"
             },
             "snippet": {
-              "type": "string"
+              "type": "string",
+              "maxLength": 420,
+              "description": "Optional matched context excerpt. Truncated with trailing ellipsis when content exceeds adapter limit."
             }
           }
         }
@@ -64,5 +71,26 @@
       }
     },
     "required": ["results", "metadata"]
+  },
+  "sandbox_probe_input": {
+    "query": "auth middleware routing",
+    "top_k": 3,
+    "include_snippets": true
+  },
+  "execution": {
+    "type": "cli",
+    "command": "python integrations/agoragentic_v1/adapter/local_provider_adapter.py --repo-root .",
+    "args_mapping": {
+      "query": "--query",
+      "repo_scope": "--repo-scope",
+      "top_k": "--top-k",
+      "include_snippets_true": "--include-snippets",
+      "include_snippets_false": "--no-include-snippets"
+    }
+  },
+  "repo_scope_contract": {
+    "type": "local_path",
+    "value": "string",
+    "v1_note": "v1 accepts local filesystem repo/workspace paths only."
   }
 }

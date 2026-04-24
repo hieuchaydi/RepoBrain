@@ -14,7 +14,7 @@ This folder contains a local-first, self-hosted, educational-only v1 package for
 
 - `adapter/local_provider_adapter.py`: local CLI adapter.
 - `payloads/agoragentic_quickstart_payload.json`: scaffold for provider registration.
-- `payloads/agoragentic_capability_payload.json`: single tightened manifest (`name`, `description`, `input_schema`, `output_schema`) for the first capability listing.
+- `payloads/agoragentic_capability_payload.json`: single tightened manifest plus Agoragentic wrapper fields (`pricing_model`, `category`, `delivery_method`, `runtime`, `tags`, `sandbox_probe_input`, `execution`).
 
 ## Run Adapter Locally
 
@@ -58,6 +58,7 @@ cat request.json | python integrations/agoragentic_v1/adapter/local_provider_ada
 
 ## Notes
 
-- `repo_scope` can be an absolute path or a tracked workspace name.
+- `repo_scope` is standardized for v1 as a local filesystem path identity (local-first only).
 - If target repo is not indexed yet, adapter auto-indexes before query.
+- Snippets are optional and truncated to 420 chars with a trailing ellipsis when they exceed the adapter limit.
 - This package intentionally avoids broader runtime/platform changes.
