@@ -520,7 +520,6 @@ Start from `.env.example` and fill the key for the provider you enable.
 - [Contracts](docs-for-repobrain/docs/contracts.md)
 - [Evaluation](docs-for-repobrain/docs/evaluation.md)
 - [Demo Script](docs-for-repobrain/docs/demo-script.md)
-- [Growth Content Kit](docs-for-repobrain/docs/github-growth-content-kit.md)
 - [Releases](docs-for-repobrain/docs/releases.md)
 - [Implementation Plan](docs-for-repobrain/docs/implementation-plan.md)
 - [Decision Log](docs-for-repobrain/docs/decision-log.md)
