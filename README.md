@@ -1,168 +1,22 @@
 # RepoBrain
 
+*Local-first repository indexing and retrieval for developer tools.*
+
 [![CI](https://github.com/hieuchaydi/RepoBrain/actions/workflows/ci.yml/badge.svg)](https://github.com/hieuchaydi/RepoBrain/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.12%2B-3776ab)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-MIT-0e7c72)](LICENSE)
 
-RepoBrain is a local-first AI codebase analyst. Point it at any repo, build a local index, then ask where logic lives, how flows connect, what files are risky, and which files an agent should inspect before editing.
+RepoBrain is a Python tool that indexes source repositories and serves query results through a consistent local interface. It supports file discovery, trace-oriented lookup, impact-style queries, and ranked edit targets for planning code changes.
 
-**In one run, RepoBrain gives you grounded files, trace paths, and edit targets without requiring a hosted backend or API key.**
+Interfaces:
 
-What you get in the first session:
+- `repobrain` CLI for indexing, query, trace, review, benchmark, and ship checks
+- `repobrain serve-mcp` for stdio MCP integration with editor agents
+- `repobrain serve-web` for a local browser UI backed by the same engine
 
-- local index + evidence-backed retrieval
-- route/service/job flow hints for faster codebase orientation
-- ranked edit targets with confidence and warnings
+State is written to `.repobrain/` (metadata, vectors, workspace files). Retrieval combines lexical search and local vector search, then reranks candidates and returns scored files with optional snippets. Local mode is the default runtime. Remote providers are optional and only used when configured explicitly.
 
-![RepoBrain local browser UI](image.png)
-
-## 30-Second Demo
-
-![RepoBrain terminal and web demo](assets/Code_mEez5x5WU7.gif)
-
-## Start Here (New Users)
-
-If you only run one command, run this:
-
-```bash
-repobrain first-look --repo /path/to/your-project --no-report --format text
-```
-
-`first-look` initializes local state, indexes the repo, and runs starter questions.
-Use `--no-report` for a faster first run. Remove that flag when you want `.repobrain/report.html`.
-
-Fast path from a clean clone:
-
-```bash
-python -m pip install --cache-dir .pip-cache -e .
-repobrain first-look --repo /path/to/your-project --no-report --format text
-repobrain chat
-```
-
-Windows PowerShell:
-
-```powershell
-python -m pip install --cache-dir .pip-cache -e .
-repobrain first-look --repo "C:\path\to\your-project" --no-report --format text
-repobrain chat
-```
-
-Optional one-time bootstrap for a brand-new virtualenv:
-
-```bash
-python -m pip install --upgrade pip setuptools wheel
-```
-
-Then open the browser UI (optional):
-
-```bash
-repobrain serve-web --open
-```
-
-In the web UI you can click `Choose folder` or paste a path, then run `Import + Index`.
-Example output: [examples/first-look.md](examples/first-look.md).
-
-## Benchmark Snapshot (Local Run)
-
-Snapshot date: **2026-04-20**
-
-| Scenario | Command | Files | Chunks | Symbols | Edges | Parser | Time |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| First-look on RepoBrain repo | `python -m repobrain.cli first-look --repo . --format text` | 26 | 88 | 76 | 295 | tree-sitter | 11.62s |
-
-Confidence from the same run:
-
-- `query`: `0.914` (strong)
-- `trace`: `0.936` (strong)
-- `targets`: `0.866` (strong)
-
-PowerShell repro (keeps state files local to repo):
-
-```powershell
-$env:PYTHONPATH = "src"
-$env:REPOBRAIN_ACTIVE_REPO_FILE = ".repobrain\\active_repo.txt"
-$env:REPOBRAIN_WORKSPACE_STATE_FILE = ".repobrain\\workspace.json"
-python -m repobrain.cli first-look --repo . --format text
-```
-
-
-## Overview
-
-RepoBrain exists to make coding agents less reckless.
-
-Most AI coding failures do not start at code generation. They start earlier, when the agent reads the wrong files, misses a route-to-service or job-to-handler flow, or sounds confident without enough evidence.
-
-RepoBrain focuses on that pre-generation step:
-
-- index the repository into local metadata, chunks, symbols, and edges
-- retrieve grounded evidence with BM25, embeddings, and reranking
-- trace likely flow across route, service, job, and config surfaces
-- rank edit targets with explicit rationale instead of hidden intuition
-- scan a repo and produce a concise project review with the most important risks first
-- lower confidence and emit warnings when evidence is weak or contradictory
-
-The product is intentionally local-first and conservative. It ships as a CLI, a browser-based local UI, a local report/dashboard, and a stdio MCP-style adapter for tools such as Cursor, Codex, and Claude Code.
-
-## Why RepoBrain
-
-When coding agents fail, the root cause is usually not "bad code generation". It is bad context.
-
-RepoBrain focuses on the step before generation:
-
-- Find the right files.
-- Surface the most relevant symbols and snippets.
-- Trace likely route -> service -> job flows.
-- Rank edit targets with evidence instead of intuition.
-- Downgrade confidence when the evidence is weak or contradictory.
-
-This makes RepoBrain useful both as:
-
-- a CLI you can run locally against any repo
-- a stdio MCP-style tool adapter for Cursor, Codex, and Claude Code
-
-## How It Differs
-
-| Tool | Best for | RepoBrain's lane |
-| --- | --- | --- |
-| `grep` / `ripgrep` | exact text search | grounded answers with symbols, snippets, edges, and confidence |
-| ChatGPT paste | small snippets | whole-repo local indexing before asking questions |
-| Cursor / IDE agents | editing inside the IDE | pre-edit context maps, review reports, and MCP-ready evidence |
-| Sourcegraph | enterprise code search | lightweight local-first analysis for one developer or small teams |
-
-## What Ships Today
-
-- Python package under `src/repobrain`
-- Local SQLite metadata store in `.repobrain/metadata.db`
-- Persisted vector index in `.repobrain/vectors/`
-- Python + TypeScript/JavaScript support
-- Hybrid retrieval with BM25 + local hash embeddings + reranking
-- Grounding harness with planner, retriever, file selector, evidence collector, edit-target scorer, and self-check
-- Markdown docs for architecture, CLI, MCP, config, evaluation, demos, releases, and run guides
-
-## Current Unreleased Track
-
-This unreleased track now maps most closely to the `0.5.x` integration line: it bundles provider adapters, provider smoke checks, a React browser UI, and release-facing diagnostics into one local workflow.
-
-- Interactive local chat loop through `repobrain chat`
-- Saved review baselines through `repobrain baseline`
-- Windows one-click launcher through `chat.cmd`
-- Windows one-click dashboard launcher through `report.cmd`
-- Human-readable terminal output through `--format text`
-- Local HTML status dashboard through `repobrain report` or `repobrain report --open`
-- Production ship gate through `repobrain ship`
-- Live provider access checks through `repobrain provider-smoke`
-- Active repo memory: run `repobrain init --repo <path>` once, then omit `--repo`
-- Local browser UI through `repobrain serve-web --open`
-- React TSX local browser UI with interface language controls, light/dark theme, structured diagnostics cards, tracked workspace switching, repo memory notes, and cross-repo query mode with workspace-wide evidence leaders, shared hotspots, and citation previews
-- Persisted workspace memory shared across CLI chat, browser UI, and MCP tools
-- Concise repo scan through `repobrain review --format text`
-- Optional SDK-backed Gemini/OpenAI/Voyage/Cohere/Groq provider adapters
-- Gemini rerank model pools through `GEMINI_MODELS` with automatic failover on quota/rate-limit exhaustion
-- Optional tree-sitter parser adapter layer with heuristic fallback
-- Parser usage stats in `repobrain index`
-- Richer parser capability reporting in `repobrain doctor`
-
-## How To Run
+## Installation
 
 Full installation instructions are available in [docs-for-repobrain/docs/install.md](docs-for-repobrain/docs/install.md).
 
