@@ -1,6 +1,6 @@
 # RepoBrain
 
-*Local-first repository indexing and retrieval for developer tools.*
+Pre-merge safety layer for AI coding agents. Not a visualizer — a gatekeeper.
 
 [![CI](https://github.com/hieuchaydi/RepoBrain/actions/workflows/ci.yml/badge.svg)](https://github.com/hieuchaydi/RepoBrain/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.12%2B-3776ab)](pyproject.toml)
@@ -16,9 +16,85 @@ Interfaces:
 
 State is written to `.repobrain/` (metadata, vectors, workspace files). Retrieval combines lexical search and local vector search, then reranks candidates and returns scored files with optional snippets. Local mode is the default runtime. Remote providers are optional and only used when configured explicitly.
 
+## RepoBrain vs Other Tools
+
+| Feature | RepoBrain | GitNexus | Greptile |
+| --- | --- | --- | --- |
+| Primary mode | Pre-merge safety workflow during active code changes | Repository graph exploration and architecture browsing | Hosted code review and PR analysis workflows |
+| MCP server for live agent integration | Yes (`repobrain serve-mcp`) | Yes | Yes (hosted MCP endpoint) |
+| Blast radius score before edits | Yes (`repobrain blast`) | No built-in pre-edit blast score | PR-focused review signals, not local pre-edit blast scoring |
+| Pre-merge ship check gate | Yes (`repobrain ship`) | No equivalent built-in gate | Review feedback pipeline, not local ship gating |
+| Patch-review for current diff | Yes (`repobrain patch-review`) | No equivalent built-in local patch gate | Review comments on PRs, not local patch gate workflow |
+| Workspace memory for active projects | Yes (`repobrain workspace ...`) | No equivalent built-in workflow memory layer | Organization and PR context, not local workspace memory routing |
+| Agent safety gate | Coming soon | Not positioned as an agent safety gate | Not positioned as an agent safety gate |
+| Local-first default (no code sent to cloud by default) | Yes | Local mode available | No (API-first hosted workflow) |
+
 ## Installation
 
 Full installation instructions are available in [docs-for-repobrain/docs/install.md](docs-for-repobrain/docs/install.md).
+
+## MCP Integration
+
+This is what makes RepoBrain different — it runs inside Claude Code, Cursor, and Codex as a live tool, not as a separate app.
+
+Run the MCP-style transport:
+
+```bash
+repobrain serve-mcp
+```
+
+MCP tool surface:
+
+- `search_codebase`, `trace_flow`, `analyze_impact`, `suggest_edit_targets`, `build_change_context`
+- `review_patch`, `review_codebase`, `assess_ship_readiness`
+- `repobrain_search` (supports incremental streaming)
+- `repobrain_blast` (single-file blast analysis)
+- `repobrain_ship` (ship gate checks)
+- `repobrain_gate` (SAFE/WARN/BLOCK safety verdict)
+- `repobrain_status` (index health + version)
+- workspace tools: `list_workspace_projects`, `track_workspace_project`, `switch_workspace_project`, `read_repo_memory`, `remember_repo_note`, `search_workspace`
+
+## Blast Radius
+
+Before your agent edits a file, RepoBrain tells you exactly how many other files will be affected and assigns a risk score.
+
+Run:
+
+```bash
+repobrain blast "What breaks if I change auth callback handling?"
+```
+
+Example output (trimmed):
+
+```json
+{
+  "query": "What breaks if I change auth callback handling?",
+  "intent": "impact",
+  "top_files": [
+    {
+      "file_path": "frontend/src/routes/login.ts",
+      "score": 3.41
+    },
+    {
+      "file_path": "frontend/src/services/oauth.ts",
+      "score": 3.07
+    },
+    {
+      "file_path": "frontend/src/controllers/auth.py",
+      "score": 2.82
+    }
+  ],
+  "dependency_edges": [
+    "frontend/src/routes/login.ts::githubCallback --imports_call--> handleGitHubCallback"
+  ],
+  "affected_files": 3,
+  "risk_score": "high",
+  "confidence": 0.79,
+  "warnings": []
+}
+```
+
+## How To Run
 
 Fast path for most users:
 
@@ -98,12 +174,6 @@ python -m pip install --cache-dir .pip-cache -e ".[dev]"
 python -m pip install --cache-dir .pip-cache -e ".[providers]"
 python -m pip install --cache-dir .pip-cache -e ".[tree-sitter]"
 python -m pip install --cache-dir .pip-cache -e ".[mcp]"
-```
-
-Run the MCP-style transport:
-
-```bash
-repobrain serve-mcp
 ```
 
 On Windows, double-click `chat.cmd` for local chat or `report.cmd` for the visual dashboard. Both launchers prefer the project virtualenv and set `PYTHONPATH=src`.
@@ -193,6 +263,8 @@ repobrain plan "<question>"
 repobrain patch-review
 repobrain benchmark
 repobrain ship
+repobrain gate
+repobrain check-gate
 repobrain doctor
 repobrain check
 repobrain provider-smoke
@@ -211,12 +283,18 @@ repobrain workspace use "<project>"
 repobrain workspace summary
 repobrain workspace remember "<note>"
 repobrain workspace clear-notes
+repobrain memory add --file "<path>" --note "<note>" --severity critical
+repobrain memory show --file "<path>"
+repobrain memory log
+repobrain memory clear
 repobrain quickstart
 repobrain release-check --format text
 repobrain serve-mcp
 ```
 
-For human-friendly terminal output, add `--format text` to `review`, `index`, `query`/`ask`, `trace`/`map`, `impact`/`blast`, `targets`/`plan`, `benchmark`, `doctor`/`check`, `provider-smoke`/`smoke`, or `report`. JSON remains the default for agents and automation.
+For human-friendly terminal output, add `--format text` to `review`, `index`, `query`/`ask`, `trace`/`map`, `impact`/`blast`, `targets`/`plan`, `benchmark`, `doctor`/`check`, `provider-smoke`/`smoke`, `gate`, `memory log`, or `report`. JSON remains the default for agents and automation.
+
+Use `--no-memory` on `query`, `trace`, `impact`/`blast`, `targets`/`plan`, `review`, `patch-review`, `ship`, and `gate` when you need to skip memory lookup for a single run.
 
 Friendly aliases keep the CLI short without removing the original command names: `start=first-look`, `ask=query`, `map=trace`, `blast=impact`, `plan=targets`, `check=doctor`, `smoke=provider-smoke`, and `ui=serve-web`.
 
@@ -392,6 +470,19 @@ Start from `.env.example` and fill the key for the provider you enable.
 - `1.0.0`: trusted local codebase memory product with stable contracts
 
 See the detailed breakdown in [docs-for-repobrain/docs/roadmap.md](docs-for-repobrain/docs/roadmap.md) and [docs-for-repobrain/docs/releases.md](docs-for-repobrain/docs/releases.md).
+
+## 🚀 v1.3 — Early Access
+
+A major update is ready with:
+- 🚦 **Agent Safety Gate** — `repobrain gate` returns SAFE/WARN/BLOCK before every commit
+- 🔍 **Evidence-Based Confidence Score** — every output includes retrieval strength, recency, signal agreement
+- 🧠 **Persistent Workspace Memory** — annotate files once, surfaces notes on every future run
+- ⚡ **Faster Blast** — incremental cache, parallel parsing, early vendor skip
+- 🤖 **Full MCP Server** — gate, memory, search, status tools ready for Claude Code, Cursor, Codex
+
+This version is currently in **private early access**.
+
+👉 [Open an issue](https://github.com/hieuchaydi/RepoBrain/issues/new?template=early_access.md&title=%5BEarly+Access+Request%5D) to request access. I'll respond personally.
 
 ## Status
 
