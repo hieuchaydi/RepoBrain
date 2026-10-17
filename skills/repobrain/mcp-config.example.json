@@ -1,0 +1,41 @@
+{
+  "compatibility": {
+    "transport": "newline-delimited stdio JSON (RepoBrain MCP-style transport)",
+    "standardMcpJsonRpc": false,
+    "note": "These are verified process-launch templates, not drop-in Claude Code, Cursor, or Codex mcpServers entries. Use a compatible bridge until RepoBrain implements the standard MCP JSON-RPC lifecycle."
+  },
+  "installedPackage": {
+    "command": "repobrain",
+    "args": [
+      "serve-mcp",
+      "--repo",
+      "<ABSOLUTE_REPOSITORY_PATH>"
+    ]
+  },
+  "sourceCheckout": {
+    "command": "python",
+    "args": [
+      "-m",
+      "repobrain",
+      "serve-mcp",
+      "--repo",
+      "<ABSOLUTE_REPOSITORY_PATH>"
+    ],
+    "cwd": "<ABSOLUTE_REPOBRAIN_CHECKOUT_PATH>",
+    "env": {
+      "PYTHONPATH": "<ABSOLUTE_REPOBRAIN_CHECKOUT_PATH>/src"
+    }
+  },
+  "protocolProbe": {
+    "listTools": {
+      "method": "tools/list"
+    },
+    "callTool": {
+      "method": "tools/call",
+      "name": "search_codebase",
+      "arguments": {
+        "query": "Where is authentication implemented?"
+      }
+    }
+  }
+}
